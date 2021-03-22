@@ -29,9 +29,8 @@ Then edit the variables according to your machine in 'shell_variables.sh'
 ```shell 
 cd base/centernet/networks
 rm -rf DCNv2
-git clone https://github.com/CharlesShang/DCNv2.git
+git clone https://github.com/jinfagang/DCNv2_latest.git
+mv DCNv2_latest/ DCNv2/ 
 cd DCNv2
-git fetch origin pull/92/head:pytorch17
-git checkout pytorch17
 ./make.sh
 ```

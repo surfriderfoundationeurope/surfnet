@@ -1,7 +1,7 @@
-from presets import HeatmapExtractPreset
+from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
-from models import SurfNet, get_model
-from video_datasets import SurfnetDataset
+from extension.models import SurfNet
+from extension.datasets import SurfnetDataset
 import torch 
 from torch.utils.data import DataLoader
 from torch import sigmoid
@@ -9,30 +9,29 @@ import matplotlib.pyplot as plt
 from torchvision import transforms as T
 from torchvision.datasets import ImageFolder
 import numpy as np
-from losses_surfnet import TrainLoss
+from extension.losses import TrainLoss
 from torchvision.transforms.functional import center_crop
 import pickle
 import os
-from train_deeplab import get_transform
+from train_base import get_transform
+# from train_base import spatial_transformer
 
-from utils import spatial_transformer
 
+# def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
+#     model = SurfNet(num_classes=1, intermediate_layer_size=intermediate_layer_size, downsampling_factor=downsampling_factor)
+#     checkpoint = torch.load(checkpoint_name, map_location='cpu')
+#     model.load_state_dict(checkpoint)
+#     model.eval()
+#     return model.to('cuda')
 
-def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
-    model = SurfNet(num_classes=1, intermediate_layer_size=intermediate_layer_size, downsampling_factor=downsampling_factor)
-    checkpoint = torch.load(checkpoint_name, map_location='cpu')
-    model.load_state_dict(checkpoint)
-    model.eval()
-    return model.to('cuda')
-
-def load_deeplab_to_cuda(model_name):
-    downsampling_factor=4
-    model = get_model('deeplabv3__mobilenet_v3_large', 3, freeze_backbone=False, downsampling_factor=downsampling_factor)
-    for param in model.parameters():
-        param.requires_grad = False
-    checkpoint = torch.load(model_name, map_location='cpu')
-    model.load_state_dict(checkpoint['model'])
-    return model.to('cuda')
+# def load_deeplab_to_cuda(model_name):
+#     downsampling_factor=4
+#     model = get_model('deeplabv3__mobilenet_v3_large', 3, freeze_backbone=False, downsampling_factor=downsampling_factor)
+#     for param in model.parameters():
+#         param.requires_grad = False
+#     checkpoint = torch.load(model_name, map_location='cpu')
+#     model.load_state_dict(checkpoint['model'])
+#     return model.to('cuda')
 
 def get_transform_images():
 
@@ -173,10 +172,24 @@ def plot_pickle_file(file_name):
     del fig
     del axes
 
+def plot_extracted_heatmaps(data_dir):
+    pickle_files = [data_dir + file_name for file_name in sorted(os.listdir(data_dir)) if '.pickle' in file_name]
+    for file_name in pickle_files:
+        with open(file_name,'rb') as f :
+            Z, Phi, center = pickle.load(f)
+        fig, (ax0, ax1) = plt.subplots(1,2,figsize=(30,30))
+        ax0.imshow(sigmoid(Z[0]),vmin=0, vmax=1, cmap='gray')
+        ax0.set_title('$Z$')
+        ax1.imshow(Phi, vmin=0, vmax=1, cmap='gray')
+        ax1.set_title('$\Phi$')
+        plt.suptitle('center = $'+str(center.detach().cpu().numpy()))
+        plt.show()
+        plt.close()
+
 
 if __name__ == '__main__':
 
-    plot_pickle('/run/user/1000/gvfs/sftp:host=gpu1/home/infres/chagneux/datasets/surfrider/my_deeplab/test.pickle')
+    plot_extracted_heatmaps('/home/infres/chagneux/datasets/surfrider_data/video_dataset/heatmaps_and_annotations/')
 
     # class Args(object):
     #     def __init__(self, focal, downsampling_factor):
