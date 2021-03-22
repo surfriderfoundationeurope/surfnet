@@ -13,9 +13,9 @@ from extension.losses import TrainLoss
 from torchvision.transforms.functional import center_crop
 import pickle
 import os
-from train_base import get_transform
+from base.centernet.models import create_model, load_model
 # from train_base import spatial_transformer
-
+import cv2
 
 # def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
 #     model = SurfNet(num_classes=1, intermediate_layer_size=intermediate_layer_size, downsampling_factor=downsampling_factor)
@@ -178,18 +178,39 @@ def plot_extracted_heatmaps(data_dir):
         with open(file_name,'rb') as f :
             Z, Phi, center = pickle.load(f)
         fig, (ax0, ax1) = plt.subplots(1,2,figsize=(30,30))
-        ax0.imshow(sigmoid(Z[0]),vmin=0, vmax=1, cmap='gray')
+        ax0.imshow(sigmoid(Z[0]), cmap='gray')
         ax0.set_title('$Z$')
-        ax1.imshow(Phi, vmin=0, vmax=1, cmap='gray')
+        ax1.imshow(Phi[0], vmin=0, vmax=1, cmap='gray')
         ax1.set_title('$\Phi$')
-        plt.suptitle('center = $'+str(center.detach().cpu().numpy()))
+        plt.suptitle('center = '+str(center))
         plt.show()
         plt.close()
 
 
+
+def plot_base_heatmaps_centernet(model, dataloader):
+
+    with torch.no_grad():
+        for image, _ in dataloader:
+            image = image.to('cuda')
+            predictions  = model(image)[-1]
+            heatmaps = predictions['hm'][0]
+            image = np.transpose(image.squeeze().cpu().numpy(), axes=[1, 2, 0]) * (0.408, 0.447, 0.47) + (0.289, 0.274, 0.278)
+            image = image[...,::-1]
+            _ , (ax0, ax1, ax2, ax3) = plt.subplots(1,4,figsize=(20,20))
+            ax0.imshow(image)
+            ax1.imshow(heatmaps[0].sigmoid_().cpu(), vmin=0, vmax=1, cmap='gray')
+            ax2.imshow(heatmaps[1].sigmoid_().cpu(), vmin=0, vmax=1, cmap='gray')
+            ax3.imshow(heatmaps[2].sigmoid_().cpu(), vmin=0, vmax=1, cmap='gray')
+
+            plt.show()
+
+    
+from common.utils import pre_process_centernet
+
 if __name__ == '__main__':
 
-    plot_extracted_heatmaps('/home/infres/chagneux/datasets/surfrider_data/video_dataset/heatmaps_and_annotations/')
+    # plot_extracted_heatmaps('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/')
 
     # class Args(object):
     #     def __init__(self, focal, downsampling_factor):
@@ -204,12 +225,24 @@ if __name__ == '__main__':
     # # from train_deeplab import get_dataset
     # # # dataset = SurfnetDataset(heatmaps_folder='/media/mathis/f88b9c68-1ae1-4ecc-a58e-529ad6808fd3/heatmaps_and_annotations/current/', split='train')
    
-   
-    # dataset = ImageFolder('/home/mathis/Documents/datasets/surfrider/other/Image_folder/', transform = get_transform_images())
+    # transform = lambda x: pre_process_centernet(x, scale=1, mean=)
+    dataset = ImageFolder('/home/mathis/Documents/datasets/surfrider/other/Image_folder/', transform = pre_process_centernet, loader=cv2.imread)
+    trained_model_weights_filename = 'external_pretrained_models/centerner_best.pth'
+    model = create_model(arch='dla_34', heads={'hm':3,'wh':2,'reg':2}, head_conv=256)
+    model = load_model(model, trained_model_weights_filename)
+    for param in model.parameters():
+        param.requires_grad = False
+    model.to('cuda')
+    print('Model loaded to GPU.')
+    model.eval()
+
 
     # # dataset, num_classes = get_dataset('/home/mathis/Documents/datasets/surfrider/images_subset/', 'surfrider','val', args)
 
-    # dataloader = DataLoader(dataset, shuffle=True, batch_size=1)
+    dataloader = DataLoader(dataset, shuffle=True, batch_size=1)
+
+    plot_base_heatmaps_centernet(model, dataloader)
+
 
     # # # loss = TrainLoss('focal_centernet',sigma2=2, alpha=2, beta=4)
     # # # model = get_model('deeplabv3__resnet50', 3, freeze_backbone=False, downsampling_factor=4)

@@ -8,10 +8,10 @@ from torch import nn
 from torchvision import datasets 
 
 from base.utils.coco_utils import get_coco, get_surfrider
-from base.deeplab.models import get_model
+from base.deeplab.models import get_model as get_model_deeplab
 from base.utils import presets
 from torch.utils.tensorboard import SummaryWriter
-from base.centernet.models import create_model
+from base.centernet.models import create_model as get_model_centernet
 from base.losses import Loss
 from base.utils import train_utils as utils
 
@@ -22,8 +22,11 @@ def get_dataset(dir_path, name, image_set, args):
         "voc": (dir_path, datasets.VOCSegmentation, 21),
         "voc_aug": (dir_path, sbd, 21),
         "coco": (dir_path, get_coco, 21),
-        "surfrider": (dir_path, get_surfrider, 3)
+        "surfrider": (dir_path, get_surfrider, 4),
+        "surfrider_focal": (dir_path, get_surfrider, 3)
     }
+    if args.focal:
+        name = name+'_focal'
     p, ds_fn, num_classes = paths[name]
 
     train = image_set == 'train'
@@ -47,13 +50,12 @@ def get_transform(train, num_classes, args):
 
 def cross_entropy(inputs, target):
     losses = {}
-    for name, x in inputs.items():
-        losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
-
+    losses['hm'] = nn.functional.cross_entropy(inputs['hm'], target, ignore_index=255)
+    losses['aux'] = nn.functional.cross_entropy(inputs['aux'], target, ignore_index=255)
     if len(losses) == 1:
-        return losses['out']
+        return losses['hm']
 
-    return losses['out'] + 0.5 * losses['aux']
+    return losses['hm'] + 0.5 * losses['aux']
 
 
 def evaluate(model, data_loader, device, num_classes):
@@ -205,10 +207,11 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn)
 
-    # model = get_model(model_name=args.model, num_classes=num_classes, freeze_backbone=args.freeze_backbone, downsampling_factor=args.downsampling_factor)
-
-    model = create_model(arch = 'dla_34',heads = {'hm':num_classes,'wh':2}, head_conv=256)
-    model.to(device)
+    if args.focal:
+        model = get_model_centernet(arch = args.model, heads = {'hm':num_classes,'wh':2}, head_conv=256)
+        model.to(device)
+    else:
+        model = get_model_deeplab(args.model, num_classes, freeze_backbone=args.freeze_backbone, downsampling_factor=args.downsampling_factor)
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
@@ -231,11 +234,12 @@ def main(args):
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-    # lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-    #     optimizer,
-    #     lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
-
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
+    if args.focal: 
+        lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer,
+            lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
+    else:
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
 
 
     # lr_scheduler = None
@@ -264,8 +268,9 @@ def main(args):
 
     # test = model.classifier[-1].bias.data
 
-    # model.classifier[-1].bias.data[:-2].fill_(-2.19)
-    # model.aux_classifier[-1].bias.data.fill_(-2.19)
+    if args.focal and args.model.split('__')[0] == 'deeplabv3':
+        model.classifier[-1].bias.data[:-2].fill_(-2.19)
+        model.aux_classifier[-1].bias.data.fill_(-2.19)
 
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:

@@ -1,3 +1,4 @@
+import torch
 from torch.nn import Conv2d
 from torch.nn.modules.module import Module
 import torch.nn.functional as F
@@ -7,17 +8,22 @@ from collections import OrderedDict
 class MySimpleSegmentationModel(Module):
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier, num_classes=3, downsampling_factor=4):
+    def __init__(self, backbone, classifier, aux_classifier, num_classes=3, downsampling_factor=4, focal=True):
         super(MySimpleSegmentationModel, self).__init__()
         self.num_classes = num_classes
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.downsampling_factor = downsampling_factor
-
-        self.classifier[-1] = Conv2d(self.classifier[-1].in_channels, self.num_classes+2, 1)
-        if self.aux_classifier is not None:
-            self.aux_classifier[-1] = Conv2d(self.aux_classifier[-1].in_channels, self.num_classes+2, 1)
+        self.focal = focal
+        if self.focal:
+            self.classifier[-1] = Conv2d(self.classifier[-1].in_channels, self.num_classes+2, 1)
+            if self.aux_classifier is not None:
+                self.aux_classifier[-1] = Conv2d(self.aux_classifier[-1].in_channels, self.num_classes+2, 1)
+        else:
+            self.classifier[-1] = Conv2d(self.classifier[-1].in_channels, self.num_classes+1, 1)
+            if self.aux_classifier is not None:
+                self.aux_classifier[-1] = Conv2d(self.aux_classifier[-1].in_channels, self.num_classes+1, 1)
 
 
 
@@ -31,9 +37,11 @@ class MySimpleSegmentationModel(Module):
         x = features["out"]
         x = self.classifier(x)
         x = F.interpolate(x, size=downsampled_shape, mode='bilinear', align_corners=False)
-        result["hm"] = x[:self.num_classes]
-        result["wh"] = x[self.num_classes:]
-
+        if self.focal:
+            result["hm"] = x[:self.num_classes]
+            result["wh"] = x[self.num_classes:]
+        else:
+            result["hm"] = x
 
         if self.aux_classifier is not None:
             x = features["aux"]
@@ -43,7 +51,7 @@ class MySimpleSegmentationModel(Module):
 
         return result
 
-def get_model(model_name, num_classes, freeze_backbone, downsampling_factor):
+def get_model(model_name, num_classes, freeze_backbone, downsampling_factor, focal=True):
 
     num_classes_pretrained = 21
     
@@ -55,10 +63,11 @@ def get_model(model_name, num_classes, freeze_backbone, downsampling_factor):
         model = torchvision.models.segmentation.__dict__[classifier+'_'+backbone](num_classes=num_classes_pretrained,
                                                                 aux_loss=False,
                                                                 pretrained=True)
+        # model = torch.hub.load('pytorch/vision:master',classifier+'_'+backbone)
     else:
         raise NotImplementedError
 
-    model = MySimpleSegmentationModel(model.backbone, model.classifier, None, num_classes, downsampling_factor)
+    model = MySimpleSegmentationModel(model.backbone, model.classifier, None, num_classes, downsampling_factor, focal)
 
     if freeze_backbone:
         for param in model.backbone.parameters():
@@ -68,7 +77,7 @@ def get_model(model_name, num_classes, freeze_backbone, downsampling_factor):
 
 
 if __name__ == "__main__":
-    model = get_model('deeplabv3__mobilenet_v3_large', 3, freeze_backbone=False, downsampling_factor=4)
+    model = get_model('deeplabv3__resnet50', 3, freeze_backbone=False, downsampling_factor=4)
     print(model)
 
 

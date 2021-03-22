@@ -62,9 +62,9 @@ class SegmentationPresetEvalBboxes:
         return self.transforms(img, target)
 
 class HeatmapExtractPreset:
-    def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    def __init__(self, mean=(0.408, 0.447, 0.47), std=(0.289, 0.274, 0.2785)):
         self.transform = torchvision_T.Compose([
-            T.ResizeOriginalForDLA(),
+            T.RandomResizeImageOnly(),
             torchvision_T.ToTensor(),
             torchvision_T.Normalize(mean=mean, std=std),
         ])

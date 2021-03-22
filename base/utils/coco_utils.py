@@ -151,6 +151,32 @@ def get_surfrider(root, image_set, transforms):
 
     transforms = Compose([
         # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
+        ConvertCocoPolysToMask(),
+        # ConvertCocoPolysToBboxes(),
+        transforms
+    ])
+
+    img_folder, ann_file = PATHS[image_set]
+    img_folder = os.path.join(root, img_folder)
+    ann_file = os.path.join(root, ann_file)
+
+    dataset = torchvision.datasets.CocoDetection(img_folder, ann_file, transforms=transforms)
+
+    # if image_set == "train":
+    #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
+
+    return dataset
+
+def get_surfrider_focal(root, image_set, transforms):
+    PATHS = {
+        "train": ("Images_md5", os.path.join("annotations", "instances_train.json")),
+        "val": ("Images_md5", os.path.join("annotations", "instances_val.json")),
+        # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
+    }
+    # CAT_LIST = [0, 1, 2, 3]
+
+    transforms = Compose([
+        # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
         # ConvertCocoPolysToMask(),
         ConvertCocoPolysToBboxes(),
         transforms
@@ -166,3 +192,4 @@ def get_surfrider(root, image_set, transforms):
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
 
     return dataset
+

@@ -8,24 +8,36 @@ from tqdm import tqdm as tqdm
 import torch 
 import pickle
 from torch.nn.functional import sigmoid
+# import math 
+import cv2
+class VideoOpenCV(object):
+    def __init__(self, video_name):
+        self.cap = cv2.VideoCapture(video_name)
+        self.num_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def read(self):
+        ret, frame = self.cap.read()
+        if not ret: 
+            print('Unreadable frame!')
+        return frame
+
 
 class SingleVideoDataset(torch.utils.data.Dataset):
     def __init__(self, video_name, transforms = None):
-        self.video = torchvision.io.read_video(video_name)[0].permute(0,3,1,2)
+        self.video = VideoOpenCV(video_name)
         self.annotation = json.load(open(video_name.replace('.MP4','.json') ,'r'))
         self.transforms = transforms 
-        self.PILConverter = torchvision.transforms.ToPILImage()
-
+        
     def __getitem__(self, index):
 
-        frame = self.PILConverter(self.video[index])
-        old_frame_shape = frame.size
+        frame = self.video.read()
+        old_frame_shape = frame.shape[:-1]
         
         annotation = self.annotation[str(index)]
 
         if self.transforms is not None: 
             frame =  self.transforms(frame)
-            new_frame_shape = frame.shape
+            new_frame_shape = frame.shape[1:]
 
             annotation = self._resize_annotation(annotation, old_frame_shape, new_frame_shape)
 
@@ -33,24 +45,41 @@ class SingleVideoDataset(torch.utils.data.Dataset):
 
     def _resize_annotation(self, annotation, old_frame_shape, new_frame_shape):
 
-        old_shape_x, old_shape_y = old_frame_shape
-        new_shape_x, new_shape_y = new_frame_shape[2], new_frame_shape[1]
+        old_shape_y, old_shape_x = old_frame_shape
+        new_shape_y, new_shape_x = new_frame_shape
+        ratio = new_shape_x / old_shape_x
+        padding_y = (new_shape_y - ratio*old_shape_y) // 2
 
-        ratio_x = new_shape_x / old_shape_x
-        ratio_y = new_shape_y / old_shape_y
+        # padding_top = abs(new_shape_y - old_shape_y) // 2
+        # padding_left =  abs(new_shape_x - old_shape_x) // 2
 
         for object_nb in annotation.keys():
 
             [top_left_x, top_left_y, width, height] = annotation[object_nb]['bbox']
             [center_x, center_y] = annotation[object_nb]['center']
 
-            annotation[object_nb]['bbox'] = [int(top_left_x * ratio_x), int(top_left_y * ratio_y), int(width * ratio_x), int(height * ratio_y)]
-            annotation[object_nb]['center'] = [int(center_x * ratio_x), int(center_y * ratio_y)]
+            annotation[object_nb]['bbox'] = [int(ratio*top_left_x), int(ratio*top_left_y + padding_y), int(ratio*width), int(ratio*height)]
+            annotation[object_nb]['center'] = [int(ratio*center_x), int(ratio*center_y + padding_y)]
 
         return annotation
 
+    # def _resize_annotation_old(self, annotation, old_frame_shape, new_frame_shape):
+
+    #     old_shape_y, old_shape_x = old_frame_shape
+    #     new_shape_y, new_shape_x = new_frame_shape
+
+    #     for object_nb in annotation.keys():
+
+    #         [top_left_x, top_left_y, width, height] = annotation[object_nb]['bbox']
+    #         [center_x, center_y] = annotation[object_nb]['center']
+
+    #         annotation[object_nb]['bbox'] = [int(top_left_x * ratio_x), int(top_left_y * ratio_y), int(width * ratio_x), int(height * ratio_y)]
+    #         annotation[object_nb]['center'] = [int(center_x * ratio_x), int(center_y * ratio_y)]
+
+    #     return annotation
+
     def __len__(self):
-        return len(self.video)      
+        return len(self.video.num_frames)      
  
 class SurfnetDataset(torch.utils.data.Dataset):
     def __init__(self, heatmaps_folder, split):
