@@ -5,4 +5,4 @@ __pycache__/
 *.pth
 *.pickle
 
-scrips_for_experiments/shell_variables.sh
+scripts_for_experiments/shell_variables.sh
