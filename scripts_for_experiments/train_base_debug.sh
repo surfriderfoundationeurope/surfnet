@@ -17,7 +17,7 @@ tensorboard --logdir=${output_dir} &
 
 python -m debugpy --listen 5678 --wait-for-client train_base.py \
     --model ${model_name} \
-    --data-path ${SURFRIDER_IMAGES_PATH} \
+    --data-path ${IMAGES_PATH} \
     --batch-size 16 \
     --output-dir ${output_dir} \
     --logdir ${output_dir} \
