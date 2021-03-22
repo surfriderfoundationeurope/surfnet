@@ -1,0 +1,16 @@
+name: surfnet_DLA
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - pytorch=1.7
+  - torchvision
+  - cudatoolkit=10.1
+  - opencv
+  - pycocotools
+  - debugpy
+  - scipy
+  - tqdm
+  - av 
+  - tensorboard

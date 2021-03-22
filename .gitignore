@@ -1,0 +1,8 @@
+.vscode/
+*.MP4
+*.json 
+__pycache__/
+*.pth
+*.pickle
+
+scrips_for_experiments/shell_variables.sh
