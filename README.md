@@ -13,7 +13,7 @@ conda activate surfnet
 #### For use with CenterNet models 
 ```shell
 conda env create --name surfnet_DLA --file environment_centernet_DCN.yml
-conda activate surfnet 
+conda activate surfnet_DLA 
 ```
 
 ### Variables
