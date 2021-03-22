@@ -20,7 +20,7 @@ conda activate surfnet
 ```shell
 sh scripts_for_experiments/init_shell_variables.sh
 ```
-Then edit the variables according to your machine.
+Then edit the variables according to your machine in 'shell_variables.sh'
 
 
 
