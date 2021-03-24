@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from torch import sigmoid, logit
+import math 
+import matplotlib.pyplot as plt
 
 class TrainLoss(nn.Module):
     def __init__(self, alpha=2, beta=4, sigma2=2):
@@ -17,13 +19,20 @@ class TrainLoss(nn.Module):
             gt_regr (batch x c x h x w)
         '''
 
-        eq_one_logit = logit_Phi0.max()
+        # h0 = logit_Phi0.clone()
+        # h1 = logit_Phi1.clone()
 
-        pos_inds_0 = logit_Phi0.eq(eq_one_logit).float()
-        neg_inds_0 = logit_Phi0.lt(eq_one_logit).float()
+        # shape_data = logit_Phi0.numel()
 
-        pos_inds_1 = logit_Phi0.eq(eq_one_logit).float()
-        neg_inds_1 = logit_Phi0.lt(eq_one_logit).float()
+        logit_of_clamped_one = torch.logit(torch.tensor(1-1e-16,  dtype=logit_Phi0.dtype))
+
+        relevant_pixels_1 = h1.ne(-50).double()
+
+        pos_inds_0 = logit_Phi0.eq(logit_of_clamped_one).double()
+        neg_inds_0 = logit_Phi0.lt(logit_of_clamped_one).double()
+
+        pos_inds_1 = logit_Phi1.eq(logit_of_clamped_one).double()
+        neg_inds_1 = logit_Phi1.lt(logit_of_clamped_one).double()
 
         num_pos_0 = pos_inds_0.float().sum()
         num_pos_1 = pos_inds_1.float().sum()
@@ -33,11 +42,11 @@ class TrainLoss(nn.Module):
 
         loss = 0.0
 
-        pos_loss_0_focal_term = torch.pow(1 - _sigmoid(h0), self.alpha) * pos_inds_0
-        neg_loss_0_focal_term  = torch.pow(_sigmoid(h0), self.alpha) * neg_weights_0 * neg_inds_0
+        pos_loss_0_focal_term = torch.pow(1 - torch.sigmoid(h0), self.alpha) * pos_inds_0
+        neg_loss_0_focal_term  = torch.pow(torch.sigmoid(h0), self.alpha) * neg_weights_0 * neg_inds_0
 
-        pos_loss_1_focal_term  = torch.pow(1 - _sigmoid(h1), self.alpha) * pos_inds_1
-        neg_loss_1_focal_term  = torch.pow(_sigmoid(h1), self.alpha) * neg_weights_1 * neg_inds_1
+        pos_loss_1_focal_term  = torch.pow(1 - torch.sigmoid(h1), self.alpha) * pos_inds_1
+        neg_loss_1_focal_term  = torch.pow(torch.sigmoid(h1), self.alpha) * neg_weights_1 * neg_inds_1
 
         term0 = logit_Phi0 - h0
         term1 = logit_Phi1 - h1
@@ -48,19 +57,52 @@ class TrainLoss(nn.Module):
         pos_loss_0 = (pos_loss_0_focal_term * term0).sum()
         neg_loss_0 = (neg_loss_0_focal_term * term0).sum()
 
-        pos_loss_1 = (pos_loss_1_focal_term * term1).sum()
-        neg_loss_1 = (neg_loss_1_focal_term * term1).sum()
+        pos_loss_1 = (pos_loss_1_focal_term * term1 * relevant_pixels_1).sum()
+        neg_loss_1 = (neg_loss_1_focal_term * term1 * relevant_pixels_1).sum()
+
+
+        fig, (ax0, ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(1,7, figsize=(20,20))
+        ax0.imshow(logit_Phi0[0][0].cpu(),cmap='gray')
+        ax0.set_title('logitphi0')
+
+        ax1.imshow(h0[0][0].detach().cpu(),cmap='gray')
+        ax1.set_title('h0')
+
+        ax2.imshow(neg_weights_0[0][0].detach().cpu(),cmap='gray')
+        ax2.set_title('neg_weights')
+
+        ax3.imshow(neg_loss_0_focal_term[0][0].detach().cpu(), cmap='gray')
+        ax3.set_title('neg_loss_focal_term')
+
+        ax4.imshow(pos_loss_0_focal_term[0][0].detach().cpu(), cmap='gray')
+        ax4.set_title('pos_loss_focal_term')
+
+        ax5.imshow(term0[0][0].detach().cpu(), cmap='gray')
+        ax5.set_title('term0')
+
+        ax6.imshow(torch.sigmoid(logit_Phi0[0][0]).cpu(),cmap='gray')
+        ax6.set_title('phi0')
+
+        with open('verbose_hardcore.pickle','wb') as f:
+            import pickle
+            obj = (fig, (ax0, ax1, ax2, ax3, ax4, ax5, ax6))
+            pickle.dump(obj, f)
+        plt.close()           
+
 
         if num_pos_0 == 0:
-            loss = loss + neg_loss_0
+            loss += 0.5*neg_loss_0
         else:
-            loss = loss + (pos_loss_0 + neg_loss_0) / num_pos_0
+            loss += 0.5*(pos_loss_0 + neg_loss_0) / num_pos_0
 
 
         if num_pos_1 == 0:
-            loss = loss + neg_loss_1
+            loss += 0.5*neg_loss_1
         else:
-            loss = loss + (pos_loss_1 + neg_loss_1) / num_pos_1
+            loss += 0.5*(pos_loss_1 + neg_loss_1) / num_pos_1
+        
+        if math.isnan(loss):
+            test = 0
         
         return loss/self.sigma2
 

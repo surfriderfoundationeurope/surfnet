@@ -7,7 +7,6 @@ import torchvision
 from tqdm import tqdm as tqdm
 import torch 
 import pickle
-from torch.nn.functional import sigmoid
 # import math 
 import cv2
 
@@ -24,7 +23,6 @@ class VideoOpenCV(object):
         if not ret: 
             print('Unreadable frame!')
         return frame
-
 
 class SingleVideoDataset(torch.utils.data.Dataset):
     def __init__(self, video_name, transforms = None):
@@ -87,12 +85,14 @@ class SurfnetDataset(torch.utils.data.Dataset):
             video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
             with open(self.heatmaps_folder + video_name_0,'rb') as f: 
                 Z_0, Phi0, center_0 = pickle.load(f)
+                Z_0 = Z_0.type(torch.float64)
             with open(self.heatmaps_folder + video_name_1,'rb') as f: 
                 Phi1, center_1 = pickle.load(f)[1:]
 
             d_01 = np.array(center_0) - np.array(center_1)
 
-            return Z_0, _logit(Phi0), _logit(Phi1), d_01
+            Z_0 = torch.sum(torch.sigmoid(Z_0), axis=0, keepdim=True)
+            return  _logit(Z_0), _logit(Phi0), _logit(Phi1), d_01
         else: 
             video_id, id_in_video = self.id_to_location[index]
             video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
@@ -100,7 +100,9 @@ class SurfnetDataset(torch.utils.data.Dataset):
             with open(self.heatmaps_folder + video_name,'rb') as f: 
                  Z, Phi, _ = pickle.load(f)
 
-            return Z, _logit(Phi)
+            Z = torch.sum(torch.sigmoid(Z), axis=0, keepdim=True)
+
+            return _logit(Z), _logit(Phi)
 
     def __len__(self):
         return len(self.id_to_location)
@@ -176,10 +178,10 @@ def plot_loader(video_loader):
             ax3.imshow(Phi_1_tilde, cmap='gray')
             ax3.set_title('$\widetilde{\Phi}_1$')
             
-            ax4.imshow(sigmoid(Phi_0_tilde), cmap='gray')
+            ax4.imshow(torch.sigmoid(Phi_0_tilde), cmap='gray')
             ax4.set_title('$\Phi_0$')
 
-            ax5.imshow(sigmoid(Phi_1_tilde), cmap='gray')
+            ax5.imshow(torch.sigmoid(Phi_1_tilde), cmap='gray')
             ax5.set_title('$\Phi_1$')
             
              

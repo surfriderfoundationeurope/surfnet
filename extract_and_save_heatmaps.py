@@ -35,8 +35,13 @@ def extract(args):
 
     if 'deeplab' in args.model:
         transform = transforms_test_deeplab
-        model = get_model(args.model, 4, freeze_backbone=True, downsampling_factor=args.downsampling_factor,focal=False)
+        model = get_model(args.model, 4, freeze_backbone=True, downsampling_factor=args.downsampling_factor, focal=False)
         model = load_my_model(model, trained_model_weights_filename)
+        for param in model.parameters():
+            param.requires_grad = False
+        model.to('cuda')
+        print('Model loaded to GPU.')
+        model.eval()
 
     else:
         if args.my_repo: 
@@ -76,7 +81,7 @@ def extract(args):
                 frame = np.transpose(frame.squeeze().cpu().numpy(), axes=[1, 2, 0])
                 frame = frame * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
 
-                plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
+                # plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
 
                 data = (Z.cpu().squeeze(), torch.from_numpy(Phi).unsqueeze(0), center)
                 with open(output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:

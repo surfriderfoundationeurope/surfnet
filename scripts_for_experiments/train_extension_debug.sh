@@ -4,7 +4,7 @@ model_name='surfnet32'
 sigma2='2'
 alpha='2'
 beta='4'
-lr='1e-5'
+lr='1e-4'
 
 experiment_name=${model_name}'_sigma2_'${sigma2}'_alpha_'${alpha}'_beta_'${beta}
 
