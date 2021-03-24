@@ -2,6 +2,24 @@ import numpy as np
 import math 
 import cv2
 import torch
+import torchvision.transforms as T 
+import torchvision.transforms.functional as F
+
+class ResizeForCenterNet(object):
+    def __init__(self, fix_res=False):
+        self.fix_res = fix_res 
+    
+    def __call__(self, image):
+        if self.fix_res:
+            new_h = 512
+            new_w = 512
+        else:
+            w, h = image.size
+            new_h = (h | 31) + 1
+            new_w = (w | 31) + 1
+        image = F.resize(image, (new_h, new_w))
+        return image
+
 
 def gaussian_radius(det_size, min_overlap=0.7):
     height, width = det_size
@@ -149,3 +167,29 @@ def get_dir(src_point, rot_rad):
 def get_3rd_point(a, b):
     direct = a - b
     return b + np.array([-direct[1], direct[0]], dtype=np.float32)
+
+def load_my_model(model, trained_model_weights_filename):
+    checkpoint = torch.load(trained_model_weights_filename, map_location='cpu')
+    model.load_state_dict(checkpoint['model'])
+    return model
+
+
+def transform_test_CenterNet(fix_res=False):
+
+    transforms = []
+
+    transforms.append(ResizeForCenterNet(fix_res))
+    transforms.append(T.ToTensor())
+    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
+                                  std=[0.229, 0.224, 0.225]))
+
+    return T.Compose(transforms)
+
+def transforms_test_deeplab():
+    transforms = []
+
+    transforms.append(T.ToTensor())
+    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
+                                  std=[0.229, 0.224, 0.225]))
+
+    return T.Compose(transforms)

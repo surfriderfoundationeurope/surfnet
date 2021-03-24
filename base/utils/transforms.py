@@ -218,17 +218,6 @@ class RandomResizeImageOnly(object):
         image = F.resize(image, size)
         return image
 
-class ResizeOriginalForDLA(object):
-    def __init__(self):
-        pass 
-    
-    def __call__(self, image):
-        w, h = image.size
-        new_h = (h | 31) + 1
-        new_w = (w | 31) + 1
-        image = F.resize(image, (new_h, new_w))
-        return image
-
 
     
 
