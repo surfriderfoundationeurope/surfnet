@@ -51,6 +51,20 @@ def plot_single_image_and_heatmaps(image, heatmaps, normalize):
     ax3.imshow(heatmaps[2].sigmoid_().cpu(),**kwargs)
 
     plt.show()
+    plt.close()
+def plot_heatmaps_and_gt(heatmaps, gt, normalize):
+
+    _ , (ax0, ax1, ax2, ax3) = plt.subplots(1,4,figsize=(30,30))
+    if not normalize: 
+        kwargs = {'vmin':0, 'vmax':1, 'cmap':'gray'}
+    else: 
+        kwargs = {'cmap':'gray'}
+    ax0.imshow(gt[0], **kwargs)
+    ax1.imshow(heatmaps[0].sigmoid_().cpu(),**kwargs)
+    ax2.imshow(heatmaps[1].sigmoid_().cpu(),**kwargs)
+    ax3.imshow(heatmaps[2].sigmoid_().cpu(),**kwargs)
+    plt.show()
+    plt.close()
 
 def plot_surfnet_heatmaps(model_deeplab, model_surfnet, dataloader):
     model_surfnet.eval()
@@ -153,15 +167,8 @@ def plot_extracted_heatmaps(data_dir):
     for file_name in pickle_files:
         with open(file_name,'rb') as f :
             Z, Phi, center = pickle.load(f)
-        fig, (ax0, ax1) = plt.subplots(1,2,figsize=(30,30))
-        ax0.imshow(sigmoid(Z[0]), cmap='gray')
-        ax0.set_title('$Z$')
-        ax1.imshow(Phi[0], vmin=0, vmax=1, cmap='gray')
-        ax1.set_title('$\Phi$')
-        plt.suptitle('center = '+str(center))
-        plt.show()
-        plt.close()
-    
+        print(center)
+        plot_heatmaps_and_gt(Z, Phi, normalize=False)
 def plot_base_heatmaps_centernet_official_repo(trained_model_weights_filename, images_folder, shuffle=True, fix_res=False, normalize=False):
     dataset = ImageFolder(images_folder, transform = lambda image: pre_process_centernet(image, fix_res), loader=cv2.imread)
     dataloader = DataLoader(dataset, shuffle=shuffle, batch_size=1)
@@ -206,10 +213,10 @@ from common.utils import pre_process_centernet
 if __name__ == '__main__':
 
 
-    images_folder = '/home/mathis/Documents/datasets/surfrider/other/test_synthetic_video_adour/'
-    centernet_trained_my_repo = 'external_pretrained_models/centernet_trained_my_repo.pth'
-    centernet_trained_official_repo = 'external_pretrained_models/centernet_trained_official_repo.pth'
-    plot_base_heatmaps_centernet_my_repo(centernet_trained_my_repo, images_folder, shuffle=False, fix_res=False, normalize=False)
+    # images_folder = '/home/mathis/Documents/datasets/surfrider/other/test_synthetic_video_adour/'
+    # centernet_trained_my_repo = 'external_pretrained_models/centernet_trained_my_repo.pth'
+    # centernet_trained_official_repo = 'external_pretrained_models/centernet_trained_official_repo.pth'
+    # plot_base_heatmaps_centernet_my_repo(centernet_trained_my_repo, images_folder, shuffle=False, fix_res=False, normalize=False)
     # plot_base_heatmaps_centernet_official_repo(centernet_trained_official_repo, images_folder, shuffle=False, fix_res=False, normalize=True)
 
 
@@ -220,6 +227,7 @@ if __name__ == '__main__':
             #     image = image * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
     # plot_extracted_heatmaps('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/')
 
+    plot_pickle_file('verbose.pickle')
     # class Args(object):
     #     def __init__(self, focal, downsampling_factor):
     #         self.focal = focal

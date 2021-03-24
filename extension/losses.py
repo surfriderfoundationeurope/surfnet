@@ -9,7 +9,7 @@ class TrainLoss(nn.Module):
         self.beta = int(beta)
         self.sigma2 = int(sigma2)
 
-    def forward(self, h0, h1, Phi0, Phi1):
+    def forward(self, h0, h1, logit_Phi0, logit_Phi1):
         ''' Modified focal loss. Exactly the same as CornerNet.
             Runs faster and costs a little bit more memory
             Arguments:
@@ -17,17 +17,19 @@ class TrainLoss(nn.Module):
             gt_regr (batch x c x h x w)
         '''
 
-        logit_Phi0 = logit(Phi0)
-        logit_Phi1 = logit(Phi1)
+        eq_one_logit = logit_Phi0.max()
 
-        pos_inds_0 = Phi0.eq(1).float()
-        neg_inds_0 = Phi0.lt(1).float()
+        pos_inds_0 = logit_Phi0.eq(eq_one_logit).float()
+        neg_inds_0 = logit_Phi0.lt(eq_one_logit).float()
 
-        pos_inds_1 = Phi0.eq(1).float()
-        neg_inds_1 = Phi0.lt(1).float()
+        pos_inds_1 = logit_Phi0.eq(eq_one_logit).float()
+        neg_inds_1 = logit_Phi0.lt(eq_one_logit).float()
 
-        neg_weights_0 = torch.pow(1 - Phi0, self.beta)
-        neg_weights_1 = torch.pow(1 - Phi1, self.beta)
+        num_pos_0 = pos_inds_0.float().sum()
+        num_pos_1 = pos_inds_1.float().sum()
+
+        neg_weights_0 = torch.pow(1 - torch.sigmoid(logit_Phi0), self.beta)
+        neg_weights_1 = torch.pow(1 - torch.sigmoid(logit_Phi1), self.beta)
 
         loss = 0.0
 
@@ -48,9 +50,6 @@ class TrainLoss(nn.Module):
 
         pos_loss_1 = (pos_loss_1_focal_term * term1).sum()
         neg_loss_1 = (neg_loss_1_focal_term * term1).sum()
-        
-        num_pos_0 = pos_inds_0.float().sum()
-        num_pos_1 = pos_inds_1.float().sum()
 
         if num_pos_0 == 0:
             loss = loss + neg_loss_0
@@ -106,10 +105,11 @@ class TestLoss(nn.Module):
 
 
 def _sigmoid(x):
-    y = torch.clamp(x.sigmoid_(), min=1e-4, max=1-1e-4)
+    eps = 1e-16
+    y = torch.clamp(torch.sigmoid(x), min=eps, max=1-eps)
     return y
 
 
-def _logit(x):
-    y = torch.clamp(logit(x), min=logit(torch.tensor(1e-4)), max=logit(torch.tensor(1-1e-4)))
-    return y
+# def _logit(x):
+#     y = torch.clamp(logit(x), min=logit(torch.tensor(1e-4)), max=logit(torch.tensor(1-1e-4)))
+#     return y

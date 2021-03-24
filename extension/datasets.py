@@ -11,6 +11,8 @@ from torch.nn.functional import sigmoid
 # import math 
 import cv2
 
+def _logit(x):
+    return torch.logit(x, eps=1e-16)
 
 class VideoOpenCV(object):
     def __init__(self, video_name):
@@ -84,21 +86,21 @@ class SurfnetDataset(torch.utils.data.Dataset):
             video_name_0 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video)
             video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
             with open(self.heatmaps_folder + video_name_0,'rb') as f: 
-                Z_0, Phi_0_tilde, center_0 = pickle.load(f)
+                Z_0, Phi0, center_0 = pickle.load(f)
             with open(self.heatmaps_folder + video_name_1,'rb') as f: 
-                Phi_1_tilde, center_1 = pickle.load(f)[1:]
+                Phi1, center_1 = pickle.load(f)[1:]
 
             d_01 = np.array(center_0) - np.array(center_1)
 
-            return Z_0, Phi_0_tilde, Phi_1_tilde, d_01
+            return Z_0, _logit(Phi0), _logit(Phi1), d_01
         else: 
             video_id, id_in_video = self.id_to_location[index]
             video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
 
             with open(self.heatmaps_folder + video_name,'rb') as f: 
-                 Z, Phi_tilde, _ = pickle.load(f)
+                 Z, Phi, _ = pickle.load(f)
 
-            return Z, Phi_tilde
+            return Z, _logit(Phi)
 
     def __len__(self):
         return len(self.id_to_location)
@@ -128,6 +130,8 @@ class SurfnetDataset(torch.utils.data.Dataset):
 
         if self.subset: 
             self.id_to_location = self.id_to_location[:int(0.1*len(self.id_to_location))]
+
+
 
 def profile_dataset(dataset):
     import cProfile, pstats, io

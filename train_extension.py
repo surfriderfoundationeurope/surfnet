@@ -36,12 +36,11 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
 
     model.train()
     running_loss = 0.0
-    for i, (Z0, Phi0, Phi1, d_01) in enumerate(loader_train):
+    for i, (Z0, logit_Phi0, logit_Phi1, d_01) in enumerate(loader_train):
 
-        Z0 = Z0.squeeze().to(device)
-        Z0 = torch.sum(Z0,axis=1).unsqueeze(1)
-        Phi0 = Phi0.to(device)
-        Phi1 = Phi1.to(device)
+        Z0 = Z0.to(device)
+        Phi0 = logit_Phi0.to(device)
+        Phi1 = logit_Phi1.to(device)
         d_01 = d_01.to(device)
 
         h0 = model(Z0)
@@ -57,30 +56,30 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
         Phi0 = center_crop(Phi0, cropped_shape)
         Phi1 = center_crop(Phi1, cropped_shape)
 
-        if i == 0:
-            fig, ((ax2, ax3),(ax4, ax5)) = plt.subplots(2,2, figsize=(10,10))
-            # ax0.imshow(center_crop(Z_0, cropped_shape).detach().cpu()[0][0],cmap='gray', vmin=0, vmax=1)
-            # ax0.set_title('$Z_0$')
+        # if i == 0:
+        #     fig, ((ax2, ax3),(ax4, ax5)) = plt.subplots(2,2, figsize=(10,10))
+        #     # ax0.imshow(center_crop(Z_0, cropped_shape).detach().cpu()[0][0],cmap='gray', vmin=0, vmax=1)
+        #     # ax0.set_title('$Z_0$')
 
-            # ax1.set_axis_off()
+        #     # ax1.set_axis_off()
 
-            ax2.imshow(sigmoid(h0.detach().cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
-            ax2.set_title('$\sigma(h_0)$')
+        #     ax2.imshow(sigmoid(h0.detach().cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
+        #     ax2.set_title('$\sigma(h_0)$')
 
-            ax3.imshow(sigmoid(h1.detach().cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
-            ax3.set_title('$\sigma(h_1) = \sigma(T(h_0, d_{01}))$')
+        #     ax3.imshow(sigmoid(h1.detach().cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
+        #     ax3.set_title('$\sigma(h_1) = \sigma(T(h_0, d_{01}))$')
 
-            ax4.imshow(Phi0.cpu()[0][0], cmap='gray', vmin=0, vmax=1)
-            ax4.set_title('$\Phi_0$')
+        #     ax4.imshow(sigmoid(logit_Phi0).cpu()[0][0], cmap='gray', vmin=0, vmax=1)
+        #     ax4.set_title('$\Phi_0$')
 
-            ax5.imshow(Phi1.cpu()[0][0], cmap='gray', vmin=0, vmax=1)
-            ax5.set_title('$\Phi_1$')
+        #     ax5.imshow(sigmoid(logit_Phi1).cpu()[0][0], cmap='gray', vmin=0, vmax=1)
+        #     ax5.set_title('$\Phi_1$')
 
-            plt.suptitle('$d_{01} = $'+str(-d_01[0].detach().cpu().numpy()))
-            with open('verbose.pickle','wb') as f:
-                obj = (fig, ((ax2, ax3),(ax4, ax5)))
-                pickle.dump(obj, f)
-            plt.close()
+        #     plt.suptitle('$d_{01} = $'+str(-d_01[0].detach().cpu().numpy()))
+        #     with open('verbose.pickle','wb') as f:
+        #         obj = (fig, ((ax2, ax3),(ax4, ax5)))
+        #         pickle.dump(obj, f)
+        #     plt.close()
 
         loss = criterion(h0, h1, Phi0, Phi1)
 
@@ -101,8 +100,7 @@ def evaluate(model, criterion_test, loader_test, device, epoch, writer):
     with torch.no_grad():
         running_loss = 0.0
         for i, (Z, Phi) in enumerate(loader_test):
-            Z = Z.squeeze()
-            Z = torch.sum(Z.to(device),axis=1).unsqueeze(1)            
+            Z = Z.to(device)
             Phi = Phi.to(device)
 
             h = model(Z)
@@ -129,7 +127,7 @@ def main(args):
 
     loader_train, loader_test = get_loaders(args)
 
-    model = SurfNet(intermediate_layer_size=int(args.model.strip('surfnet')))
+    model = SurfNet(num_classes = 3, intermediate_layer_size=int(args.model.strip('surfnet')))
     model.to(device)
 
     params_to_optimize = [{"params": [p for p in model.parameters() if p.requires_grad]}]
@@ -151,7 +149,7 @@ def main(args):
     criterion_train = TrainLoss(args.sigma2, args.alpha, args.beta)
     criterion_test = TestLoss(args.alpha, args.beta)
 
-    model.conv3.bias.data.fill_(-2.19)
+    model.conv3.bias.data.fill_(torch.logit(torch.tensor(0.10)))
 
     for epoch in range(args.epochs):
         train_one_epoch(model, criterion_train, optimizer, loader_train, lr_scheduler, device, epoch, writer)
