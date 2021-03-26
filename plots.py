@@ -1,3 +1,4 @@
+from math import log
 from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
 from extension.models import SurfNet
@@ -9,14 +10,14 @@ import matplotlib.pyplot as plt
 from torchvision import transforms as T
 from torchvision.datasets import ImageFolder
 import numpy as np
-from extension.losses import TrainLoss
+from extension.losses import TrainLoss, TrainLossOneTerm
 from torchvision.transforms.functional import center_crop
 import pickle
 import os
 from base.centernet.models import create_model as create_model_centernet
 from base.centernet.models import load_model as load_model_centernet
 from common.utils import load_my_model, transform_test_CenterNet
-# from train_base import spatial_transformer
+from train_extension import spatial_transformer, mask_irrelevant_pixels
 import cv2
 
 # def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
@@ -36,7 +37,6 @@ import cv2
 #     return model.to('cuda')
 
 
-
 def plot_single_image_and_heatmaps(image, heatmaps, normalize):
 
     _ , (ax0, ax1, ax2, ax3) = plt.subplots(1,4,figsize=(30,30))
@@ -52,6 +52,7 @@ def plot_single_image_and_heatmaps(image, heatmaps, normalize):
 
     plt.show()
     plt.close()
+
 def plot_heatmaps_and_gt(heatmaps, gt, normalize):
 
     _ , (ax0, ax1, ax2, ax3) = plt.subplots(1,4,figsize=(30,30))
@@ -169,10 +170,12 @@ def plot_extracted_heatmaps(data_dir):
             Z, Phi, center = pickle.load(f)
         print(center)
         plot_heatmaps_and_gt(Z, Phi, normalize=False)
+
 def plot_base_heatmaps_centernet_official_repo(trained_model_weights_filename, images_folder, shuffle=True, fix_res=False, normalize=False):
     dataset = ImageFolder(images_folder, transform = lambda image: pre_process_centernet(image, fix_res), loader=cv2.imread)
     dataloader = DataLoader(dataset, shuffle=shuffle, batch_size=1)
     model = create_model_centernet(arch='dla_34', heads={'hm':3,'wh':2,'reg':2}, head_conv=256)
+
     model = load_model_centernet(model, trained_model_weights_filename)
     for param in model.parameters():
         param.requires_grad = False
@@ -192,7 +195,7 @@ def plot_base_heatmaps_centernet_my_repo(trained_model_weights_filename, images_
     dataset = ImageFolder(images_folder, transform = transform_test_CenterNet(fix_res))
     dataloader = DataLoader(dataset, shuffle=shuffle, batch_size=1)
     model = create_model_centernet(arch='dla_34', heads={'hm':3,'wh':2}, head_conv=256)
-
+    print(model)
     model = load_my_model(model, trained_model_weights_filename)
     for param in model.parameters():
         param.requires_grad = False
@@ -209,6 +212,38 @@ def plot_base_heatmaps_centernet_my_repo(trained_model_weights_filename, images_
             plot_single_image_and_heatmaps(image, heatmaps, normalize)
 
 from common.utils import pre_process_centernet
+
+
+
+def loss_experiments(model, dataloader, device='cuda'):
+    model.train()
+    loss = TrainLossOneTerm()
+    test_shift_one_left = True
+    with torch.no_grad():
+        for i, (Z0, logit_Phi0, logit_Phi1, d_01) in enumerate(dataloader):
+
+            Z0 = Z0.to(device)
+            logit_Phi0 = logit_Phi0.to(device)
+            # logit_Phi1 = logit_Phi1.to(device)
+            # d_01 = d_01.to(device)
+            if test_shift_one_left:
+                h0 = torch.full_like(logit_Phi0, logit_Phi0.min()).to(device)
+                max_position = np.unravel_index(torch.argmax(logit_Phi0).cpu().numpy(),logit_Phi0.shape)
+                slided_max_position = np.array(max_position) + np.array((0,0,3,3))
+                h0[slided_max_position[0],slided_max_position[1],slided_max_position[2],slided_max_position[3]] = logit_Phi0.max().item()
+            
+                # d_01 = torch.tensor([[-1,0]],dtype=torch.int32).to(device)
+                # h0 = spatial_transformer(logit_Phi0, d_01)
+                # h0 = mask_irrelevant_pixels(h0, d_01)
+                loss(h0, logit_Phi0)
+
+
+        # h0 = model(Z0)
+
+        # h1 = spatial_transformer(h0, d_01)
+
+
+
 
 if __name__ == '__main__':
 
@@ -227,11 +262,23 @@ if __name__ == '__main__':
             #     image = image * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
     # plot_extracted_heatmaps('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/')
 
-    plot_pickle_file('verbose.pickle')
+    # sftp_repo_dir = '/run/user/1000/gvfs/sftp:host=gpu1/home/infres/chagneux/repos/surfnet/'
+    # plot_pickle_file(sftp_repo_dir+'verbose_hardcore.pickle')
     # class Args(object):
     #     def __init__(self, focal, downsampling_factor):
     #         self.focal = focal
     #         self.downsampling_factor = downsampling_factor
+
+    dataset_train =  SurfnetDataset('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/', split='train')
+    loader_train = DataLoader(dataset_train, batch_size=1, shuffle=True)
+
+    model = SurfNet(intermediate_layer_size=32)
+    model.to('cuda')
+
+
+    loss_experiments(model, loader_train)
+
+
 
 
     # args = Args(focal=True, downsampling_factor=4)

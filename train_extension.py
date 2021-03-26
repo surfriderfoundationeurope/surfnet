@@ -6,8 +6,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torch import sigmoid, logit
 from torchvision.transforms.functional import center_crop
 import matplotlib.pyplot as plt
-import matplotlib 
-matplotlib.use('Agg')
+# import matplotlib 
+# matplotlib.use('Agg')
 from extension.losses import TrainLoss, TestLoss
 from torchvision.transforms.functional import affine
 import pickle
@@ -20,6 +20,21 @@ def spatial_transformer(heatmaps, displacement):
     DX = -displacement[:,0]
     return torch.stack(tuple(affine(heatmap, angle = 0, translate = (dx,dy), shear = 0, scale=1) for (heatmap, dx, dy) in zip(heatmaps, DX, DY)))
     
+def mask_irrelevant_pixels(h, d):
+    for j in range(len(d)):
+        dx = -d[j,0]
+        dy = -d[j,1]
+        if dx > 0:
+            h[j,:,:,:dx] = -50
+        elif dx < 0:
+            h[j,:,:,dx:] = -50
+
+        if dy > 0:
+            h[j,:,:dy,:] = -50
+        elif dy < 0:
+            h[j,:,dy:,:] = -50
+    return h 
+
 def get_loaders(args):
 
     dataset_train = SurfnetDataset(args.data_path, split='train')
@@ -37,6 +52,7 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
 
     model.train()
     running_loss = 0.0
+    verbose=False
     for i, (Z0, logit_Phi0, logit_Phi1, d_01) in enumerate(loader_train):
 
         Z0 = Z0.to(device)
@@ -48,34 +64,22 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
 
         h1 = spatial_transformer(h0, d_01)
 
+        h1 = mask_irrelevant_pixels(h1, d_01)
 
-        for j in range(len(d_01)):
-            dx = -d_01[j,0]
-            dy = -d_01[j,1]
-            if dx > 0:
-                h1[j,:,:,:dx] = -50
-            elif dx < 0:
-                h1[j,:,:,dx:] = -50
-
-            if dy > 0:
-                h1[j,:,:dy,:] = -50
-            elif dy < 0:
-                h1[j,:,dy:,:] = -50
-
-        if i == 1:
+        if verbose:
             Z1 = spatial_transformer(Z0, d_01)
-            fig, ((ax0, ax1), (ax2, ax3),(ax4, ax5)) = plt.subplots(3,2, figsize=(10,10))
+            fig, ((ax0, ax1), (ax2, ax3),(ax4, ax5), (ax6, ax7)) = plt.subplots(4,2, figsize=(10,10))
 
-            ax0.imshow(sigmoid(Z0).detach().cpu()[0][0], cmap='gray', vmin=0, vmax=1)
+            ax0.imshow(Z0.detach().cpu()[0][0], cmap='gray')
             ax0.set_title('$\sigma(Z_0)$')
 
-            ax1.imshow(sigmoid(Z1).detach().cpu()[0][0], cmap='gray', vmin=0, vmax=1)
+            ax1.imshow(Z1.detach().cpu()[0][0], cmap='gray')
             ax1.set_title('$\sigma(Z_1) = \sigma(T(Z_0, d_{01}))$')
 
-            ax2.imshow(sigmoid(h0.detach().cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
+            ax2.imshow(h0.detach().cpu()[0][0], cmap='gray')
             ax2.set_title('$\sigma(h_0)$')
 
-            ax3.imshow(sigmoid(h1.detach().cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
+            ax3.imshow(h1.detach().cpu()[0][0], cmap='gray')
             ax3.set_title('$\sigma(h_1) = \sigma(T(h_0, d_{01}))$')
 
             ax4.imshow(sigmoid(logit_Phi0).cpu()[0][0], cmap='gray', vmin=0, vmax=1)
@@ -84,10 +88,17 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
             ax5.imshow(sigmoid(logit_Phi1).cpu()[0][0], cmap='gray', vmin=0, vmax=1)
             ax5.set_title('$\Phi_1$')
 
+            ax6.imshow(logit_Phi0.cpu()[0][0], cmap='gray')
+            ax6.set_title('$logit(\Phi_0)$')
+
+            ax7.imshow(logit_Phi1.cpu()[0][0], cmap='gray')
+            ax7.set_title('$logit(\Phi_1)$')
+
             plt.suptitle('$d_{01} = $'+str(-d_01[0].detach().cpu().numpy()))
-            with open('verbose.pickle','wb') as f:
-                obj = (fig, ((ax2, ax3),(ax4, ax5)))
-                pickle.dump(obj, f)
+            plt.show()
+            # with open('verbose.pickle','wb') as f:
+            #     obj = (fig, ((ax2, ax3),(ax4, ax5)))
+            #     pickle.dump(obj, f)
             plt.close()
 
         loss = criterion(h0, h1, logit_Phi0, logit_Phi1)
@@ -158,7 +169,7 @@ def main(args):
     criterion_train = TrainLoss(args.alpha, args.beta, args.sigma2)
     criterion_test = TestLoss(args.alpha, args.beta)
 
-    model.conv3.bias.data.fill_(torch.logit(torch.tensor(1e-16, dtype=torch.float64)))
+    # model.conv3.bias.data.fill_(torch.logit(torch.tensor(1e-3, dtype=torch.float64)))
 
     for epoch in range(args.epochs):
         train_one_epoch(model, criterion_train, optimizer, loader_train, lr_scheduler, device, epoch, writer)

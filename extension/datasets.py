@@ -91,8 +91,8 @@ class SurfnetDataset(torch.utils.data.Dataset):
 
             d_01 = np.array(center_0) - np.array(center_1)
 
-            Z_0 = torch.sum(torch.sigmoid(Z_0), axis=0, keepdim=True)
-            return  _logit(Z_0), _logit(Phi0), _logit(Phi1), d_01
+            Z_0 = torch.max(Z_0, axis=0, keepdim=True)[0]
+            return  Z_0, _logit(Phi0), _logit(Phi1), d_01
         else: 
             video_id, id_in_video = self.id_to_location[index]
             video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
@@ -100,9 +100,9 @@ class SurfnetDataset(torch.utils.data.Dataset):
             with open(self.heatmaps_folder + video_name,'rb') as f: 
                  Z, Phi, _ = pickle.load(f)
 
-            Z = torch.sum(torch.sigmoid(Z), axis=0, keepdim=True)
+            Z = torch.max(Z, axis=0, keepdim=True)[0]
 
-            return _logit(Z), _logit(Phi)
+            return Z, _logit(Phi)
 
     def __len__(self):
         return len(self.id_to_location)
