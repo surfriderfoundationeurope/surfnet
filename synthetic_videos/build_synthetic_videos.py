@@ -10,7 +10,6 @@ import utils
 import json
 
 verbose = False
-anns, imgs, dict_label_to_ann_ids = taco_tools.load_TACO()
 
 
 def init_tracker(first_frame, dense_flow_first_frame, object_nb, tractable_band='any'):
@@ -194,40 +193,71 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
     json.dump(annotations, json_file)
     return shortest_sequence_length
 
-if __name__ == "__main__":
-    output_original_shape = True
 
-    vid_dir = '/home/infres/chagneux/datasets/surfrider_data/video_dataset/original_videos/gopro_video/leloing/'
+def main(args):
 
-    tractable_band = 'any'
+    output_original_shape = args.original_res
+    vid_dir = args.vid_dir
+    tractable_band = args.tractable_band
     vid_names = [name for name in os.listdir(vid_dir) if '.MP4' in name]
     video_filenames = [vid_dir + vid_name for vid_name in vid_names if '.MP4' in vid_name]
-    rescale_factor = 3 
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    for i, video_filename in enumerate(video_filenames):
+    rescale_factor = args.rescale
+    nb_extracts_per_vid = args.nb_extracts_per_vid
+    output_dir = args.output_dir
+    read_every = args.read_every
 
-        frame_reader = cv2_io.FrameReader(video_filename, read_every=2, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    for video_nb, video_filename in enumerate(video_filenames):
+
+        frame_reader = cv2_io.FrameReader(video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
         fps = frame_reader.fps
+        print(fps)
         shape = (int(frame_reader.original_width), int(frame_reader.original_height))
         if not output_original_shape: shape = frame_reader.new_shape 
         total_frames_read = frame_reader.init_frame
         total_num_frames = frame_reader.total_num_frames
-        j=0
+        portion_nb_in_video=0
         while total_frames_read < (total_num_frames - 100): 
 
             frame_reader.set_init_frame(total_frames_read)
-            output_name = '/home/infres/chagneux/datasets/surfrider_data/video_dataset/videos_and_annotations/' + vid_names[i].strip('.MP4') + '_{}.MP4'.format(j)
+            output_name = output_dir + vid_names[video_nb].strip('.MP4') + '_{}.MP4'.format(portion_nb_in_video)
             json_file = open(output_name.replace('.MP4','.json'),'w')
             nb_objects = 1
             frame_writer = cv2.VideoWriter(filename=output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
 
-            nb_frames_read = add_trash_objects(frame_reader, frame_writer, json_file, tractable_band='center_left', nb_objects=nb_objects, output_original_shape=True)
+            nb_frames_read = add_trash_objects(frame_reader, frame_writer, json_file, tractable_band=tractable_band, nb_objects=nb_objects, output_original_shape=True)
 
-            total_frames_read += nb_frames_read + int(total_num_frames / 20)
+            total_frames_read += nb_frames_read + int(total_num_frames / nb_extracts_per_vid)
 
-            j+=1
+            portion_nb_in_video+=1
+
             frame_writer.release()
             json_file.close()
+
+
+
+if __name__ == "__main__":
+
+    import argparse
+    parser = argparse.ArgumentParser(description='Surfnet training')
+    parser.add_argument('--vid-dir', dest='vid_dir',type=str)
+    parser.add_argument('--tractable-band',default='any',type=str)
+    parser.add_argument('--output-dir',dest='output_dir',type=str)
+    parser.add_argument('--read-every',dest='read_every',default=2, type=int)
+    parser.add_argument('--original-res',dest='original_res',action='store_true')
+    parser.add_argument('--rescale', type=int, default=3)
+    parser.add_argument('--nb-extracts-per-vid',dest='nb_extracts_per_vid', type=int, default=20)
+    parser.add_argument('--synthetic-objects',type=str)
+
+    args = parser.parse_args()
+    taco_path = args.synthetic_objects
+    taco_tools.taco_path = taco_path
+    anns, imgs, dict_label_to_ann_ids = taco_tools.load_TACO()
+
+    main(args)
+
+
+    
 
 
 

@@ -3,11 +3,11 @@ import random
 import json
 import os
 import numpy as np
-taco_path = '/home/infres/chagneux/datasets/TACO/data'
+taco_path = None
 
 def load_TACO():
 
-    anns_file_path = taco_path + '/' + 'annotations.json'
+    anns_file_path = taco_path + 'annotations.json'
 
     # Read annotations
     with open(anns_file_path, 'r') as f:
