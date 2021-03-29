@@ -2,4 +2,3 @@
 *
 # Except this file
 !.gitignore
-!download_pretrained_base.sh
