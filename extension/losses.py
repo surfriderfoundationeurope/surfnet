@@ -5,11 +5,10 @@ import math
 import matplotlib.pyplot as plt
 
 class TrainLoss(nn.Module):
-    def __init__(self, alpha=2, beta=4, sigma2=2):
+    def __init__(self, alpha=2, beta=4):
         super(TrainLoss, self).__init__()
         self.alpha = int(alpha)
         self.beta = int(beta)
-        self.sigma2 = int(sigma2)
 
     def forward(self, h0, h1, Phi0, Phi1):
         ''' Modified focal loss. Exactly the same as CornerNet.
@@ -204,21 +203,11 @@ class TestLoss(nn.Module):
             gt_regr (batch x c x h x w)
         '''
 
-        h = _sigmoid(h)
-
-        pos_inds = Phi.eq(1).float()
-        neg_inds = Phi.lt(1).float()
-
-        neg_weights = torch.pow(1 - Phi, self.beta)
-
-        loss = 0.0
-
-        pos_loss = torch.log(h) * torch.pow(1 - h, self.alpha) * pos_inds
-        neg_loss = torch.log(1 - h) * torch.pow(h, self.alpha) * neg_weights * neg_inds
-
-        num_pos  = pos_inds.float().sum()
+        pos_loss, neg_loss, num_pos = _pixel_wise_focal_loss(h, Phi, self.alpha, self.beta)
         pos_loss = pos_loss.sum()
         neg_loss = neg_loss.sum()
+        
+        loss = 0.0
 
         if num_pos == 0:
             loss = loss - neg_loss

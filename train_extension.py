@@ -48,7 +48,7 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
 
     model.train()
     running_loss = 0.0
-    verbose=True
+    verbose=False
     for i, (Z0, Phi0, Phi1, d_01) in enumerate(loader_train):
 
         Z0 = Z0.to(device)
@@ -94,12 +94,12 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        lr_scheduler.step()
 
         writer.add_scalar('Training loss (mini-batch)', loss.item(), epoch * len(loader_train) + i)
         running_loss+=loss.item()
         # if epoch == 0 and i == 0: 
         #     writer.add_graph(model, Z_0)
+    lr_scheduler.step()
     writer.add_scalar('Training loss (epoch)', running_loss / (i+1), epoch)
    
 def evaluate(model, criterion_test, loader_test, device, epoch, writer):
@@ -107,7 +107,7 @@ def evaluate(model, criterion_test, loader_test, device, epoch, writer):
     model.eval()
     with torch.no_grad():
         running_loss = 0.0
-        for i, (Z, Phi) in enumerate(loader_test):
+        for batch_nb, (Z, Phi) in enumerate(loader_test):
             Z = Z.to(device)
             Phi = Phi.to(device)
 
@@ -116,7 +116,7 @@ def evaluate(model, criterion_test, loader_test, device, epoch, writer):
             loss = criterion_test(h, Phi)
             running_loss+=loss.item()
 
-        writer.add_scalar('Validation loss (epoch)', running_loss, epoch)
+        writer.add_scalar('Validation loss (epoch)', running_loss/(batch_nb+1), epoch)
 
         # new_dir = 'eval_images/epoch_{}'.format(epoch)
         # os.mkdir(new_dir)
@@ -144,20 +144,16 @@ def main(args):
         params_to_optimize,
         lr=args.lr, momentum=args.momentum)
 
-    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer,
-        lambda x: (1 - x / (len(loader_train) * args.epochs)) ** 0.9)
-
-    # lr_scheduler = None
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
     
 
     writer = SummaryWriter(args.log_dir)
 
 
-    criterion_train = TrainLoss(args.alpha, args.beta, args.sigma2)
+    criterion_train = TrainLoss(args.alpha, args.beta)
     criterion_test = TestLoss(args.alpha, args.beta)
 
-    # model.conv3.bias.data.fill_(-2.17)
+    model.conv3.bias.data.fill_(-2.19)
 
     for epoch in range(args.epochs):
         train_one_epoch(model, criterion_train, optimizer, loader_train, lr_scheduler, device, epoch, writer)

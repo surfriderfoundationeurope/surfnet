@@ -235,12 +235,11 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
     if args.focal: 
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
+    else:
         lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer,
             lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
-    else:
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
-
 
     # lr_scheduler = None
 

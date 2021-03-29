@@ -24,5 +24,5 @@ class SurfNet(nn.Module):
 
         y =  self.conv3(y)
 
-        return y + x
+        return y
 
