@@ -80,6 +80,7 @@ def extract(args):
 
                 frame = np.transpose(frame.squeeze().cpu().numpy(), axes=[1, 2, 0])
                 frame = frame * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
+                # print(center)
 
                 # plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
 
