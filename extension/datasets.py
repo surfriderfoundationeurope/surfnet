@@ -10,8 +10,6 @@ import pickle
 # import math 
 import cv2
 
-def _logit(x):
-    return torch.logit(x, eps=1e-16)
 
 class VideoOpenCV(object):
     def __init__(self, video_name):
@@ -85,14 +83,13 @@ class SurfnetDataset(torch.utils.data.Dataset):
             video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
             with open(self.heatmaps_folder + video_name_0,'rb') as f: 
                 Z_0, Phi0, center_0 = pickle.load(f)
-                Z_0 = Z_0.type(torch.float64)
             with open(self.heatmaps_folder + video_name_1,'rb') as f: 
                 Phi1, center_1 = pickle.load(f)[1:]
 
-            d_01 = np.array(center_0) - np.array(center_1)
+            d_01 = np.array(center_1) - np.array(center_0)
 
             Z_0 = torch.max(Z_0, axis=0, keepdim=True)[0]
-            return  Z_0, _logit(Phi0), _logit(Phi1), d_01
+            return  Z_0, Phi0, Phi1, d_01
         else: 
             video_id, id_in_video = self.id_to_location[index]
             video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
@@ -102,7 +99,7 @@ class SurfnetDataset(torch.utils.data.Dataset):
 
             Z = torch.max(Z, axis=0, keepdim=True)[0]
 
-            return Z, _logit(Phi)
+            return Z, Phi
 
     def __len__(self):
         return len(self.id_to_location)

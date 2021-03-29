@@ -229,7 +229,7 @@ def loss_experiments(model, dataloader, device='cuda'):
             if test_shift_one_left:
                 h0 = torch.full_like(logit_Phi0, logit_Phi0.min()).to(device)
                 max_position = np.unravel_index(torch.argmax(logit_Phi0).cpu().numpy(),logit_Phi0.shape)
-                slided_max_position = np.array(max_position) + np.array((0,0,3,3))
+                slided_max_position = np.array(max_position) + np.array((0,0,1,1))
                 h0[slided_max_position[0],slided_max_position[1],slided_max_position[2],slided_max_position[3]] = logit_Phi0.max().item()
             
                 # d_01 = torch.tensor([[-1,0]],dtype=torch.int32).to(device)
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     # plot_extracted_heatmaps('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/')
 
     # sftp_repo_dir = '/run/user/1000/gvfs/sftp:host=gpu1/home/infres/chagneux/repos/surfnet/'
-    # plot_pickle_file(sftp_repo_dir+'verbose_hardcore.pickle')
+    # plot_pickle_file(sftp_repo_dir+'verbose.pickle')
     # class Args(object):
     #     def __init__(self, focal, downsampling_factor):
     #         self.focal = focal
