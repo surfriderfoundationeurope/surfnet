@@ -19,7 +19,7 @@ tensorboard --logdir=${output_dir} &
 python -m debugpy --listen 5678 --wait-for-client train_extension.py \
     --model ${model_name} \
     --batch-size 8 \
-    --data-path ${BASE_EXTRACTED_HEATMAPS} \
+    --data-path ${BASE_NETWORK_HEATMAPS} \
     --log-dir ${output_dir} \
     --output-dir ${output_dir} \
     --sigma2 ${sigma2} \

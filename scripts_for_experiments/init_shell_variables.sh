@@ -22,12 +22,12 @@ eval "\$(conda shell.bash hook)"
 conda activate surfnet_DLA
 
 export CUDA_VISIBLE_DEVICES=
-export IMAGES_PATH=''
-export BASE_EXTRACTED_HEATMAPS=''
-export BASE_PRETRAINED=''
-export SYNTHETIC_VIDEOS_PATH=''
-export DOWNSAMPLING_FACTOR=''
+export IMAGES='./data/surfrider_images/'
+export BASE_NETWORK_HEATMAPS='./data/extracted_heatmaps/'
+export BASE_PRETRAINED_WEIGHTS='./external_pretrained_networks/centernet_pretrained.pth'
+export SYNTHETIC_VIDEOS='./data/generated_videos/'
+export DOWNSAMPLING_FACTOR='4'
+export SYNTHETIC_OBJECTS='./data/synthetic_objects/'
 export ORIGINAL_VIDEOS=''
-export SYNTHETIC_OBJECTS=''
 EOF
 

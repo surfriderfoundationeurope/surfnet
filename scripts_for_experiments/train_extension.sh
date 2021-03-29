@@ -19,7 +19,7 @@ tensorboard --logdir=${output_dir} &
 python train_extension.py \
     --model ${model_name} \
     --batch-size 16 \
-    --data-path ${BASE_EXTRACTED_HEATMAPS} \
+    --data-path ${BASE_NETWORK_HEATMAPS} \
     --log-dir ${output_dir} \
     --output-dir ${output_dir} \
     --alpha ${alpha} \

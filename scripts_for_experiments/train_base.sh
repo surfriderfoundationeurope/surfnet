@@ -16,7 +16,7 @@ tensorboard --logdir=${output_dir} &
 
 python train_base.py \
     --model ${model_name} \
-    --data-path ${IMAGES_PATH} \
+    --data-path ${IMAGES} \
     --batch-size 16 \
     --output-dir ${output_dir} \
     --logdir ${output_dir} \
