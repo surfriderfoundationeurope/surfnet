@@ -26,7 +26,7 @@ cd scripts_for_experiments
 sh init_shell_variables.sh
 ```
 
-Alternatively, if you have data stored somewhere else, modify the newly create shell_variables.sh script to your convenience. 
+Alternatively, if you have data stored somewhere else, modify the newly created shell_variables.sh script to point to the location of your convenience, or create symlinks to the folders of the repo. 
 
 ### Building DCN dependencies (if using CenterNet)
 
@@ -45,13 +45,15 @@ cd DCNv2
 
 ### Training 
 
-You can set hyperparameters in scripts_for_experiments/train_base.sh and run it 
+You can set a few hyperparameters in scripts_for_experiments/train_base.sh and run it 
 
 ```shell
 sh scripts_for_experiments/train_base.sh
 ```
 
 Then open Tensorboard in your browser to follow training. 
+
+For more control refer to the parse_args() function in train_base.py. 
 
 ## Extension network 
 
@@ -62,6 +64,7 @@ If you need a pretrained version of the base network you can run:
 cd external_pretrained_models
 sh download_pretrained_base.sh 
 ```
+This will download one of our pretrained models. 
 
 To extract heatmaps from the base network: 
 
@@ -69,16 +72,15 @@ To extract heatmaps from the base network:
 sh scripts_for_experiments/extract_heatmaps.sh
 ``` 
 
- Alternatively, modify the BASE_PRETRAINED variable in scripts_for_experiments/shell_variables.sh to point to the base networks weights that you obtained yourself through retraining. 
+You can modify the BASE_PRETRAINED variable in scripts_for_experiments/shell_variables.sh to point to the base networks weights that you obtained yourself through retraining, for example.
  
  
  ### Training 
  
-
-You can set hyperparameters in scripts_for_experiments/train_extension.sh and run it 
+Similarly as for the base network, you can run:
 
 ```shell
 sh scripts_for_experiments/train_extension.sh
 ```
 
-Then open Tensorboard in your browser to follow training.  
+Then open Tensorboard in your browser to follow training.
