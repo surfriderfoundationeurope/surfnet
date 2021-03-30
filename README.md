@@ -84,3 +84,8 @@ sh scripts_for_experiments/train_extension.sh
 ```
 
 Then open Tensorboard in your browser to follow training.
+
+
+## Results & Results
+
+A few plot / evaluation functions are available in tests.py. 
