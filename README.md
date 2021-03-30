@@ -9,6 +9,8 @@ conda env create --name surfnet --file environment.yml
 conda activate surfnet 
 ```
 
+Remark: to operate via a CPU, remove the 'cudatoolkit' dependancy in the environment file and replace pytorch with pytorch-cpu. 
+
 ### Data and paths 
 If you don't have data already, you can download some using the following scripts:
 
