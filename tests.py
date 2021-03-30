@@ -22,6 +22,7 @@ from train_extension import spatial_transformer, get_loaders
 from train_base import get_dataset
 import cv2
 from common.utils import pre_process_centernet
+from tqdm import tqdm
 
 # def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
 #     model = SurfNet(num_classes=1, intermediate_layer_size=intermediate_layer_size, downsampling_factor=downsampling_factor)
@@ -150,8 +151,8 @@ def evaluate_extension_network_static_images(base_weights, extension_weights, da
 
 def evaluate_extension_network_pairs(extension_weights, extracted_heatmaps_dir='data/extracted_heatmaps/'):
 
-    verbose = True 
-    enable_nms = False 
+    verbose = False
+    enable_nms = False
     thres = 0.3
     args = Args(focal=True, data_path=extracted_heatmaps_dir,dataset='surfrider',downsampling_factor=4, batch_size=1)
     loader_train, loader_test = get_loaders(args)
@@ -168,9 +169,9 @@ def evaluate_extension_network_pairs(extension_weights, extracted_heatmaps_dir='
     with torch.no_grad():
         running_loss_base = 0.0
         running_loss_extension = 0.0
-        for batch_nb, (Z, target) in enumerate(loader_test):
-            Z = torch.max(Z,dim=1,keepdim=True)[0]
-            Z.to('cuda')
+        for batch_nb, (Z, target) in tqdm(enumerate(loader_test)):
+            Z = Z.to('cuda')
+            target = target.to('cuda')
             h = extension_model(Z)
 
             loss_base = loss(Z, target)
@@ -191,8 +192,6 @@ def evaluate_extension_network_pairs(extension_weights, extracted_heatmaps_dir='
 
             if verbose: 
                 fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(20,20))
-                image = np.transpose(image.squeeze().cpu().numpy(), axes=[1, 2, 0])
-                image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
                 ax1.imshow(target[0][0].cpu(), cmap='gray',vmin=0, vmax=1)
                 ax1.set_title('Ground truth')
                 ax2.imshow(Z.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
@@ -355,7 +354,6 @@ def loss_experiments(model, dataloader, device='cuda'):
 
 if __name__ == '__main__':
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     evaluate_extension_network_pairs(extension_weights='external_pretrained_models/surfnet32.pth',extracted_heatmaps_dir='data/extracted_heatmaps/')
 
     # images_folder = '/home/mathis/Documents/datasets/surfrider/other/test_synthetic_video_adour/'
