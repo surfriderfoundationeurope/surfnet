@@ -1,24 +1,28 @@
 from math import log
+
+from torchvision import datasets
 from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
 from extension.models import SurfNet
 from extension.datasets import SurfnetDataset
 import torch 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, dataloader
 from torch import sigmoid
 import matplotlib.pyplot as plt 
 from torchvision import transforms as T
 from torchvision.datasets import ImageFolder
 import numpy as np
-from extension.losses import TrainLoss, TrainLossOneTerm
+from extension.losses import TestLoss, TrainLoss, TrainLossOneTerm
 from torchvision.transforms.functional import center_crop
 import pickle
 import os
 from base.centernet.models import create_model as create_model_centernet
 from base.centernet.models import load_model as load_model_centernet
-from common.utils import load_my_model, transform_test_CenterNet
-from train_extension import spatial_transformer, mask_irrelevant_pixels
+from common.utils import load_my_model, transform_test_CenterNet, nms
+from train_extension import spatial_transformer
+from train_base import get_dataset
 import cv2
+from common.utils import pre_process_centernet
 
 # def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
 #     model = SurfNet(num_classes=1, intermediate_layer_size=intermediate_layer_size, downsampling_factor=downsampling_factor)
@@ -67,27 +71,70 @@ def plot_heatmaps_and_gt(heatmaps, gt, normalize):
     plt.show()
     plt.close()
 
-def plot_surfnet_heatmaps(model_deeplab, model_surfnet, dataloader):
-    model_surfnet.eval()
-    model_deeplab.eval()
+def evaluate_extension_network(base_weights, extension_weights, dataloader=None):
+
+    verbose = True
+    enable_nms = False
+    thres = 0.3 
+    base_model = create_model_centernet('dla_34',heads={'hm':3,'wh':2}, head_conv=256)
+    base_model = load_my_model(base_model, base_weights)
+    extension_model = SurfNet(32)
+    extension_model.load_state_dict(torch.load(extension_weights))
+    for param in base_model.parameters():
+        param.requires_grad = False
+    for param in extension_model.parameters():
+        param.requires_grad = False
+
+    base_model.to('cuda')
+    extension_model.to('cuda')
+    base_model.eval()
+    extension_model.eval()
+    
+    loss = TestLoss(alpha=2, beta=4)
+
 
     with torch.no_grad():
-        for i, (image, _) in enumerate(dataloader): 
-        # if i == 20: 
+        running_loss_base = 0.0
+        running_loss_extension = 0.0
+        for batch_nb, (image, target) in enumerate(dataloader):
             image = image.to('cuda')
-            predictions = model_deeplab(image)
-            heatmap_deeplab = 1 - torch.nn.functional.softmax(predictions['out'][0], dim=0)[0]
-            heatmap_surfnet = model_surfnet(heatmap_deeplab.unsqueeze(0).unsqueeze(0)).squeeze()
-            fig, (ax0, ax1, ax2) = plt.subplots(1,3, figsize=(10,10))
-            image = np.transpose(image.squeeze().cpu().numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
+            target = target.to('cuda')
+            target = torch.max(target[:,:-2,:,:],dim=1,keepdim=True)[0]
+            Z = base_model(image)[-1]['hm']
+            Z = torch.max(Z,dim=1,keepdim=True)[0]
+            h = extension_model(Z)
+
+            loss_base = loss(Z,target)
+            loss_extension = loss(h, target)
+            running_loss_base+=loss_base
+            running_loss_extension+=loss_extension
 
 
-            ax0.imshow(image)
-            ax1.imshow(heatmap_deeplab.cpu().numpy(),cmap='gray',vmin=0,vmax=1)
-            ax2.imshow(sigmoid(heatmap_surfnet).cpu().numpy(),cmap='gray',vmin=0,vmax=1)
-            plt.savefig('result_{}'.format(i))
-            # plt.show()
-            plt.close()
+            Z = torch.sigmoid(Z)
+            h = torch.sigmoid(h)
+            if enable_nms:
+                target = nms(target)
+                Z = nms(Z)
+                h = nms(h)
+                if thres: 
+                    Z[Z<thres] = 0
+                    h[h<thres] = 0
+
+            if verbose: 
+                fig, (ax0, ax1, ax2, ax3) = plt.subplots(1,4, figsize=(20,20))
+                image = np.transpose(image.squeeze().cpu().numpy(), axes=[1, 2, 0])
+                image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
+                ax0.imshow(image)
+                ax0.set_title('Image')
+                ax1.imshow(target[0][0].cpu(), cmap='gray',vmin=0, vmax=1)
+                ax1.set_title('Ground truth')
+                ax2.imshow(Z.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
+                ax2.set_title('Z, loss: {}'.format(loss_base))
+                ax3.imshow(h.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
+                ax3.set_title('h, loss: {}'.format(loss_extension))
+                plt.show()
+
+        return running_loss_base.item()/(batch_nb+1), running_loss_extension.item()/(batch_nb+1)
 
 def plot_surfnet_pairs(model_surfnet, loss, dataloader):
 
@@ -211,10 +258,6 @@ def plot_base_heatmaps_centernet_my_repo(trained_model_weights_filename, images_
             image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
             plot_single_image_and_heatmaps(image, heatmaps, normalize)
 
-from common.utils import pre_process_centernet
-
-
-
 def loss_experiments(model, dataloader, device='cuda'):
     model.train()
     loss = TrainLossOneTerm()
@@ -243,9 +286,23 @@ def loss_experiments(model, dataloader, device='cuda'):
         # h1 = spatial_transformer(h0, d_01)
 
 
-
-
 if __name__ == '__main__':
+
+    class Args(object):
+        def __init__(self, focal, data_path, dataset, downsampling_factor):
+            self.focal = focal
+            self.data_path = data_path
+            self.dataset = dataset
+            self.downsampling_factor = downsampling_factor
+        
+    args = Args(focal=True,data_path='data/surfrider_images/',dataset='surfrider', downsampling_factor=4)
+    dataset_test, _ = get_dataset(args.data_path, 'surfrider', "val", args)
+    dataloader_ = DataLoader(dataset_test, shuffle=True, batch_size=1)
+
+    eval_loss_base, eval_loss_extension = evaluate_extension_network(base_weights='external_pretrained_models/centernet_pretrained.pth',extension_weights='external_pretrained_models/surfnet32.pth',dataloader=dataloader_)
+
+    print('Evaluation loss base network:', eval_loss_base)
+    print('Evaluation loss extension network', eval_loss_extension)
 
 
     # images_folder = '/home/mathis/Documents/datasets/surfrider/other/test_synthetic_video_adour/'
@@ -269,14 +326,14 @@ if __name__ == '__main__':
     #         self.focal = focal
     #         self.downsampling_factor = downsampling_factor
 
-    dataset_train =  SurfnetDataset('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/', split='train')
-    loader_train = DataLoader(dataset_train, batch_size=1, shuffle=True)
+    # dataset_test =  SurfnetDataset('/home/mathis/Documents/datasets/surfrider/extracted_heatmaps/', split='train')
+    # loader_train = DataLoader(dataset_train, batch_size=1, shuffle=True)
 
-    model = SurfNet(intermediate_layer_size=32)
-    model.to('cuda')
+    # model = SurfNet(intermediate_layer_size=32)
+    # model.to('cuda')
 
 
-    loss_experiments(model, loader_train)
+    # loss_experiments(model, loader_train)
 
 
 

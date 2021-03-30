@@ -7,7 +7,7 @@ import torch.utils.data
 from torch import nn
 from torchvision import datasets 
 
-from base.utils.coco_utils import get_coco, get_surfrider
+from base.utils.coco_utils import get_coco, get_surfrider, get_surfrider_focal
 from base.deeplab.models import get_model as get_model_deeplab
 from base.utils import presets
 from torch.utils.tensorboard import SummaryWriter
@@ -23,7 +23,7 @@ def get_dataset(dir_path, name, image_set, args):
         "voc_aug": (dir_path, sbd, 21),
         "coco": (dir_path, get_coco, 21),
         "surfrider": (dir_path, get_surfrider, 4),
-        "surfrider_focal": (dir_path, get_surfrider, 3)
+        "surfrider_focal": (dir_path, get_surfrider_focal, 3)
     }
     if args.focal:
         name = name+'_focal'

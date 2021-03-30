@@ -193,3 +193,11 @@ def transforms_test_deeplab():
                                   std=[0.229, 0.224, 0.225]))
 
     return T.Compose(transforms)
+
+def nms(heat, kernel=3):
+    pad = (kernel - 1) // 2
+
+    hmax = torch.nn.functional.max_pool2d(
+        heat, (kernel, kernel), stride=1, padding=pad)
+    keep = (hmax == heat).float()
+    return heat * keep
