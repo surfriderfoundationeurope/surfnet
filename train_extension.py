@@ -29,7 +29,6 @@ def spatial_transformer(heatmaps, displacement):
         elif dy < 0:
             heatmaps[j,:,dy:,:] = -50
     return heatmaps 
-    
 
 def get_loaders(args):
 
@@ -96,6 +95,8 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
         optimizer.step()
 
         writer.add_scalar('Training loss (mini-batch)', loss.item(), epoch * len(loader_train) + i)
+        writer.add_scalar('Learning rate (mini-batch)', optimizer.param_groups[0]["lr"], epoch * len(loader_train) + i)
+
         running_loss+=loss.item()
         # if epoch == 0 and i == 0: 
         #     writer.add_graph(model, Z_0)
@@ -144,7 +145,7 @@ def main(args):
         params_to_optimize,
         lr=args.lr, momentum=args.momentum)
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.1)
     
 
     writer = SummaryWriter(args.log_dir)
@@ -172,7 +173,7 @@ def parse_args():
     # parser.add_argument('--aux-loss', action='store_true', help='auxiliar loss')
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=8, type=int)
-    parser.add_argument('--epochs', default=30, type=int, metavar='N',
+    parser.add_argument('--epochs', default=50, type=int, metavar='N',
                         help='number of total epochs to run')
 
 

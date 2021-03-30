@@ -5,8 +5,9 @@ sigma2='2'
 alpha='2'
 beta='4'
 lr='1e-5'
+detail='lr_reduced_epoch_15'
 
-experiment_name=${model_name}'_alpha_'${alpha}'_beta_'${beta}'_lr_'${lr}
+experiment_name=${model_name}'_alpha_'${alpha}'_beta_'${beta}'_lr_'${lr}'_'${detail}
 
 output_dir='experiments/extension/'${experiment_name}
 create_clean_directory $output_dir 

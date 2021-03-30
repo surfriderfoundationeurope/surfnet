@@ -70,7 +70,7 @@ class SurfnetDataset(torch.utils.data.Dataset):
         self.heatmaps_folder = heatmaps_folder
         self.split = split 
         self.subset = False
-        self.heatmap_filenames = sorted(os.listdir(heatmaps_folder))
+        self.heatmap_filenames = [filename for filename in sorted(os.listdir(heatmaps_folder)) if filename.endswith('.pickle')]
         self._init_ids()
 
 
