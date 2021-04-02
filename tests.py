@@ -1,4 +1,6 @@
 from math import log
+from numba.np.ufunc import parallel
+from numba.np.ufunc.decorators import vectorize
 from torchvision import datasets
 from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
@@ -23,22 +25,10 @@ from train_base import get_dataset
 import cv2
 from common.utils import pre_process_centernet
 from tqdm import tqdm
+from sklearn.metrics import roc_curve
+from numba import jit 
 
-# def load_surfnet_to_cuda(intermediate_layer_size, downsampling_factor, checkpoint_name):
-#     model = SurfNet(num_classes=1, intermediate_layer_size=intermediate_layer_size, downsampling_factor=downsampling_factor)
-#     checkpoint = torch.load(checkpoint_name, map_location='cpu')
-#     model.load_state_dict(checkpoint)
-#     model.eval()
-#     return model.to('cuda')
 
-# def load_deeplab_to_cuda(model_name):
-#     downsampling_factor=4
-#     model = get_model('deeplabv3__mobilenet_v3_large', 3, freeze_backbone=False, downsampling_factor=downsampling_factor)
-#     for param in model.parameters():
-#         param.requires_grad = False
-#     checkpoint = torch.load(model_name, map_location='cpu')
-#     model.load_state_dict(checkpoint['model'])
-#     return model.to('cuda')
 class Args(object):
     def __init__(self, focal, data_path, dataset, downsampling_factor, batch_size):
         self.focal = focal
@@ -79,14 +69,14 @@ def plot_heatmaps_and_gt(heatmaps, gt, normalize):
 
 def evaluate_extension_network_static_images(base_weights, extension_weights, data_path='data/surfrider_images/'):
 
-    args = Args(focal=True,data_path=data_path,dataset='surfrider', downsampling_factor=4)
+    args = Args(focal=True,data_path=data_path,dataset='surfrider', downsampling_factor=4, batch_size=1)
     dataset_test, _ = get_dataset(args.data_path, 'surfrider', "val", args)
     dataloader_ = DataLoader(dataset_test, shuffle=True, batch_size=1)
 
 
 
     verbose = True
-    enable_nms = False
+    enable_nms = True
     thres = 0.3 
     base_model = create_model_centernet('dla_34',heads={'hm':3,'wh':2}, head_conv=256)
     base_model = load_my_model(base_model, base_weights)
@@ -108,7 +98,7 @@ def evaluate_extension_network_static_images(base_weights, extension_weights, da
     with torch.no_grad():
         running_loss_base = 0.0
         running_loss_extension = 0.0
-        for batch_nb, (image, target) in enumerate(dataloader):
+        for batch_nb, (image, target) in enumerate(dataloader_):
             image = image.to('cuda')
             target = target.to('cuda')
             target = torch.max(target[:,:-2,:,:],dim=1,keepdim=True)[0]
@@ -149,7 +139,7 @@ def evaluate_extension_network_static_images(base_weights, extension_weights, da
     print('Evaluation loss base network:', running_loss_base.item()/(batch_nb+1))
     print('Evaluation loss extension network', running_loss_extension.item()/(batch_nb+1))
 
-def evaluate_extension_network_pairs(extension_weights, extracted_heatmaps_dir='data/extracted_heatmaps/'):
+def evaluate_extension_network_video_frames(extension_weights, extracted_heatmaps_dir='data/extracted_heatmaps/'):
 
     verbose = False
     enable_nms = False
@@ -202,66 +192,6 @@ def evaluate_extension_network_pairs(extension_weights, extracted_heatmaps_dir='
 
     print('Evaluation loss base network:', running_loss_base.item()/(batch_nb+1))
     print('Evaluation loss extension network', running_loss_extension.item()/(batch_nb+1))
-            
-def plot_surfnet_pairs(model_surfnet, loss, dataloader):
-
-    with torch.no_grad():
-        for i, (Z_0, Phi_0_tilde, Phi_1_tilde, d_01) in enumerate(dataloader):
-
-            Z_0 = Z_0.to('cuda')
-            Phi_0_tilde = Phi_0_tilde.to('cuda')
-            Phi_1_tilde = Phi_1_tilde.to('cuda')
-            d_01 = d_01.to('cuda')
-
-
-            h_0 = model_surfnet(Z_0)
-
-            h_1 = spatial_transformer(h_0, d_01)
-
-            h, w = h_0.shape[2:]
-            new_h, new_w = int(0.9*h), int(0.9*w)
-            cropped_shape = (new_h, new_w)
-
-            h_0 = center_crop(h_0, cropped_shape)
-            h_1 = center_crop(h_1, cropped_shape)
-            Phi_0_tilde = center_crop(Phi_0_tilde, cropped_shape)
-            Phi_1_tilde = center_crop(Phi_1_tilde, cropped_shape)
-
-            loss_value = loss(h_0, h_1, Phi_0_tilde, Phi_1_tilde)
-
-            fig, ((ax2,ax3),(ax4, ax5)) = plt.subplots(2,2, figsize=(10,10))
-            # ax0.imshow(center_crop(Z_0, cropped_shape).detach().cpu()[0][0],cmap='gray', vmin=0, vmax=1)
-            # ax0.set_title('$Z_0$')
-
-            # ax1.set_axis_off()
-
-            ax2.imshow(sigmoid(h_0.cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
-            ax2.set_title('$\sigma(h_0)$')
-
-            ax3.imshow(sigmoid(h_1.cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
-            ax3.set_title('$\sigma(h_1) = \sigma(T(h_0, d_{01}))$')
-
-            ax4.imshow(sigmoid(Phi_0_tilde.cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
-            ax4.set_title('$\Phi_0$')
-
-            ax5.imshow(sigmoid(Phi_1_tilde.cpu()[0][0]), cmap='gray', vmin=0, vmax=1)
-            ax5.set_title('$\Phi_1$')
-
-            plt.suptitle('Loss = {} '.format(loss_value)+'$d_{01} = $'+str(-d_01[0].cpu().numpy()))
-            plt.savefig('result_{}'.format(i))
-            plt.close()
-
-def test_model_output(model, dataloader):
-    model.to('cuda')
-    model.eval()
-    with torch.no_grad():
-        # test = next(iter(dataloader))
-        image, _ = next(iter(dataloader))
-        image = image.to('cuda')
-
-        output = model(image)
-        print(output['out'].shape)
-        print(model)
 
 def plot_pickle_file(file_name):
 
@@ -325,36 +255,285 @@ def plot_base_heatmaps_centernet_my_repo(trained_model_weights_filename, images_
             image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
             plot_single_image_and_heatmaps(image, heatmaps, normalize)
 
-def loss_experiments(model, dataloader, device='cuda'):
-    model.train()
-    loss = TrainLossOneTerm()
-    test_shift_one_left = True
+def load_extension(extension_weights, intermediate_layer_size=32):
+    extension_model = SurfNet(intermediate_layer_size)
+    extension_model.load_state_dict(torch.load(extension_weights))
+    for param in extension_model.parameters():
+        param.requires_grad = False
+    extension_model.to('cuda')
+    extension_model.eval()
+    return extension_model
+
+def load_base(base_weights):
+    base_model = create_model_centernet('dla_34', heads = {'hm':3,'wh':2}, head_conv=256)
+    base_model = load_my_model(base_model, base_weights)
+    for param in base_model.parameters():
+        param.requires_grad = False 
+    base_model.to('cuda')
+    base_model.eval()
+    return base_model
+
+    return 
+
+def extract_heatmaps_extension_from_base_heatamps(extension_weights, input_dir):
+    args = Args(focal=True, data_path=input_dir,dataset='surfrider',downsampling_factor=4, batch_size=1)
+    _ , loader_test = get_loaders(args)
+    extension_model  = load_extension(extension_weights)
     with torch.no_grad():
-        for i, (Z0, logit_Phi0, logit_Phi1, d_01) in enumerate(dataloader):
+        base_predictions = list()
+        extension_predictions = list()
+        ground_truth = list() 
 
-            Z0 = Z0.to(device)
-            logit_Phi0 = logit_Phi0.to(device)
-            # logit_Phi1 = logit_Phi1.to(device)
-            # d_01 = d_01.to(device)
-            if test_shift_one_left:
-                h0 = torch.full_like(logit_Phi0, logit_Phi0.min()).to(device)
-                max_position = np.unravel_index(torch.argmax(logit_Phi0).cpu().numpy(),logit_Phi0.shape)
-                slided_max_position = np.array(max_position) + np.array((0,0,1,1))
-                h0[slided_max_position[0],slided_max_position[1],slided_max_position[2],slided_max_position[3]] = logit_Phi0.max().item()
-            
-                # d_01 = torch.tensor([[-1,0]],dtype=torch.int32).to(device)
-                # h0 = spatial_transformer(logit_Phi0, d_01)
-                # h0 = mask_irrelevant_pixels(h0, d_01)
-                loss(h0, logit_Phi0)
+        for (Z, target) in tqdm(loader_test):
+            Z = Z.to('cuda')
+            h = extension_model(Z)
+            base_predictions.append(torch.sigmoid(Z).cpu()[0][0])
+            extension_predictions.append(torch.sigmoid(h).cpu()[0][0])
+            ground_truth.append(target[0][0])
 
+        with open('base_predictions.pickle','wb') as f: 
+            pickle.dump(torch.stack(base_predictions),f)
+        with open('extension_predictions.pickle','wb') as f: 
+            pickle.dump(torch.stack(extension_predictions),f)     
+        with open('ground_truth.pickle','wb') as f: 
+            pickle.dump(torch.stack(ground_truth),f)     
 
-        # h0 = model(Z0)
+def extract_heatmaps_extension_from_images(base_weights, extension_weights, input_dir):
+    args = Args(focal=True, data_path=input_dir, dataset='surfrider',downsampling_factor=4, batch_size=1)
+    dataset = get_dataset(input_dir,'surfrider','val', args)[0]
+    loader_test = DataLoader(dataset, shuffle=False, batch_size=args.batch_size)
+    base_model = load_base(base_weights)
+    extension_model = load_extension(extension_weights)
 
-        # h1 = spatial_transformer(h0, d_01)
+    with torch.no_grad():
+        base_predictions = list()
+        extension_predictions = list()
+        ground_truth = list() 
+
+        for (X, target) in tqdm(loader_test):
+            X = X.to('cuda')
+            target = torch.max(target[:,:-2,:,:], dim=1)[0]
+            Z = torch.max(base_model(X)[-1]['hm'],dim=1,keepdim=True)[0]
+            h = extension_model(Z)
+
+            base_predictions.append(torch.sigmoid(Z).cpu()[0][0])
+            extension_predictions.append(torch.sigmoid(h).cpu()[0][0])
+            ground_truth.append(target[0])
+
+        with open('base_predictions.pickle','wb') as f: 
+            pickle.dump(torch.stack(base_predictions),f)
+        with open('extension_predictions.pickle','wb') as f: 
+            pickle.dump(torch.stack(extension_predictions),f)     
+        with open('ground_truth.pickle','wb') as f: 
+            pickle.dump(torch.stack(ground_truth),f)     
+
+@jit(nopython=False, parallel=True, fastmath=False)
+def fast_ROC(gt, pred, thresholds):
+    fpr, tpr = [], []
+
+    num_samples = len(gt)
+    P = gt.sum()
+    N = num_samples - P 
+
+    for thres in thresholds: 
+        det = (pred > thres)
+        TP_base = (det & gt).sum()
+        FP_base = (det & ~gt).sum()
+
+        fpr.append(FP_base/N)
+        tpr.append(TP_base/P)
+
+    return fpr, tpr
+
+def compute_ROC_curves_brute(data_to_evaluate):
+    with open(data_to_evaluate,'rb') as f: 
+        all_data = pickle.load(f)
+    # all_data = nms(all_data)
+    predictions_base = all_data[:,0,:,:].numpy().flatten()
+    predictions_extension = all_data[:,1,:,:].numpy().flatten()
+    gt = all_data[:,2,:,:].eq(1).numpy().flatten()
+
+    # fig, (ax0, ax1, ax2) = plt.subplots(3,1)
+    # ax0.imshow(all_data[0,0,:,:], cmap='gray') #,vmin=0, vmax=1)
+    # ax1.imshow(all_data[0,1,:,:], cmap='gray') #,vmin=0, vmax=1)
+    # ax2.imshow(all_data[0,2,:,:], cmap='gray') #,vmin=0, vmax=1)
+    # plt.show()
+
+    thresholds = np.linspace(0.4,1,10)[::-1]
+
+    # fpr_base, tpr_base, thresholds_base = roc_curve(gt,predictions_base) #sklearn verison 
+    fpr_base, tpr_base = fast_ROC(gt, predictions_base, thresholds)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(fpr_base, tpr_base, thresholds, label='base')
+    ax.set_xlabel('False positive rate')
+    ax.set_ylabel('True positive rate')
+    ax.set_zlabel('Threshold')
+    ax.set_title('ROC curve')
+    plt.show()
+
+def fast_prec_recall(gt, pred, thresholds):
+
+    precision_list, recall_list = [], []
+
+    for thres in thresholds: 
+        detections = (pred >= thres)
+
+        P = gt.sum()
+        TP = 0 
+        FP = 0 
+
+        for gt_frame, detection_frame in zip(gt, detections):
+            positives_gt = gt_frame.sum()
+            positives_pred = detection_frame.sum()
+            if positives_pred > positives_gt: 
+                TP+=positives_gt
+                FP+=(positives_pred-positives_gt)
+            else:
+                TP+=positives_pred
+
+        precision_list.append(TP/(TP+FP+1e-4) + 1e-4)
+        recall_list.append(TP/P + 1e-4)
+
+    return np.array(precision_list), np.array(recall_list)
+
+def plot_pr_curve(precision_list, recall_list, thresholds):
+    f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
+
+    fig, ax1 = plt.subplots()
+
+    color = 'tab:red'
+    ax1.set_xlabel('Recall', color=color)
+    ax1.set_ylabel('Precision', color=color)
+    ax1.plot(recall_list, precision_list, color=color)
+    ax1.tick_params(axis='x', labelcolor=color)
+    ax2 = ax1.twiny()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_xlabel('Threshold', color=color)  # we already handled the x-label with ax1
+    ax2.plot(thresholds, f1, color=color)
+    ax2.tick_params(axis='x', labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    best_thres = thresholds[np.argmax(f1)]
+    plt.suptitle('Optimum threshold {:.2f} at max f1 {:.2f}'.format(best_thres, max(f1)))
+    return (fig,(ax1,ax2))
+
+def pr_curve_from_file(filename):
+    with open(filename, 'rb') as f: 
+        fig, axes = plot_pr_curve(*pickle.load(f))
+    plt.savefig(filename.strip('.pickle'))
+    plt.show()
+
+def compute_precision_recall_nonlocal(gt_path, predictions_path, output_filename='evaluation', enable_nms=False, plot=False):
+
+    with open(gt_path,'rb') as f: 
+        gt = pickle.load(f)
+    with open(predictions_path,'rb') as f: 
+        predictions = pickle.load(f)
+
+    if enable_nms: 
+        predictions = nms(predictions)
+    gt = gt.numpy()
+    predictions = predictions.numpy()
+
+    gt = gt.reshape(len(gt),-1)
+    gt = (gt == 1)
+
+    predictions = predictions.reshape(len(predictions),-1) 
+
+    thresholds = np.linspace(0,1,1000)
+    precision_list, recall_list = fast_prec_recall(gt, predictions, thresholds)
+
+    with open(output_filename+'.pickle','wb') as f: 
+        data = (precision_list, recall_list, thresholds)
+        pickle.dump(data,f)
+    if plot: 
+        plot_pr_curve(precision_list, recall_list, thresholds)
 
 if __name__ == '__main__':
 
-    evaluate_extension_network_pairs(extension_weights='external_pretrained_models/surfnet32.pth',extracted_heatmaps_dir='data/extracted_heatmaps/')
+    # extract_heatmaps_extension_from_images(base_weights='external_pretrained_models/centernet_pretrained.pth', extension_weights='external_pretrained_models/surfnet32.pth', input_dir='data/surfrider_images')
+   
+    # compute_ROC_curves_brute('data_to_evaluate.pickle')
+
+    # eval_dir = 'experiments/evaluations/real_images_test_split/'
+    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'extension_predictions.pickle',output_filename='Evaluation extension')
+    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'extension_predictions.pickle',output_filename='Evaluation extension nms', enable_nms=True)
+    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'base_predictions.pickle',output_filename='Evaluation base')
+    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'base_predictions.pickle',output_filename='Evaluation base nms', enable_nms=True)
+
+    # # extract_heatmaps_extension('external_pretrained_models/surfnet32.pth','data/extracted_heatmaps/')
+
+    # pr_curve_from_file('Evaluation base.pickle')
+    # pr_curve_from_file('Evaluation base nms.pickle')
+    # pr_curve_from_file('Evaluation extension.pickle')
+    # pr_curve_from_file('Evaluation extension nms.pickle')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # loaded_data = torch.tensor(load_data_for_eval('experiments/evaluations/temp_heatmaps/'))
+    # test = 0 
+
+    # extract_heatmaps_extension(extension_weights='external_pretrained_models/surfnet32.pth',input_dir='data/extracted_heatmaps/')
+    # load_heatmaps('experiments/evaluations/temp_heatmaps/')
+    # evaluate_extension_network_static_images(base_weights='external_pretrained_models/centernet_pretrained.pth', extension_weights='external_pretrained_models/surfnet32.pth')
 
     # images_folder = '/home/mathis/Documents/datasets/surfrider/other/test_synthetic_video_adour/'
     # centernet_trained_my_repo = 'external_pretrained_models/centernet_trained_my_repo.pth'

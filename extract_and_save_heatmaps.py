@@ -25,45 +25,13 @@ def plot_single_image_heatmaps_and_gt(image, heatmaps, gt, normalize):
     ax4.imshow(gt, **kwargs)
 
     plt.show()
-def extract(args):
 
-    downsampling_factor = args.downsampling_factor
-    trained_model_weights_filename = args.weights
+def extract_heatmaps_for_video_frames(model, args, transform, downsampling_factor):
 
-    video_folder = args.video_dir
+
+    video_folder = args.input_dir
     video_names = [video_name for video_name in sorted(os.listdir(video_folder)) if '.MP4' in video_name]
 
-    if 'deeplab' in args.model:
-        transform = transforms_test_deeplab
-        model = get_model(args.model, 4, freeze_backbone=True, downsampling_factor=args.downsampling_factor, focal=False)
-        model = load_my_model(model, trained_model_weights_filename)
-        for param in model.parameters():
-            param.requires_grad = False
-        model.to('cuda')
-        print('Model loaded to GPU.')
-        model.eval()
-
-    else:
-        if args.my_repo: 
-            transform = transform_test_CenterNet(fix_res=False)
-            model = create_model_centernet(arch=args.model, heads={'hm':3,'wh':2}, head_conv=256)
-            model = load_my_model(model, trained_model_weights_filename)
-            for param in model.parameters():
-                param.requires_grad = False
-            model.to('cuda')
-            print('Model loaded to GPU.')
-            model.eval()
-        else:
-            transform = pre_process_centernet
-            model = create_model_centernet(arch=args.model, heads={'hm':3,'wh':2,'reg':2}, head_conv=256)
-            model = load_model_centernet(model, trained_model_weights_filename)
-            for param in model.parameters():
-                param.requires_grad = False
-            model.to('cuda')
-            print('Model loaded to GPU.')
-            model.eval()
-
-    output_dir = args.output_dir 
     with torch.no_grad():
         for video_nb, video_name in enumerate(video_names): 
             print('Processing video {}'.format(video_nb))
@@ -85,22 +53,59 @@ def extract(args):
                 # plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
 
                 data = (Z.cpu().squeeze(), torch.from_numpy(Phi).unsqueeze(0), center)
-                with open(output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:
+                with open(args.output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:
                     pickle.dump(data, f)
+
+
             del dataset
+
+def extract(args):
+
+    trained_model_weights_filename = args.weights
+
+    if 'deeplab' in args.model:
+        transform = transforms_test_deeplab
+        model = get_model(args.model, 4, freeze_backbone=True, downsampling_factor=args.downsampling_factor, focal=False)
+        model = load_my_model(model, trained_model_weights_filename)
+
+    else:
+        if args.my_repo: 
+            transform = transform_test_CenterNet(fix_res=False)
+            model = create_model_centernet(arch=args.model, heads={'hm':3,'wh':2}, head_conv=256)
+            model = load_my_model(model, trained_model_weights_filename)
+
+        else:
+            transform = pre_process_centernet
+            model = create_model_centernet(arch=args.model, heads={'hm':3,'wh':2,'reg':2}, head_conv=256)
+            model = load_model_centernet(model, trained_model_weights_filename)
+
+    for param in model.parameters():
+        param.requires_grad = False
+    model.to('cuda')
+    print('Model loaded to GPU.')
+    model.eval()
+
+    if args.from_video:
+        extract_heatmaps_for_video_frames(model, transform, args)
+    
+    else:
+        extract_heatmaps_for_images_in_folder(model, transform, args)
+
 
 if __name__ == '__main__':
 
 
     import argparse
-    parser = argparse.ArgumentParser(description='Extracting heatmaps from trained Deeplab')
+    parser = argparse.ArgumentParser(description='Extracting heatmaps produced by base network')
 
-    parser.add_argument('--video-dir')
+    parser.add_argument('--input-dir')
     parser.add_argument('--output-dir')
     parser.add_argument('--weights')
     parser.add_argument('--downsampling-factor', type=int)
     parser.add_argument('--model')
     parser.add_argument('--my-repo',action='store_true')
+    parser.add_argument('--from_videos',action='store_true')
+
 
     args = parser.parse_args()
 
