@@ -3,10 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-import taco_tools
-import cv2_io
-import flow_tools
-import utils
+from synthetic_videos import taco_tools, cv2_io, flow_tools, utils
 import json
 
 verbose = False
@@ -34,7 +31,7 @@ def init_tracker(first_frame, dense_flow_first_frame, object_nb, tractable_band=
 
     mean_norm = np.mean(norm_tractacle_region)
     
-    dist_to_median = np.abs(norm_blocks_tractacle_regions-object_nb*random.uniform(2,4)*mean_norm)
+    dist_to_median = np.abs(norm_blocks_tractacle_regions-(object_nb+1)*mean_norm)
     median_block = np.array(np.unravel_index(np.argmin(dist_to_median, axis=None), dist_to_median.shape)) + np.array([int(block_size[0]/2),0])
 
     roi = pgcd*np.array([median_block[1],median_block[1]+1,median_block[0],median_block[0]+1])
@@ -168,7 +165,7 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
 
     for frame_nb in range(shortest_sequence_length):
 
-        ret, frame = frame_reader.read_frame()
+        _ , frame = frame_reader.read_frame()
 
         for object_nb in range(len(usable_pts_sequences)):
 
@@ -192,6 +189,7 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
     if frame_reader.original_shape_mode: frame_reader.set_original_shape_mode(False)
     json.dump(annotations, json_file)
     return shortest_sequence_length
+
 
 
 def main(args):
@@ -222,19 +220,35 @@ def main(args):
             frame_reader.set_init_frame(total_frames_read)
             output_name = output_dir + vid_names[video_nb].strip('.MP4') + '_{}.MP4'.format(portion_nb_in_video)
             json_file = open(output_name.replace('.MP4','.json'),'w')
-            nb_objects = 1
+            nb_objects = 2
             frame_writer = cv2.VideoWriter(filename=output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
 
             nb_frames_read = add_trash_objects(frame_reader, frame_writer, json_file, tractable_band=tractable_band, nb_objects=nb_objects, output_original_shape=True)
 
             total_frames_read += nb_frames_read + int(total_num_frames / nb_extracts_per_vid)
-
             portion_nb_in_video+=1
-
-            frame_writer.release()
             json_file.close()
+            frame_writer.release()
 
+        # if args.nb_frames_without_object: 
 
+        #     frame_reader = cv2_io.FrameReader(video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
+        #     if output_original_shape:
+        #             frame_reader.set_original_shape_mode(True)
+        #     output_name = output_dir + vid_names[video_nb].replace('.MP4','_no_object.MP4')
+        #     frame_writer = cv2.VideoWriter(filename=output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
+        #     json_file = open(output_name.replace('.MP4','.json'),'w')
+        #     annotations = dict()
+        #     for frame_nb in range(args.nb_frames_without_object):
+        #         _ , frame =  frame_reader.read_frame()
+        #         # cv2.imshow('frame', frame)
+        #         # cv2.waitKey(0)
+        #         frame_writer.write(frame)
+        #         annotations[frame_nb] = dict()
+        #     json.dump(annotations, json_file)
+        #     json_file.close()
+        #     frame_writer.release()
+    
 
 if __name__ == "__main__":
 
@@ -248,6 +262,8 @@ if __name__ == "__main__":
     parser.add_argument('--rescale', type=int, default=3)
     parser.add_argument('--nb-extracts-per-vid',dest='nb_extracts_per_vid', type=int, default=20)
     parser.add_argument('--synthetic-objects',type=str)
+    parser.add_argument('--nb-frames-without-object', type=int, dest='nb_frames_without_object', default=50)
+    parser.add_argument('--max-nb-objects',dest='max_nb_objects',type=int,default=3)
 
     args = parser.parse_args()
     taco_path = args.synthetic_objects

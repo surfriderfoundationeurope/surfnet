@@ -26,7 +26,7 @@ def plot_single_image_heatmaps_and_gt(image, heatmaps, gt, normalize):
 
     plt.show()
 
-def extract_heatmaps_for_video_frames(model, args, transform, downsampling_factor):
+def extract_heatmaps_for_video_frames(model, transform, args):
 
 
     video_folder = args.input_dir
@@ -44,15 +44,19 @@ def extract_heatmaps_for_video_frames(model, args, transform, downsampling_facto
                 Z = predictions['hm']
 
                 Phi = np.zeros(shape=(Z.shape[-2],Z.shape[-1]))
-                Phi, center = blob_for_bbox(annotation_dict['0']['bbox'], Phi, downsampling_factor)
+
+                for object_nb in annotation_dict:
+
+                    Phi += blob_for_bbox(annotation_dict[str(object_nb)]['bbox'], Phi, args.downsampling_factor)[0]
+                    
 
                 frame = np.transpose(frame.squeeze().cpu().numpy(), axes=[1, 2, 0])
                 frame = frame * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
                 # print(center)
 
-                # plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
+                plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
 
-                data = (Z.cpu().squeeze(), torch.from_numpy(Phi).unsqueeze(0), center)
+                data = (Z.cpu().squeeze(), torch.from_numpy(Phi).unsqueeze(0))
                 with open(args.output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:
                     pickle.dump(data, f)
 
@@ -85,11 +89,11 @@ def extract(args):
     print('Model loaded to GPU.')
     model.eval()
 
-    if args.from_video:
+    if args.from_videos:
         extract_heatmaps_for_video_frames(model, transform, args)
     
-    else:
-        extract_heatmaps_for_images_in_folder(model, transform, args)
+    # else:
+    #     extract_heatmaps_for_images_in_folder(model, transform, args)
 
 
 if __name__ == '__main__':
@@ -103,8 +107,8 @@ if __name__ == '__main__':
     parser.add_argument('--weights')
     parser.add_argument('--downsampling-factor', type=int)
     parser.add_argument('--model')
-    parser.add_argument('--my-repo',action='store_true')
-    parser.add_argument('--from_videos',action='store_true')
+    parser.add_argument('--my-repo', action='store_true')
+    parser.add_argument('--from-videos', action='store_true')
 
 
     args = parser.parse_args()

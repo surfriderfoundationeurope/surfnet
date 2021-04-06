@@ -8,27 +8,31 @@ from torchvision.transforms.functional import center_crop
 import matplotlib.pyplot as plt
 from extension.losses import TrainLoss, TestLoss
 from torchvision.transforms.functional import affine
-import pickle
+from common.utils import warp_flow
 # torch.autograd.set_detect_anomaly(True)
 
-def spatial_transformer(heatmaps, displacement):
-    # b, c, h, w = heatmap.shape
-    DY = displacement[:,1] 
-    DX = displacement[:,0]
-    heatmaps =  torch.stack(tuple(affine(heatmap, angle = 0, translate = (dx,dy), shear = 0, scale=1) for (heatmap, dx, dy) in zip(heatmaps, DX, DY)))
-    for j in range(len(displacement)):
-        dx = DX[j]
-        dy = DY[j]
-        if dx > 0:
-            heatmaps[j,:,:,:dx] = -50
-        elif dx < 0:
-            heatmaps[j,:,:,dx:] = -50
+def spatial_transformer(heatmaps, displacement, dense_flow=False):
 
-        if dy > 0:
-            heatmaps[j,:,:dy,:] = -50
-        elif dy < 0:
-            heatmaps[j,:,dy:,:] = -50
-    return heatmaps 
+    if dense_flow: 
+        return warp_flow(heatmaps, displacement)
+
+    else: 
+        DY = displacement[:,1] 
+        DX = displacement[:,0]
+        heatmaps =  torch.stack(tuple(affine(heatmap, angle = 0, translate = (dx,dy), shear = 0, scale=1) for (heatmap, dx, dy) in zip(heatmaps, DX, DY)))
+        for j in range(len(displacement)):
+            dx = DX[j]
+            dy = DY[j]
+            if dx > 0:
+                heatmaps[j,:,:,:dx] = -50
+            elif dx < 0:
+                heatmaps[j,:,:,dx:] = -50
+
+            if dy > 0:
+                heatmaps[j,:,:dy,:] = -50
+            elif dy < 0:
+                heatmaps[j,:,dy:,:] = -50
+        return heatmaps 
 
 def get_loaders(args):
 
@@ -48,6 +52,7 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
     model.train()
     running_loss = 0.0
     verbose=False
+    
     for i, (Z0, Phi0, Phi1, d_01) in enumerate(loader_train):
 
         Z0 = Z0.to(device)

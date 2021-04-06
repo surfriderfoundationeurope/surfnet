@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import flow_tools
+from . import flow_tools
 from scipy.stats import multivariate_normal
 from scipy.signal import savgol_filter
 
