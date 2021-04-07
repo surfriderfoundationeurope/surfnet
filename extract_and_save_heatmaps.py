@@ -98,7 +98,7 @@ def build_gt(annotation, shape, downsampling_factor):
     Phi = np.zeros(shape=shape)
 
     for object_nb in annotation:
-        Phi += blob_for_bbox(annotation[str(object_nb)]['bbox'], Phi, downsampling_factor)[0]
+        Phi = np.maximum(Phi, blob_for_bbox(annotation[str(object_nb)]['bbox'], Phi, downsampling_factor)[0])
 
     return Phi
 
@@ -206,7 +206,7 @@ def extract_heatmaps_for_video_frames(model, transform, args):
                 heatmap1 = get_heatmap(frame1)
                 save_heatmap(video_nb, frame_nb, heatmap1, gt1, args.output_dir)
 
-                # verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01)
+                verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01)
 
                 frame0, annotation0 = frame1.copy(), annotation1.copy()
 
