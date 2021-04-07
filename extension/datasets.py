@@ -81,10 +81,12 @@ class SurfnetDataset(torch.utils.data.Dataset):
             video_id, pair_id_in_video = self.id_to_location[index]
             video_name_0 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video)
             video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
+            flow_name = 'flow_video_{:03d}_frame_{:03d}_{:03d}'.format(video_id,pair_id_in_video, pair_id_in_video+1)
             with open(self.heatmaps_folder + video_name_0,'rb') as f: 
                 Z_0, Phi0, center_0 = pickle.load(f)
             with open(self.heatmaps_folder + video_name_1,'rb') as f: 
                 Phi1, center_1 = pickle.load(f)[1:]
+            flow01 = np.load(flow_name)
 
             d_01 = np.array(center_1) - np.array(center_0)
 
@@ -96,6 +98,77 @@ class SurfnetDataset(torch.utils.data.Dataset):
 
             with open(self.heatmaps_folder + video_name,'rb') as f: 
                  Z, Phi, _ = pickle.load(f)
+
+            Z = torch.max(Z, axis=0, keepdim=True)[0]
+
+            return Z, Phi
+
+    def __len__(self):
+        return len(self.id_to_location)
+
+    def _init_ids(self):
+
+        self.ids_dict = dict()
+
+        for filename in self.heatmap_filenames:
+            splitted_name = filename.split('_')
+            video_id, frame_id_in_video = splitted_name[1], splitted_name[3].strip('.pickle')
+            self.ids_dict.setdefault(video_id, []).append(frame_id_in_video) 
+        
+        self.id_to_location = []
+        num_videos = len(self.ids_dict.keys())
+        num_videos_train = int(0.9*num_videos)
+
+        if self.split == 'train':
+            for video_id in list(self.ids_dict.keys())[:num_videos_train]:
+                for frame_id_in_video in self.ids_dict[video_id][:-1]:
+                    self.id_to_location.append((int(video_id), int(frame_id_in_video)))
+        
+        else:
+            for video_id in list(self.ids_dict.keys())[num_videos_train:]:
+                for frame_id_in_video in self.ids_dict[video_id]:
+                    self.id_to_location.append((int(video_id), int(frame_id_in_video)))
+
+        if self.subset: 
+            self.id_to_location = self.id_to_location[:int(0.1*len(self.id_to_location))]
+
+class SurfnetDatasetFlow(torch.utils.data.Dataset):
+    def __init__(self, heatmaps_folder, split):
+        self.heatmaps_folder = heatmaps_folder
+        self.split = split 
+        self.subset = False
+        self.heatmap_filenames = [filename for filename in sorted(os.listdir(heatmaps_folder)) if filename.endswith('.pickle')]
+        self._init_ids()
+
+
+
+    def __getitem__(self, index):
+
+        if self.split == 'train':
+            video_id, pair_id_in_video = self.id_to_location[index]
+            video_name_0 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video)
+            video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
+            flow_name = 'flow_video_{:03d}_frame_{:03d}_{:03d}.npy'.format(video_id, pair_id_in_video, pair_id_in_video+1)
+
+            with open(self.heatmaps_folder + video_name_0,'rb') as f: 
+                Z_0, Phi0 = pickle.load(f)
+            with open(self.heatmaps_folder + video_name_1,'rb') as f: 
+                Phi1 = pickle.load(f)[1]
+            flow01 = np.load(self.heatmaps_folder+flow_name)
+
+            flow01 = -flow01
+
+            
+            Z_0 = torch.max(Z_0, axis=0, keepdim=True)[0]
+            
+            return  Z_0, Phi0, Phi1, torch.from_numpy(flow01)
+
+        else: 
+            video_id, id_in_video = self.id_to_location[index]
+            video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
+
+            with open(self.heatmaps_folder + video_name,'rb') as f: 
+                 Z, Phi = pickle.load(f)
 
             Z = torch.max(Z, axis=0, keepdim=True)[0]
 

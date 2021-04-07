@@ -1,4 +1,4 @@
-from extension.datasets import SurfnetDataset
+from extension.datasets import SurfnetDatasetFlow
 import torch 
 from torch.utils.data import DataLoader
 from extension.models import SurfNet
@@ -11,10 +11,10 @@ from torchvision.transforms.functional import affine
 from common.utils import warp_flow
 # torch.autograd.set_detect_anomaly(True)
 
-def spatial_transformer(heatmaps, displacement, dense_flow=False):
+def spatial_transformer(heatmaps, displacement, device, dense_flow=True):
 
     if dense_flow: 
-        return warp_flow(heatmaps, displacement)
+        return warp_flow(heatmaps, displacement, device)
 
     else: 
         DY = displacement[:,1] 
@@ -32,12 +32,14 @@ def spatial_transformer(heatmaps, displacement, dense_flow=False):
                 heatmaps[j,:,:dy,:] = -50
             elif dy < 0:
                 heatmaps[j,:,dy:,:] = -50
-        return heatmaps 
+        return heatmaps
+
+
 
 def get_loaders(args):
 
-    dataset_train = SurfnetDataset(args.data_path, split='train')
-    dataset_test =  SurfnetDataset(args.data_path, split='test')
+    dataset_train = SurfnetDatasetFlow(args.data_path, split='train')
+    dataset_test =  SurfnetDatasetFlow(args.data_path, split='test')
 
     loader_train = DataLoader(dataset_train, batch_size=args.batch_size, shuffle=True)
     loader_test = DataLoader(dataset_test, batch_size=1, shuffle=False)
@@ -53,19 +55,19 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
     running_loss = 0.0
     verbose=False
     
-    for i, (Z0, Phi0, Phi1, d_01) in enumerate(loader_train):
+    for i, (Z0, Phi0, Phi1, flow01) in enumerate(loader_train):
 
         Z0 = Z0.to(device)
         Phi0 = Phi0.to(device)
         Phi1 = Phi1.to(device)
-        d_01 = d_01.to(device)
+        flow01 = flow01.to(device)
 
         h0 = model(Z0)
 
-        h1 = spatial_transformer(h0, d_01)
+        h1 = spatial_transformer(h0, flow01, device)
 
         if verbose:
-            Z1 = spatial_transformer(Z0, d_01)
+            Z1 = spatial_transformer(Z0, flow01, device)
             fig, ((ax0, ax1), (ax2, ax3),(ax4, ax5)) = plt.subplots(3,2, figsize=(10,10))
 
             ax0.imshow(sigmoid(Z0).detach().cpu()[0][0], cmap='gray', vmin=0, vmax=1)
@@ -86,7 +88,7 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
             ax5.imshow(Phi1.cpu()[0][0], cmap='gray', vmin=0, vmax=1)
             ax5.set_title('$\Phi_1$')
 
-            plt.suptitle('$d_{01} = $'+str(d_01[0].detach().cpu().numpy()))
+            # plt.suptitle('$d_{01} = $'+str(d_01[0].detach().cpu().numpy()))
             plt.show()
             # with open('verbose.pickle','wb') as f:
             #     obj = (fig, ((ax2, ax3),(ax4, ax5)))

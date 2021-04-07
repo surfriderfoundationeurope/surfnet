@@ -27,7 +27,7 @@ class TrainLoss(nn.Module):
 
         pos_loss_1, neg_loss_1, num_pos_1 = _pixel_wise_focal_loss(h1, Phi1, self.alpha, self.beta)
 
-        relevant_pixels_1 = h1.ne(-50).float()
+        relevant_pixels_1 = h1.ne(-55).float()
 
         pos_loss_1 = (pos_loss_1*relevant_pixels_1).sum()
         neg_loss_1 = (neg_loss_1*relevant_pixels_1).sum()

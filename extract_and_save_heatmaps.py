@@ -9,7 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from common.utils import load_my_model
 import torch
-
+import cv2 
+import json
+from synthetic_videos.flow_tools import flow_opencv_dense
+from PIL import Image
+from tqdm import tqdm
 def plot_single_image_heatmaps_and_gt(image, heatmaps, gt, normalize):
 
     _ , (ax0, ax1, ax2, ax3, ax4) = plt.subplots(1,5,figsize=(30,30))
@@ -26,42 +30,185 @@ def plot_single_image_heatmaps_and_gt(image, heatmaps, gt, normalize):
 
     plt.show()
 
-def extract_heatmaps_for_video_frames(model, transform, args):
+class VideoOpenCV(object):
 
+    def __init__(self, video_name, fix_res=False, downsampling_factor=4):
+        self.cap = cv2.VideoCapture(video_name)
+        self.num_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.fix_res = fix_res
+        self.downsampling_factor = downsampling_factor
+        self.annotation = json.load(open(video_name.replace('.MP4','.json') ,'r'))
+        self.index = 0 
+
+    def read(self):
+        ret, frame = self.cap.read()
+
+        if not ret: 
+            print('Unreadable frame!')
+        return frame
+
+    def resize_frame(self, frame):
+        if self.fix_res:
+            new_h = 512
+            new_w = 512
+        else:
+            h, w = frame.shape[:-1]
+            new_h = (h | 31) + 1
+            new_w = (w | 31) + 1
+
+        # new_h = new_h // self.downsampling_factor
+        # new_w = new_w // self.downsampling_factor
+
+        return cv2.resize(frame, (new_w, new_h))
+
+    def resize_annotation(self, annotation, old_frame_shape, new_frame_shape):
+
+        old_shape_x, old_shape_y = old_frame_shape
+        new_shape_x, new_shape_y = new_frame_shape
+
+        ratio_x = new_shape_x / old_shape_x
+        ratio_y = new_shape_y / old_shape_y
+
+        for object_nb in annotation.keys():
+
+            [top_left_x, top_left_y, width, height] = annotation[object_nb]['bbox']
+            [center_x, center_y] = annotation[object_nb]['center']
+
+            annotation[object_nb]['bbox'] = [int(top_left_x * ratio_x), int(top_left_y * ratio_y), int(width * ratio_x), int(height * ratio_y)]
+            annotation[object_nb]['center'] = [int(center_x * ratio_x), int(center_y * ratio_y)]
+
+        return annotation
+    
+    def get_next_frame_and_annotation(self):
+        annotation = self.annotation[str(self.index)]
+        self.index+=1
+        frame = self.read()
+
+        old_frame_shape = (frame.shape[1], frame.shape[0])
+        frame = self.resize_frame(frame)
+        new_frame_shape = (frame.shape[1],frame.shape[0])
+
+        annotation = self.resize_annotation(annotation,old_frame_shape,new_frame_shape)
+
+        return frame, annotation
+
+def build_gt(annotation, shape, downsampling_factor):
+    shape = (shape[0] // downsampling_factor, shape[1] // downsampling_factor)
+
+    Phi = np.zeros(shape=shape)
+
+    for object_nb in annotation:
+        Phi += blob_for_bbox(annotation[str(object_nb)]['bbox'], Phi, downsampling_factor)[0]
+
+    return Phi
+
+def save_heatmap(video_nb, frame_nb, heatmap, gt, output_dir):
+    data = (heatmap, torch.from_numpy(gt).unsqueeze(0))
+    with open(output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:
+        pickle.dump(data, f)
+        
+def save_flow(video_nb, frame_nb, flow, output_dir):
+    output_name = output_dir + 'flow_video_{:03d}_frame_{:03d}_{:03d}'.format(video_nb, frame_nb-1, frame_nb)
+    np.save(output_name, flow)
+
+def _get_heatmap(frame, model, transform):
+    frame = transform(frame).to('cuda').unsqueeze(0)
+    return model(frame)[-1]['hm'].cpu().squeeze()
+
+def compute_flow(frame0, frame1, downsampling_factor):
+    h, w = frame0.shape[:-1]
+
+    new_h = h // downsampling_factor
+    new_w = w // downsampling_factor
+
+    frame0 = cv2.resize(frame0, (new_w, new_h))
+    frame1 = cv2.resize(frame1, (new_w, new_h))
+
+    flow01 = flow_opencv_dense(frame0, frame1)
+    
+    return flow01
+
+def verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01):
+
+    fig, ((ax0,ax1), (ax2, ax3), (ax4, ax5), (ax6, ax7)) = plt.subplots(4,2)
+
+    frame0 = Image.fromarray(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
+    frame1 = Image.fromarray(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
+
+    ax0.imshow(frame0)
+    ax0.set_title('Frame 0')
+
+    ax1.imshow(frame1)
+    ax1.set_title('Frame 1')
+
+    ax2.imshow(gt0, cmap='gray',vmin=0, vmax=1)
+    ax2.set_title('Ground truth 0')
+
+    ax3.imshow(gt1, cmap='gray', vmin=0, vmax=1)
+    ax3.set_title('Ground truth 1')
+
+    ax4.imshow(torch.sigmoid(torch.max(heatmap0,dim=0)[0]), cmap='gray', vmin=0, vmax=1)
+    ax4.set_title('Heatmap 0')
+
+    ax5.imshow(torch.sigmoid(torch.max(heatmap1,dim=0)[0]), cmap='gray', vmin=0, vmax=1)    
+    ax5.set_title('Heatmap 1')
+
+
+    mag, ang = cv2.cartToPolar(flow01[...,0], flow01[...,1])
+    hsv = np.zeros(shape=(*flow01.shape[:-1],3),dtype=np.uint8)
+    hsv[...,1] = 0
+    hsv[...,0] = ang*180/np.pi/2
+    hsv[...,2] = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
+    bgr = cv2.cvtColor(hsv,cv2.COLOR_HSV2BGR)
+    flow_rgb = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+
+    ax6.imshow(flow_rgb)
+    ax6.set_title('Flow between 0 and 1')
+
+    ax7.set_axis_off()
+
+    plt.show()
+    plt.close()
+
+    
+
+
+
+def extract_heatmaps_for_video_frames(model, transform, args):
 
     video_folder = args.input_dir
     video_names = [video_name for video_name in sorted(os.listdir(video_folder)) if '.MP4' in video_name]
 
+    get_heatmap = lambda frame: _get_heatmap(frame, model, transform)
+
     with torch.no_grad():
-        for video_nb, video_name in enumerate(video_names): 
-            print('Processing video {}'.format(video_nb))
-            dataset = SingleVideoDataset(video_folder + video_name, transforms=transform)
-            print('Video loaded')
-            for frame_nb, (frame, annotation_dict) in enumerate(dataset):
-                print('Extracting heatmap for frame {}'.format(frame_nb))
-                frame = frame.to('cuda').unsqueeze(0)
-                predictions = model(frame)[-1]
-                Z = predictions['hm']
+        for video_nb, video_name in enumerate(tqdm(video_names)): 
+            # print('Processing video {}'.format(video_nb))
+            video = VideoOpenCV(video_folder + video_name, fix_res=False, downsampling_factor=args.downsampling_factor)
+            num_frames = video.num_frames
+            frame_nb = 0 
 
-                Phi = np.zeros(shape=(Z.shape[-2],Z.shape[-1]))
+            frame0, annotation0 = video.get_next_frame_and_annotation()
+            shape = frame0.shape[:-1]
 
-                for object_nb in annotation_dict:
+            gt0 = build_gt(annotation0, shape, args.downsampling_factor)
+            heatmap0 = get_heatmap(frame0)
+            save_heatmap(video_nb, frame_nb, heatmap0, gt0, args.output_dir)
 
-                    Phi += blob_for_bbox(annotation_dict[str(object_nb)]['bbox'], Phi, args.downsampling_factor)[0]
-                    
+            for frame_nb in range(1,num_frames):
 
-                frame = np.transpose(frame.squeeze().cpu().numpy(), axes=[1, 2, 0])
-                frame = frame * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
-                # print(center)
+                frame1, annotation1 = video.get_next_frame_and_annotation()
 
-                plot_single_image_heatmaps_and_gt(frame, Z.cpu()[0], Phi, normalize=False)
+                flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
+                save_flow(video_nb, frame_nb, flow01, args.output_dir)
 
-                data = (Z.cpu().squeeze(), torch.from_numpy(Phi).unsqueeze(0))
-                with open(args.output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:
-                    pickle.dump(data, f)
+                gt1 = build_gt(annotation1, shape, args.downsampling_factor)
+                heatmap1 = get_heatmap(frame1)
+                save_heatmap(video_nb, frame_nb, heatmap1, gt1, args.output_dir)
 
+                # verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01)
 
-            del dataset
+                frame0, annotation0 = frame1.copy(), annotation1.copy()
 
 def extract(args):
 
@@ -100,19 +247,21 @@ if __name__ == '__main__':
 
 
     import argparse
+    
     parser = argparse.ArgumentParser(description='Extracting heatmaps produced by base network')
 
-    parser.add_argument('--input-dir')
-    parser.add_argument('--output-dir')
-    parser.add_argument('--weights')
+    parser.add_argument('--input-dir', type=str)
+    parser.add_argument('--output-dir', type=str)
+    parser.add_argument('--weights', type=str)
     parser.add_argument('--downsampling-factor', type=int)
-    parser.add_argument('--model')
+    parser.add_argument('--model', type=str)
     parser.add_argument('--my-repo', action='store_true')
     parser.add_argument('--from-videos', action='store_true')
-
+    parser.add_argument('--extract-flow', action='store_true')
 
     args = parser.parse_args()
-
+    # print(args)
+    # return 0
     extract(args)
     
     

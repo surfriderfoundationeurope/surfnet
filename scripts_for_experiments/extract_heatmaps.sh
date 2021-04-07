@@ -1,10 +1,11 @@
 . scripts_for_experiments/shell_variables.sh
 
-python -m debugpy --listen 5678 --wait-for-client extract_and_save_heatmaps.py \
-	--input-dir ${SYNTHETIC_VIDEOS_PATH} \
+python extract_and_save_heatmaps.py \
+	--input-dir ${SYNTHETIC_VIDEOS} \
 	--output-dir ${BASE_NETWORK_HEATMAPS} \
-	--weights  ${BASE_PRETRAINED} \
+	--weights  ${BASE_PRETRAINED_WEIGHTS} \
 	--downsampling-factor ${DOWNSAMPLING_FACTOR} \
 	--model 'dla_34' \
 	--my-repo \
-	--from-videos
+	--from-videos \
+	--extract-flow

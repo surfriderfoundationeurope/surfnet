@@ -1,9 +1,11 @@
+from matplotlib.pyplot import grid
 import numpy as np 
 import math 
 import cv2
 import torch
 import torchvision.transforms as T 
 import torchvision.transforms.functional as F
+from torch.nn.functional import grid_sample
 
 class ResizeForCenterNet(object):
     def __init__(self, fix_res=False):
@@ -178,7 +180,9 @@ def transform_test_CenterNet(fix_res=False):
 
     transforms = []
 
-    transforms.append(ResizeForCenterNet(fix_res))
+    # transforms.append(ResizeForCenterNet(fix_res))
+    transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+    # transforms.append(T.ToPILImage())
     transforms.append(T.ToTensor())
     transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
                                   std=[0.229, 0.224, 0.225]))
@@ -202,10 +206,38 @@ def nms(heat, kernel=3):
     keep = (hmax == heat).float()
     return heat * keep
 
-def warp_flow(img, flow):
-    h, w = flow.shape[:2]
-    flow = -flow
-    flow[:,:,0] += np.arange(w)
-    flow[:,:,1] += np.arange(h)[:,np.newaxis]
-    res = cv2.remap(img, flow, None, cv2.INTER_LINEAR)
-    return res
+def warp_flow(inputs, flows, device):
+
+    inputs_ = inputs + 55 
+    flows = flows.permute(0,3,1,2)
+    B, C, H, W = inputs_.shape
+
+    xx = torch.arange(0, W).view(1,-1).repeat(H,1)
+
+    yy = torch.arange(0, H).view(-1,1).repeat(1,W)
+
+    xx = xx.view(1,1,H,W).repeat(B,1,1,1)
+
+    yy = yy.view(1,1,H,W).repeat(B,1,1,1)
+
+    grid = torch.cat((xx,yy),1).float().to(device)
+
+    vgrid = grid + flows
+
+    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:].clone() / max(W-1,1)-1.0
+
+    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:].clone() / max(H-1,1)-1.0
+
+    warped_outputs = torch.nn.functional.grid_sample(inputs_, vgrid.permute(0,2,3,1), 'nearest')
+    warped_outputs.add_(-55)
+    inputs_ = inputs_ - 55 
+    # import matplotlib.pyplot as plt
+
+
+
+    # for input, warped_output in zip(inputs_, warped_outputs):
+    #     fig , (ax0, ax1) = plt.subplots(1,2)
+    #     ax0.imshow(torch.sigmoid(input).cpu().detach().permute(1,2,0),cmap='gray',vmin=0, vmax=1)
+    #     ax1.imshow(torch.sigmoid(warped_output).cpu().detach().permute(1,2,0), cmap='gray',vmin=0, vmax=1)
+    #     plt.show()
+    return warped_outputs
