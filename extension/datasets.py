@@ -138,9 +138,9 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
         self.split = split 
         self.subset = False
         self.heatmap_filenames = [filename for filename in sorted(os.listdir(heatmaps_folder)) if filename.endswith('.pickle')]
+        with open(self.heatmaps_folder + 'vid_nb_to_vid_names.json','r') as f: 
+            self.vid_nb_to_vid_names = json.load(f)
         self._init_ids()
-
-
 
     def __getitem__(self, index):
 
@@ -181,22 +181,39 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
 
         self.ids_dict = dict()
 
-        for filename in self.heatmap_filenames:
-            splitted_name = filename.split('_')
-            video_id, frame_id_in_video = splitted_name[1], splitted_name[3].strip('.pickle')
-            self.ids_dict.setdefault(video_id, []).append(frame_id_in_video) 
-        
-        self.id_to_location = []
-        num_videos = len(self.ids_dict.keys())
-        num_videos_train = int(0.9*num_videos)
+        videos_single_object = [k for k,v in self.vid_nb_to_vid_names.items() if not ('no_object' or 'two_objects') in v]
+        videos_several_objects = [k for k,v in self.vid_nb_to_vid_names.items() if 'two_objects' in v]
+
+        all_videos = []
+        proportion_train = 0.8 
+        num_videos_train_single_object = int(proportion_train*len(videos_single_object))
+        num_videos_train_several_objects = int(proportion_train*len(videos_several_objects))
 
         if self.split == 'train':
-            for video_id in list(self.ids_dict.keys())[:num_videos_train]:
+            all_videos.extend(videos_single_object[:num_videos_train_single_object])
+            all_videos.extend(videos_several_objects[:num_videos_train_several_objects])
+
+        else: 
+            all_videos.extend(videos_single_object[num_videos_train_single_object:])
+            all_videos.extend(videos_several_objects[num_videos_train_several_objects:])
+
+        self.id_to_location = []
+
+        for filename in self.heatmap_filenames:
+            splitted_name = filename.split('_')
+            video_nb = splitted_name[0]+'_'+splitted_name[1]
+            if video_nb in all_videos:
+                video_id, frame_id_in_video = splitted_name[1], splitted_name[3].strip('.pickle')
+                self.ids_dict.setdefault(video_id, []).append(frame_id_in_video) 
+        
+        self.id_to_location = []
+
+        if self.split == 'train':
+            for video_id in list(self.ids_dict.keys()):
                 for frame_id_in_video in self.ids_dict[video_id][:-1]:
                     self.id_to_location.append((int(video_id), int(frame_id_in_video)))
-        
         else:
-            for video_id in list(self.ids_dict.keys())[num_videos_train:]:
+            for video_id in list(self.ids_dict.keys()):
                 for frame_id_in_video in self.ids_dict[video_id]:
                     self.id_to_location.append((int(video_id), int(frame_id_in_video)))
 

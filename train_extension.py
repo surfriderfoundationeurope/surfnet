@@ -53,7 +53,7 @@ def train_one_epoch(model, criterion, optimizer, loader_train, lr_scheduler, dev
 
     model.train()
     running_loss = 0.0
-    verbose=True
+    verbose=False
     
     for i, (Z0, Phi0, Phi1, flow01) in enumerate(loader_train):
 
