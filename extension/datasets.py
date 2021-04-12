@@ -10,7 +10,6 @@ import pickle
 # import math 
 import cv2
 
-
 class VideoOpenCV(object):
     def __init__(self, video_name):
         self.cap = cv2.VideoCapture(video_name)
@@ -138,9 +137,11 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
         self.split = split 
         self.subset = False
         self.heatmap_filenames = [filename for filename in sorted(os.listdir(heatmaps_folder)) if filename.endswith('.pickle')]
+        self.proportion_train = 0.8
         with open(self.heatmaps_folder + 'vid_nb_to_vid_names.json','r') as f: 
             self.vid_nb_to_vid_names = json.load(f)
         self._init_ids()
+
 
     def __getitem__(self, index):
 
@@ -183,19 +184,23 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
 
         videos_single_object = [k for k,v in self.vid_nb_to_vid_names.items() if not ('no_object' or 'two_objects') in v]
         videos_several_objects = [k for k,v in self.vid_nb_to_vid_names.items() if 'two_objects' in v]
+        videos_no_object = [k for k,v in self.vid_nb_to_vid_names.items() if 'no_object' in v]
 
         all_videos = []
-        proportion_train = 0.8 
-        num_videos_train_single_object = int(proportion_train*len(videos_single_object))
-        num_videos_train_several_objects = int(proportion_train*len(videos_several_objects))
+
+        num_videos_train_single_object = int(self.proportion_train*len(videos_single_object))
+        num_videos_train_several_objects = int(self.proportion_train*len(videos_several_objects))
+        num_videos_train_no_object = int(self.proportion_train*len(videos_no_object))
 
         if self.split == 'train':
             all_videos.extend(videos_single_object[:num_videos_train_single_object])
             all_videos.extend(videos_several_objects[:num_videos_train_several_objects])
+            all_videos.extend(videos_no_object[:num_videos_train_no_object])
 
         else: 
             all_videos.extend(videos_single_object[num_videos_train_single_object:])
             all_videos.extend(videos_several_objects[num_videos_train_several_objects:])
+            all_videos.extend(videos_no_object[num_videos_train_no_object:])
 
         self.id_to_location = []
 

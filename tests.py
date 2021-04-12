@@ -1,6 +1,6 @@
 from math import log
-from numba.np.ufunc import parallel
-from numba.np.ufunc.decorators import vectorize
+# from numba.np.ufunc import parallel
+# from numba.np.ufunc.decorators import vectorize
 from torchvision import datasets
 from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
@@ -25,8 +25,8 @@ from train_base import get_dataset
 import cv2
 from common.utils import pre_process_centernet
 from tqdm import tqdm
-from sklearn.metrics import roc_curve
-from numba import jit 
+# from sklearn.metrics import roc_curve
+from numba import jit
 
 
 class Args(object):
@@ -275,8 +275,8 @@ def load_base(base_weights):
 
     return 
 
-def extract_heatmaps_extension_from_base_heatamps(extension_weights, input_dir):
-    args = Args(focal=True, data_path=input_dir,dataset='surfrider',downsampling_factor=4, batch_size=1)
+def extract_heatmaps_extension_from_base_heatmaps(extension_weights, input_dir):
+    args = Args(focal=True, data_path=input_dir,dataset='surfrider', downsampling_factor=4, batch_size=1)
     _ , loader_test = get_loaders(args)
     extension_model  = load_extension(extension_weights)
     with torch.no_grad():
@@ -296,7 +296,7 @@ def extract_heatmaps_extension_from_base_heatamps(extension_weights, input_dir):
         with open('extension_predictions.pickle','wb') as f: 
             pickle.dump(torch.stack(extension_predictions),f)     
         with open('ground_truth.pickle','wb') as f: 
-            pickle.dump(torch.stack(ground_truth),f)     
+            pickle.dump(torch.stack(ground_truth),f) 
 
 def extract_heatmaps_extension_from_images(base_weights, extension_weights, input_dir):
     args = Args(focal=True, data_path=input_dir, dataset='surfrider',downsampling_factor=4, batch_size=1)
@@ -327,7 +327,7 @@ def extract_heatmaps_extension_from_images(base_weights, extension_weights, inpu
         with open('ground_truth.pickle','wb') as f: 
             pickle.dump(torch.stack(ground_truth),f)     
 
-@jit(nopython=False, parallel=True, fastmath=False)
+# @jit(nopython=False, parallel=True, fastmath=False)
 def fast_ROC(gt, pred, thresholds):
     fpr, tpr = [], []
 
@@ -373,6 +373,7 @@ def compute_ROC_curves_brute(data_to_evaluate):
     ax.set_title('ROC curve')
     plt.show()
 
+@jit(nopython=True, fastmath=True, parallel=True)
 def fast_prec_recall(gt, pred, thresholds):
 
     precision_list, recall_list = [], []
@@ -380,23 +381,35 @@ def fast_prec_recall(gt, pred, thresholds):
     for thres in thresholds: 
         detections = (pred >= thres)
 
-        P = gt.sum()
-        TP = 0 
-        FP = 0 
+        true_positives = 0 
+        false_positives = 0 
+        false_negatives = 0 
 
         for gt_frame, detection_frame in zip(gt, detections):
+            # if thres > 0.2:
+            #     _ , (ax0, ax1) = plt.subplots(2,1)
+            #     ax0.scatter(np.arange(len(gt_frame)),gt_frame)
+            #     ax0.set_title('Ground truth')
+                
+            #     ax1.scatter(np.arange(len(detection_frame)),detection_frame)
+            #     ax1.set_title('Detections')
+            #     plt.show()
+            #     plt.close()
+
             positives_gt = gt_frame.sum()
             positives_pred = detection_frame.sum()
+
             if positives_pred > positives_gt: 
-                TP+=positives_gt
-                FP+=(positives_pred-positives_gt)
+                true_positives+=positives_gt
+                false_positives+=(positives_pred-positives_gt)
             else:
-                TP+=positives_pred
+                true_positives+=positives_pred
+                false_negatives+=(positives_gt-positives_pred)
 
-        precision_list.append(TP/(TP+FP+1e-4) + 1e-4)
-        recall_list.append(TP/P + 1e-4)
+        precision_list.append(true_positives/(true_positives+false_positives+1e-4) + 1e-4)
+        recall_list.append(true_positives/(true_positives+false_negatives+1e-4) + 1e-4)
 
-    return np.array(precision_list), np.array(recall_list)
+    return precision_list, recall_list
 
 def plot_pr_curve(precision_list, recall_list, thresholds):
     f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
@@ -420,18 +433,16 @@ def plot_pr_curve(precision_list, recall_list, thresholds):
     plt.suptitle('Optimum threshold {:.2f} at max f1 {:.2f}'.format(best_thres, max(f1)))
     return (fig,(ax1,ax2))
 
-def pr_curve_from_file(filename):
+def pr_curve_from_file(filename,show=False):
     with open(filename, 'rb') as f: 
         fig, axes = plot_pr_curve(*pickle.load(f))
+    fig.tight_layout()
     plt.savefig(filename.strip('.pickle'))
-    plt.show()
+    if show:
+        plt.show()
+    plt.close()
 
-def compute_precision_recall_nonlocal(gt_path, predictions_path, output_filename='evaluation', enable_nms=False, plot=False):
-
-    with open(gt_path,'rb') as f: 
-        gt = pickle.load(f)
-    with open(predictions_path,'rb') as f: 
-        predictions = pickle.load(f)
+def compute_precision_recall_nonlocal(gt, predictions, output_filename='evaluation', enable_nms=False, plot=False):
 
     if enable_nms: 
         predictions = nms(predictions)
@@ -445,7 +456,7 @@ def compute_precision_recall_nonlocal(gt_path, predictions_path, output_filename
 
     thresholds = np.linspace(0,1,1000)
     precision_list, recall_list = fast_prec_recall(gt, predictions, thresholds)
-
+    precision_list, recall_list = np.array(precision_list), np.array(recall_list)
     with open(output_filename+'.pickle','wb') as f: 
         data = (precision_list, recall_list, thresholds)
         pickle.dump(data,f)
@@ -454,22 +465,53 @@ def compute_precision_recall_nonlocal(gt_path, predictions_path, output_filename
 
 if __name__ == '__main__':
 
+    # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_lr_reduced_epoch_15_multi_obj_no_obj/model_49.pth'
+    # input_dir = 'data/extracted_heatmaps/'
+    # extract_heatmaps_extension_from_base_heatmaps(extension_weights=extension_weights, input_dir=input_dir)
     # extract_heatmaps_extension_from_images(base_weights='external_pretrained_models/centernet_pretrained.pth', extension_weights='external_pretrained_models/surfnet32.pth', input_dir='data/surfrider_images')
    
     # compute_ROC_curves_brute('data_to_evaluate.pickle')
 
-    # eval_dir = 'experiments/evaluations/real_images_test_split/'
-    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'extension_predictions.pickle',output_filename='Evaluation extension')
-    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'extension_predictions.pickle',output_filename='Evaluation extension nms', enable_nms=True)
-    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'base_predictions.pickle',output_filename='Evaluation base')
-    # compute_precision_recall_nonlocal(eval_dir+'ground_truth.pickle',eval_dir+'base_predictions.pickle',output_filename='Evaluation base nms', enable_nms=True)
+    eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
+    with open(eval_dir+'ground_truth.pickle','rb') as f: 
+        gt = pickle.load(f)
+    with open(eval_dir+'extension_predictions.pickle','rb') as f: 
+        predictions_extension = pickle.load(f)
+    with open(eval_dir+'base_predictions.pickle','rb') as f: 
+        predictions_base = pickle.load(f)
+    # permutation = np.random.permutation(gt.shape[0])
+
+    # gt = gt[permutation]
+    # predictions_base = predictions_base[permutation]
+    # predictions_extension = predictions_extension[permutation]
+    
+    compute_precision_recall_nonlocal(gt, predictions_base, output_filename='Evaluation base')
+    compute_precision_recall_nonlocal(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
+    compute_precision_recall_nonlocal(gt, predictions_extension, output_filename='Evaluation extension')
+    compute_precision_recall_nonlocal(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
+
+    
+
 
     # # extract_heatmaps_extension('external_pretrained_models/surfnet32.pth','data/extracted_heatmaps/')
 
-    # pr_curve_from_file('Evaluation base.pickle')
-    # pr_curve_from_file('Evaluation base nms.pickle')
-    # pr_curve_from_file('Evaluation extension.pickle')
-    # pr_curve_from_file('Evaluation extension nms.pickle')
+    # for gt_, prediction_base, predictions_extension in (zip(gt,predictions_base, predictions_extension)):
+    #     fig, (ax0, ax1, ax2) = plt.subplots(1,3)
+    #     ax0.imshow(gt_,cmap='gray',vmin=0,vmax=1)
+    #     ax0.set_title('Ground truth')
+    #     ax1.imshow(prediction_base,cmap='gray',vmin=0,vmax=1)
+    #     ax1.set_title('Base')
+    #     ax2.imshow(predictions_extension,cmap='gray',vmin=0,vmax=1)
+    #     ax2.set_title('Extension')
+    #     plt.show()
+    #     plt.close()
+    
+    pr_curve_from_file('Evaluation base.pickle')
+    pr_curve_from_file('Evaluation base nms.pickle')
+    pr_curve_from_file('Evaluation extension.pickle')
+    pr_curve_from_file('Evaluation extension nms.pickle')
+
+
 
 
 
