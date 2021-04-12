@@ -28,6 +28,14 @@ from tqdm import tqdm
 # from sklearn.metrics import roc_curve
 from numba import jit
 
+from scipy.spatial.distance import cdist 
+from scipy.optimize import linear_sum_assignment
+
+# from joblib import Parallel, delayed 
+# import multiprocessing as mp 
+import ray
+ray.init()
+
 
 class Args(object):
     def __init__(self, focal, data_path, dataset, downsampling_factor, batch_size):
@@ -273,8 +281,6 @@ def load_base(base_weights):
     base_model.eval()
     return base_model
 
-    return 
-
 def extract_heatmaps_extension_from_base_heatmaps(extension_weights, input_dir):
     args = Args(focal=True, data_path=input_dir,dataset='surfrider', downsampling_factor=4, batch_size=1)
     _ , loader_test = get_loaders(args)
@@ -411,6 +417,75 @@ def fast_prec_recall(gt, pred, thresholds):
 
     return precision_list, recall_list
 
+# @jit(nopython=True, fastmath=True, parallel=True)
+
+@ray.remote
+def prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost):
+    detections = (pred >= thres)
+
+    true_positives = 0 
+    false_positives = 0 
+    false_negatives = 0 
+
+    for gt_frame, detection_frame in zip(gt, detections):
+        true_positives_frame = 0 
+        false_positives_frame = 0 
+        false_negatives_frame = 0 
+        position_positives = np.argwhere(gt_frame)
+        position_detections = np.argwhere(detection_frame)
+        cost_matrix = cdist(position_positives, position_detections, metric='euclidean')
+
+        row_inds, col_inds = linear_sum_assignment(cost_matrix)
+        nb_assignments_frame = len(row_inds)
+
+        for row_ind, col_ind in zip(row_inds,col_inds):
+            assignment_cost = cost_matrix[row_ind, col_ind]
+            if assignment_cost <= max_allowed_cost:
+                true_positives_frame+=1
+            else:
+                false_positives_frame+=1
+        num_positives_frame, num_detections_frame = cost_matrix.shape
+
+        if num_detections_frame > num_positives_frame:
+            false_positives_frame += num_detections_frame - nb_assignments_frame
+        else: 
+            false_negatives_frame += num_positives_frame - nb_assignments_frame
+
+        true_positives += true_positives_frame
+        false_positives += false_positives_frame
+        false_negatives += false_negatives_frame
+        
+    precision = true_positives/(true_positives+false_positives+1e-4) + 1e-4
+    recall = true_positives/(true_positives+false_negatives+1e-4) + 1e-4
+
+    return thres_nb, precision, recall
+
+
+# def callback_async(result):
+#     (thres_nb, precision, recall) = result
+#     thres_nb_list.append(thres_nb)
+#     precision_list.append(precision)
+#     recall_list.append(recall)
+    
+
+def prec_recall_with_hungarian(gt, pred, thresholds, parallel=True):
+    max_allowed_cost = np.linalg.norm(np.array([0,0]-np.array([3,3])))
+    if not parallel: 
+        _ , precision_list, recall_list = [], [], []
+        for thres_nb, thres in enumerate(tqdm(thresholds)): 
+            _ , precision, recall  = prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost)
+            precision_list.append(precision)
+            recall_list.append(recall)
+    else: 
+        nb_thresholds = len(thresholds)
+        results = [prec_recall_for_thres.remote(thresholds[thres_nb], thres_nb, gt, pred, max_allowed_cost) for thres_nb in range(nb_thresholds)]
+        results = ray.get(results)
+        results.sort(key=lambda result: result[0])
+        precision_list = [result[1] for result in results]
+        recall_list = [result[2] for result in results]
+
+    return precision_list, recall_list
+            
 def plot_pr_curve(precision_list, recall_list, thresholds):
     f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
 
@@ -454,8 +529,26 @@ def compute_precision_recall_nonlocal(gt, predictions, output_filename='evaluati
 
     predictions = predictions.reshape(len(predictions),-1) 
 
-    thresholds = np.linspace(0,1,1000)
+    thresholds = np.linspace(0,1,100)
     precision_list, recall_list = fast_prec_recall(gt, predictions, thresholds)
+    precision_list, recall_list = np.array(precision_list), np.array(recall_list)
+    with open(output_filename+'.pickle','wb') as f: 
+        data = (precision_list, recall_list, thresholds)
+        pickle.dump(data,f)
+    if plot: 
+        plot_pr_curve(precision_list, recall_list, thresholds)
+
+def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluation', enable_nms=False, plot=False):
+
+    if enable_nms: 
+        predictions = nms(predictions)
+    gt = gt.numpy()
+    predictions = predictions.numpy()
+
+    gt = (gt == 1)
+
+    thresholds = np.linspace(0,1,100)
+    precision_list, recall_list = prec_recall_with_hungarian(gt, predictions, thresholds)
     precision_list, recall_list = np.array(precision_list), np.array(recall_list)
     with open(output_filename+'.pickle','wb') as f: 
         data = (precision_list, recall_list, thresholds)
@@ -472,6 +565,7 @@ if __name__ == '__main__':
    
     # compute_ROC_curves_brute('data_to_evaluate.pickle')
 
+
     eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
     with open(eval_dir+'ground_truth.pickle','rb') as f: 
         gt = pickle.load(f)
@@ -481,35 +575,39 @@ if __name__ == '__main__':
         predictions_base = pickle.load(f)
     # permutation = np.random.permutation(gt.shape[0])
 
-    # gt = gt[permutation]
-    # predictions_base = predictions_base[permutation]
-    # predictions_extension = predictions_extension[permutation]
-    
-    compute_precision_recall_nonlocal(gt, predictions_base, output_filename='Evaluation base')
-    compute_precision_recall_nonlocal(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
-    compute_precision_recall_nonlocal(gt, predictions_extension, output_filename='Evaluation extension')
-    compute_precision_recall_nonlocal(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
-
+    # # gt = gt[permutation]
+    # # predictions_base = predictions_base[permutation]
+    # # predictions_extension = predictions_extension[permutation]
     
 
-
-    # # extract_heatmaps_extension('external_pretrained_models/surfnet32.pth','data/extracted_heatmaps/')
-
-    # for gt_, prediction_base, predictions_extension in (zip(gt,predictions_base, predictions_extension)):
-    #     fig, (ax0, ax1, ax2) = plt.subplots(1,3)
-    #     ax0.imshow(gt_,cmap='gray',vmin=0,vmax=1)
-    #     ax0.set_title('Ground truth')
-    #     ax1.imshow(prediction_base,cmap='gray',vmin=0,vmax=1)
-    #     ax1.set_title('Base')
-    #     ax2.imshow(predictions_extension,cmap='gray',vmin=0,vmax=1)
-    #     ax2.set_title('Extension')
-    #     plt.show()
-    #     plt.close()
-    
+    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
     pr_curve_from_file('Evaluation base.pickle')
+
+    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
     pr_curve_from_file('Evaluation base nms.pickle')
+
+    compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
     pr_curve_from_file('Evaluation extension.pickle')
+
+    compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
     pr_curve_from_file('Evaluation extension nms.pickle')
+
+    
+
+
+    # # # extract_heatmaps_extension('external_pretrained_models/surfnet32.pth','data/extracted_heatmaps/')
+
+    # # for gt_, prediction_base, predictions_extension in (zip(gt,predictions_base, predictions_extension)):
+    # #     fig, (ax0, ax1, ax2) = plt.subplots(1,3)
+    # #     ax0.imshow(gt_,cmap='gray',vmin=0,vmax=1)
+    # #     ax0.set_title('Ground truth')
+    # #     ax1.imshow(prediction_base,cmap='gray',vmin=0,vmax=1)
+    # #     ax1.set_title('Base')
+    # #     ax2.imshow(predictions_extension,cmap='gray',vmin=0,vmax=1)
+    # #     ax2.set_title('Extension')
+    # #     plt.show()
+    # #     plt.close()
+    
 
 
 
