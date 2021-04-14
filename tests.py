@@ -28,14 +28,13 @@ from tqdm import tqdm
 # from sklearn.metrics import roc_curve
 from numba import jit
 
-from scipy.spatial.distance import cdist 
+from scipy.spatial.distance import cdist, euclidean
 from scipy.optimize import linear_sum_assignment
 
 # from joblib import Parallel, delayed 
 # import multiprocessing as mp 
-import ray
-ray.init()
 
+import ray
 
 class Args(object):
     def __init__(self, focal, data_path, dataset, downsampling_factor, batch_size):
@@ -401,7 +400,6 @@ def fast_prec_recall(gt, pred, thresholds):
             #     ax1.set_title('Detections')
             #     plt.show()
             #     plt.close()
-
             positives_gt = gt_frame.sum()
             positives_pred = detection_frame.sum()
 
@@ -426,6 +424,7 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost):
     true_positives = 0 
     false_positives = 0 
     false_negatives = 0 
+    all_costs = []
 
     for gt_frame, detection_frame in zip(gt, detections):
         true_positives_frame = 0 
@@ -446,6 +445,8 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost):
                 false_positives_frame+=1
         num_positives_frame, num_detections_frame = cost_matrix.shape
 
+        all_costs.extend(cost_matrix[row_inds, col_inds].tolist())
+        
         if num_detections_frame > num_positives_frame:
             false_positives_frame += num_detections_frame - nb_assignments_frame
         else: 
@@ -455,60 +456,124 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost):
         false_positives += false_positives_frame
         false_negatives += false_negatives_frame
         
+    # overall_cost = all_costs.mean()
     precision = true_positives/(true_positives+false_positives+1e-4) + 1e-4
     recall = true_positives/(true_positives+false_negatives+1e-4) + 1e-4
 
-    return thres_nb, precision, recall
+    return thres_nb, precision, recall, sum(all_costs)/(len(all_costs)+1e-4)
 
+# @ray.remote
+def prec_recall_for_thres_v2(thres, thres_nb, gt, pred, max_allowed_cost):
+    detections = (pred >= thres)
 
-# def callback_async(result):
-#     (thres_nb, precision, recall) = result
-#     thres_nb_list.append(thres_nb)
-#     precision_list.append(precision)
-#     recall_list.append(recall)
+    true_positives = 0 
+    false_positives = 0 
+    false_negatives = 0 
+    distances_true_positives = []
+    distances_false_positives = []
     
+    
+    for gt_frame, detection_frame in zip(gt, detections):
+        true_positives_frame = 0 
+        false_positives_frame = 0 
+        false_negatives_frame = 0 
+        position_positives = np.argwhere(gt_frame)
+        position_detections = np.argwhere(detection_frame)
+        
+        if len(position_positives): 
+            distance_matrix = cdist(position_positives, position_detections, metric='euclidean')
+            assigned_positives_for_detections = np.argmin(distance_matrix, axis=0)
+            for positive in range(len(position_positives)):
+                assigned_detections = np.argwhere(assigned_positives_for_detections == positive)
+                if len(assigned_detections):
+                    true_positives+=1
+                    false_positives+=len(assigned_detections)-1
+                    distances_to_detections = distance_matrix[positive, assigned_detections.squeeze()]
 
-def prec_recall_with_hungarian(gt, pred, thresholds, parallel=True):
-    max_allowed_cost = np.linalg.norm(np.array([0,0]-np.array([3,3])))
+                    if np.isscalar(distances_to_detections): 
+                        distances_to_detections = np.array([distances_to_detections])
+
+                    closest_detection = np.argmin(distances_to_detections)
+                    distances_true_positives.append(distances_to_detections[closest_detection])
+                    distances_to_detections = np.delete(distances_to_detections, closest_detection)
+                    distances_false_positives.extend(distances_to_detections)
+                else:
+                    false_negatives_frame+=1
+        else:
+            false_positives_frame+=len(position_detections)
+        
+        true_positives += true_positives_frame
+        false_positives += false_positives_frame
+        false_negatives += false_negatives_frame
+        
+    precision = true_positives/(true_positives+false_positives+1e-4) + 1e-4
+    recall = true_positives/(true_positives+false_negatives+1e-4) + 1e-4
+
+    return thres_nb, precision, recall, distances_true_positives, distances_false_positives
+
+def prec_recall_with_hungarian(gt, pred, thresholds, radius):
+    max_allowed_cost = euclidean(u=np.array([0,0]),v=np.array([radius,radius]))
     if not parallel: 
-        _ , precision_list, recall_list = [], [], []
+        _ , precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = [], [], [], [], []
         for thres_nb, thres in enumerate(tqdm(thresholds)): 
-            _ , precision, recall  = prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost)
+            _ , precision, recall, distances_true_positives, distances_false_positives  = prec_recall_for_thres_v2(thres, thres_nb, gt, pred, max_allowed_cost)
             precision_list.append(precision)
             recall_list.append(recall)
+            distances_true_positives_list.append(distances_true_positives)
+            distances_false_positives_list.append(distances_false_positives)
+
     else: 
         nb_thresholds = len(thresholds)
-        results = [prec_recall_for_thres.remote(thresholds[thres_nb], thres_nb, gt, pred, max_allowed_cost) for thres_nb in range(nb_thresholds)]
+        results = [prec_recall_for_thres_v2.remote(thresholds[thres_nb], thres_nb, gt, pred, max_allowed_cost) for thres_nb in range(nb_thresholds)]
         results = ray.get(results)
         results.sort(key=lambda result: result[0])
         precision_list = [result[1] for result in results]
         recall_list = [result[2] for result in results]
+        distances_true_positives_list = [result[3] for result in results]
+        distances_false_positives_list = [result[4] for result in results]
 
-    return precision_list, recall_list
+    return precision_list, recall_list, distances_true_positives_list, distances_false_positives_list
             
-def plot_pr_curve(precision_list, recall_list, thresholds):
-    f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
+def plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position):
 
-    fig, ax1 = plt.subplots()
+    fig, (ax1,ax3,ax4) = plt.subplots(1,3)
+
 
     color = 'tab:red'
-    ax1.set_xlabel('Recall', color=color)
-    ax1.set_ylabel('Precision', color=color)
-    ax1.plot(recall_list, precision_list, color=color)
-    ax1.tick_params(axis='x', labelcolor=color)
-    ax2 = ax1.twiny()  # instantiate a second axes that shares the same x-axis
-
+    ax1.set_xlabel('Recall / Threshold')
+    ax1.set_ylabel('Precision / f1')
+    ax1.plot(recall_list, precision_list, color=color, label='PR-curve')
+    ax1.legend(loc='upper right')
+    # ax1.tick_params(axis='x', labelcolor=color)
+    
     color = 'tab:blue'
-    ax2.set_xlabel('Threshold', color=color)  # we already handled the x-label with ax1
-    ax2.plot(thresholds, f1, color=color)
-    ax2.tick_params(axis='x', labelcolor=color)
+    ax2 = ax1.twiny()  # instantiate a second axes that shares the same x-axis
+    ax2.set_axis_off()
+    # ax2.set_xlabel('Threshold', color=color)  # we already handled the x-label with ax1
+    ax2.plot(thresholds, f1, color=color, label = 'f-score')
+    ax2.legend(loc='right')
+    # ax2.tick_params(axis='x', labelcolor=color)
 
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    best_thres = thresholds[np.argmax(f1)]
-    plt.suptitle('Optimum threshold {:.2f} at max f1 {:.2f}'.format(best_thres, max(f1)))
-    return (fig,(ax1,ax2))
+    
+    best_thres = thresholds[best_position]
+    best_f1 = f1[best_position]
 
-def pr_curve_from_file(filename,show=False):
+    ax3.hist(distances_true_positives_list_best_position, bins=30, align='left')
+    ax3.set_title('Distribution of distances for true positives')
+    ax3.set_xlabel('Distance to paired ground truth object')
+
+    ax4.hist(distances_false_positives_list_best_position, bins=30, align='left')
+    ax4.set_title('Distribution of distances for false positives')
+    ax4.set_xlabel('Distance to closest ground truth object')
+
+    plt.suptitle('Max f1 {:.2f} at threshold {:.2f}'.format(best_f1, best_thres))
+    # fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+
+    return (fig, (ax1,ax2,ax3,ax4))
+
+def pr_curve_from_file(filename,show=True):
+    plt.close()
     with open(filename, 'rb') as f: 
         fig, axes = plot_pr_curve(*pickle.load(f))
     fig.tight_layout()
@@ -532,9 +597,11 @@ def compute_precision_recall_nonlocal(gt, predictions, output_filename='evaluati
     thresholds = np.linspace(0,1,100)
     precision_list, recall_list = fast_prec_recall(gt, predictions, thresholds)
     precision_list, recall_list = np.array(precision_list), np.array(recall_list)
+
     with open(output_filename+'.pickle','wb') as f: 
         data = (precision_list, recall_list, thresholds)
         pickle.dump(data,f)
+
     if plot: 
         plot_pr_curve(precision_list, recall_list, thresholds)
 
@@ -548,13 +615,20 @@ def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluat
     gt = (gt == 1)
 
     thresholds = np.linspace(0,1,100)
-    precision_list, recall_list = prec_recall_with_hungarian(gt, predictions, thresholds)
+    precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = prec_recall_with_hungarian(gt, predictions, thresholds, radius=3)
+    
     precision_list, recall_list = np.array(precision_list), np.array(recall_list)
+    f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
+    best_position = np.argmax(f1)
+
+    distances_true_positives_list_best_position = distances_true_positives_list[best_position]
+    distances_false_positives_list_best_position = distances_false_positives_list[best_position]
+
     with open(output_filename+'.pickle','wb') as f: 
-        data = (precision_list, recall_list, thresholds)
+        data = (precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
         pickle.dump(data,f)
     if plot: 
-        plot_pr_curve(precision_list, recall_list, thresholds)
+        plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
 
 if __name__ == '__main__':
 
@@ -565,6 +639,9 @@ if __name__ == '__main__':
    
     # compute_ROC_curves_brute('data_to_evaluate.pickle')
 
+    parallel = False
+    if parallel: 
+        ray.init()
 
     eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
     with open(eval_dir+'ground_truth.pickle','rb') as f: 
@@ -575,22 +652,22 @@ if __name__ == '__main__':
         predictions_base = pickle.load(f)
     # permutation = np.random.permutation(gt.shape[0])
 
-    # # gt = gt[permutation]
-    # # predictions_base = predictions_base[permutation]
+    # gt = gt[permutation]
+    # predictions_base = predictions_base[permutation]
     # # predictions_extension = predictions_extension[permutation]
     
 
-    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
-    pr_curve_from_file('Evaluation base.pickle')
 
-    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
-    pr_curve_from_file('Evaluation base nms.pickle')
+    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
+    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
+    # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
+    # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
 
-    compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
-    pr_curve_from_file('Evaluation extension.pickle')
 
-    compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
-    pr_curve_from_file('Evaluation extension nms.pickle')
+    # pr_curve_from_file('Evaluation base.pickle')
+    # pr_curve_from_file('Evaluation base nms.pickle')
+    # pr_curve_from_file('Evaluation extension.pickle')
+    # pr_curve_from_file('Evaluation extension nms.pickle')
 
     
 
