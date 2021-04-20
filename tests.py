@@ -486,8 +486,8 @@ def prec_recall_for_thres_v2(thres, thres_nb, gt, pred, max_allowed_cost):
             for positive in range(len(position_positives)):
                 assigned_detections = np.argwhere(assigned_positives_for_detections == positive)
                 if len(assigned_detections):
-                    true_positives+=1
-                    false_positives+=len(assigned_detections)-1
+                    true_positives_frame+=1
+                    false_positives_frame+=len(assigned_detections)-1
                     distances_to_detections = distance_matrix[positive, assigned_detections.squeeze()]
 
                     if np.isscalar(distances_to_detections): 
@@ -614,7 +614,7 @@ def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluat
 
     gt = (gt == 1)
 
-    thresholds = np.linspace(0,1,100)
+    thresholds = np.linspace(0.4,0.6,2)
     precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = prec_recall_with_hungarian(gt, predictions, thresholds, radius=3)
     
     precision_list, recall_list = np.array(precision_list), np.array(recall_list)
@@ -646,25 +646,25 @@ if __name__ == '__main__':
     eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
     with open(eval_dir+'ground_truth.pickle','rb') as f: 
         gt = pickle.load(f)
-    with open(eval_dir+'extension_predictions.pickle','rb') as f: 
-        predictions_extension = pickle.load(f)
+    # with open(eval_dir+'extension_predictions.pickle','rb') as f: 
+    #     predictions_extension = pickle.load(f)
     with open(eval_dir+'base_predictions.pickle','rb') as f: 
         predictions_base = pickle.load(f)
-    # permutation = np.random.permutation(gt.shape[0])
+    permutation = np.random.permutation(gt.shape[0])
 
-    # gt = gt[permutation]
-    # predictions_base = predictions_base[permutation]
+    gt = gt[permutation]
+    predictions_base = predictions_base[permutation]
     # # predictions_extension = predictions_extension[permutation]
     
 
 
-    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
+    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
     # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
     # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
     # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
 
 
-    # pr_curve_from_file('Evaluation base.pickle')
+    pr_curve_from_file('Evaluation base.pickle')
     # pr_curve_from_file('Evaluation base nms.pickle')
     # pr_curve_from_file('Evaluation extension.pickle')
     # pr_curve_from_file('Evaluation extension nms.pickle')
