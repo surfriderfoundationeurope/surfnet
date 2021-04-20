@@ -1,5 +1,5 @@
 from base.deeplab.models import get_model
-from extension.datasets import SingleVideoDataset
+from common.datasets import SingleVideoDataset
 import pickle 
 import os 
 from base.centernet.models import create_model as create_model_centernet
@@ -14,6 +14,7 @@ import json
 from synthetic_videos.flow_tools import flow_opencv_dense
 from PIL import Image
 from tqdm import tqdm
+
 def plot_single_image_heatmaps_and_gt(image, heatmaps, gt, normalize):
 
     _ , (ax0, ax1, ax2, ax3, ax4) = plt.subplots(1,5,figsize=(30,30))
@@ -37,17 +38,20 @@ class VideoOpenCV(object):
         self.num_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fix_res = fix_res
         self.downsampling_factor = downsampling_factor
-        self.annotation = json.load(open(video_name.replace('.MP4','.json') ,'r'))
-        self.index = 0 
+        # self.annotation = json.load(open(video_name.replace('.MP4','.json') ,'r'))
 
     def read(self):
         ret, frame = self.cap.read()
+        old_frame_shape = (frame.shape[1], frame.shape[0])
 
         if not ret: 
             print('Unreadable frame!')
-        return frame
+        frame = self.resize_frame(frame)
+        new_frame_shape = (frame.shape[1], frame.shape[0])
+        return frame, old_frame_shape, new_frame_shape
 
     def resize_frame(self, frame):
+
         if self.fix_res:
             new_h = 512
             new_w = 512
@@ -61,54 +65,53 @@ class VideoOpenCV(object):
 
         return cv2.resize(frame, (new_w, new_h))
 
-    def resize_annotation(self, annotation, old_frame_shape, new_frame_shape):
+    # def resize_annotation(self, annotation, old_frame_shape, new_frame_shape):
 
-        old_shape_x, old_shape_y = old_frame_shape
-        new_shape_x, new_shape_y = new_frame_shape
+    #     old_shape_x, old_shape_y = old_frame_shape
+    #     new_shape_x, new_shape_y = new_frame_shape
 
-        ratio_x = new_shape_x / old_shape_x
-        ratio_y = new_shape_y / old_shape_y
+    #     ratio_x = new_shape_x / old_shape_x
+    #     ratio_y = new_shape_y / old_shape_y
 
-        for object_nb in annotation.keys():
+    #     for object_nb in annotation.keys():
 
-            [top_left_x, top_left_y, width, height] = annotation[object_nb]['bbox']
-            [center_x, center_y] = annotation[object_nb]['center']
+    #         [top_left_x, top_left_y, width, height] = annotation[object_nb]['bbox']
+    #         [center_x, center_y] = annotation[object_nb]['center']
 
-            annotation[object_nb]['bbox'] = [int(top_left_x * ratio_x), int(top_left_y * ratio_y), int(width * ratio_x), int(height * ratio_y)]
-            annotation[object_nb]['center'] = [int(center_x * ratio_x), int(center_y * ratio_y)]
+    #         annotation[object_nb]['bbox'] = [int(top_left_x * ratio_x), int(top_left_y * ratio_y), int(width * ratio_x), int(height * ratio_y)]
+    #         annotation[object_nb]['center'] = [int(center_x * ratio_x), int(center_y * ratio_y)]
 
-        return annotation
+    #     return annotation
     
-    def get_next_frame_and_annotation(self):
-        annotation = self.annotation[str(self.index)]
-        self.index+=1
-        frame = self.read()
+    # def get_next_frame_and_annotation(self):
+    #     annotation = self.annotation[str(self.index)]
+    #     self.index+=1
+    #     frame = self.read()
 
-        old_frame_shape = (frame.shape[1], frame.shape[0])
-        frame = self.resize_frame(frame)
-        new_frame_shape = (frame.shape[1],frame.shape[0])
+    #     old_frame_shape = (frame.shape[1], frame.shape[0])
+    #     frame = self.resize_frame(frame)
+    #     new_frame_shape = (frame.shape[1],frame.shape[0])
 
-        annotation = self.resize_annotation(annotation,old_frame_shape,new_frame_shape)
+    #     annotation = self.resize_annotation(annotation,old_frame_shape,new_frame_shape)
 
-        return frame, annotation
+    #     return frame, annotation
 
-def build_gt(annotation, shape, downsampling_factor):
-    shape = (shape[0] // downsampling_factor, shape[1] // downsampling_factor)
+# def build_gt(annotation, shape, downsampling_factor):
+#     shape = (shape[0] // downsampling_factor, shape[1] // downsampling_factor)
 
-    Phi = np.zeros(shape=shape)
+#     Phi = np.zeros(shape=shape)
 
-    for object_nb in annotation:
-        Phi = np.maximum(Phi, blob_for_bbox(annotation[str(object_nb)]['bbox'], Phi, downsampling_factor)[0])
+#     for object_nb in annotation:
+#         Phi = np.maximum(Phi, blob_for_bbox(annotation[str(object_nb)]['bbox'], Phi, downsampling_factor)[0])
 
-    return Phi
+#     return Phi
 
-def save_heatmap(video_nb, frame_nb, heatmap, gt, output_dir):
-    data = (heatmap, torch.from_numpy(gt).unsqueeze(0))
-    with open(output_dir + 'video_{:03d}_frame_{:03d}.pickle'.format(video_nb, frame_nb), 'wb') as f:
-        pickle.dump(data, f)
+def save_heatmap(folder_for_video, frame_nb, heatmap):
+    with open(folder_for_video + '{:03d}.pickle'.format(frame_nb), 'wb') as f:
+        pickle.dump(heatmap, f)
         
-def save_flow(video_nb, frame_nb, flow, output_dir):
-    output_name = output_dir + 'flow_video_{:03d}_frame_{:03d}_{:03d}'.format(video_nb, frame_nb-1, frame_nb)
+def save_flow(folder_for_video, frame_nb, flow):
+    output_name = folder_for_video + '{:03d}_{:03d}'.format(frame_nb-1, frame_nb)
     np.save(output_name, flow)
 
 def _get_heatmap(frame, model, transform):
@@ -128,9 +131,9 @@ def compute_flow(frame0, frame1, downsampling_factor):
     
     return flow01
 
-def verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01):
+def verbose(frame0, frame1,  heatmap0, heatmap1, flow01):
 
-    fig, ((ax0,ax1), (ax2, ax3), (ax4, ax5), (ax6, ax7)) = plt.subplots(4,2)
+    fig, ((ax0,ax1), (ax4, ax5), (ax6, ax7)) = plt.subplots(3,2)
 
     frame0 = Image.fromarray(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
     frame1 = Image.fromarray(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
@@ -140,12 +143,6 @@ def verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01):
 
     ax1.imshow(frame1)
     ax1.set_title('Frame 1')
-
-    ax2.imshow(gt0, cmap='gray',vmin=0, vmax=1)
-    ax2.set_title('Ground truth 0')
-
-    ax3.imshow(gt1, cmap='gray', vmin=0, vmax=1)
-    ax3.set_title('Ground truth 1')
 
     ax4.imshow(torch.sigmoid(torch.max(heatmap0,dim=0)[0]), cmap='gray', vmin=0, vmax=1)
     ax4.set_title('Heatmap 0')
@@ -170,45 +167,60 @@ def verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01):
     plt.show()
     plt.close()
 
-    
+def resize_annotations(annotations, old_shape, new_shape, downsampling_factor):
 
+    old_shape_x, old_shape_y = old_shape
+    new_shape_x, new_shape_y = new_shape
 
+    ratio_x = new_shape_x / old_shape_x
+    ratio_y = new_shape_y / old_shape_y
+
+    for annotation in annotations:
+
+        [top_left_x, top_left_y, width, height] = annotation['bbox']
+        new_bbox = [top_left_x * ratio_x, top_left_y * ratio_y, width * ratio_x, height * ratio_y]
+        annotation['bbox'] = [new_bbox_coord // downsampling_factor for new_bbox_coord in new_bbox]
+
+    return annotations
 
 def extract_heatmaps_for_video_frames(model, transform, args):
 
     video_folder = args.input_dir
-    video_names = [video_name for video_name in sorted(os.listdir(video_folder)) if '.MP4' in video_name]
+    video_names = [video_name for video_name in sorted(os.listdir(video_folder))[:2] if '.MP4' in video_name]
 
     get_heatmap = lambda frame: _get_heatmap(frame, model, transform)
 
     with torch.no_grad():
-        for video_nb, video_name in enumerate(tqdm(video_names)): 
+        for video_name in tqdm(video_names): 
+            folder_for_video = args.output_dir + video_name.strip('.MP4') +'/'
+            os.mkdir(folder_for_video)
             # print('Processing video {}'.format(video_nb))
             video = VideoOpenCV(video_folder + video_name, fix_res=False, downsampling_factor=args.downsampling_factor)
             num_frames = video.num_frames
-            frame_nb = 0 
+            frame_nb = 1
 
-            frame0, annotation0 = video.get_next_frame_and_annotation()
-            shape = frame0.shape[:-1]
-
-            gt0 = build_gt(annotation0, shape, args.downsampling_factor)
+            frame0, old_shape, new_shape = video.read()
             heatmap0 = get_heatmap(frame0)
-            save_heatmap(video_nb, frame_nb, heatmap0, gt0, args.output_dir)
+            save_heatmap(folder_for_video, frame_nb, heatmap0)
 
-            for frame_nb in range(1,num_frames):
+            for frame_nb in range(2,num_frames+1):
 
-                frame1, annotation1 = video.get_next_frame_and_annotation()
+                frame1, _ , _  = video.read()
+                heatmap1 = get_heatmap(frame1)
+                save_heatmap(folder_for_video, frame_nb, heatmap1)
 
                 flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
-                save_flow(video_nb, frame_nb, flow01, args.output_dir)
+                save_flow(folder_for_video, frame_nb, flow01)
+                # verbose(frame0, frame1, heatmap0, heatmap1, flow01)
 
-                gt1 = build_gt(annotation1, shape, args.downsampling_factor)
-                heatmap1 = get_heatmap(frame1)
-                save_heatmap(video_nb, frame_nb, heatmap1, gt1, args.output_dir)
-
-                verbose(frame0, frame1, gt0, gt1, heatmap0, heatmap1, flow01)
-
-                frame0, annotation0 = frame1.copy(), annotation1.copy()
+                frame0 = frame1.copy()
+    with open(args.input_dir+'annotations.json','r') as f:
+        COCO_formatted_annotations_old = json.load(f)
+    
+    COCO_formatted_annotations_new = COCO_formatted_annotations_old.copy()
+    COCO_formatted_annotations_new['annotations'] = resize_annotations(COCO_formatted_annotations_old['annotations'],old_shape, new_shape, args.downsampling_factor)
+    with open(args.input_dir+'annotations_resized.json','w') as f:
+        json.dump(COCO_formatted_annotations_new, f)
 
 def extract(args):
 

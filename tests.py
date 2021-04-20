@@ -5,7 +5,7 @@ from torchvision import datasets
 from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
 from extension.models import SurfNet
-from extension.datasets import SurfnetDataset
+from common.datasets import SurfnetDataset
 import torch 
 from torch.utils.data import DataLoader, dataloader
 from torch import sigmoid
@@ -34,8 +34,9 @@ from scipy.optimize import linear_sum_assignment
 # from joblib import Parallel, delayed 
 # import multiprocessing as mp 
 
-import ray
+from math import ceil 
 
+import ray
 class Args(object):
     def __init__(self, focal, data_path, dataset, downsampling_factor, batch_size):
         self.focal = focal
@@ -199,20 +200,6 @@ def evaluate_extension_network_video_frames(extension_weights, extracted_heatmap
 
     print('Evaluation loss base network:', running_loss_base.item()/(batch_nb+1))
     print('Evaluation loss extension network', running_loss_extension.item()/(batch_nb+1))
-
-def plot_pickle_file(file_name):
-
-    with open(file_name,'rb') as f :
-        fig, axes= pickle.load(f)
-    plt.show()
-    plt.close()
-    del fig
-    del axes
-
-def plot_pickle_folder(data_dir):
-    pickle_files = [data_dir + file_name for file_name in sorted(os.listdir(data_dir)) if '.pickle' in file_name]
-    for file_name in pickle_files:
-        plot_pickle_file(file_name)
 
 def plot_extracted_heatmaps(data_dir):
     pickle_files = [data_dir + file_name for file_name in sorted(os.listdir(data_dir)) if '.pickle' in file_name]
@@ -536,49 +523,54 @@ def prec_recall_with_hungarian(gt, pred, thresholds, radius):
             
 def plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position):
 
-    fig, (ax1,ax3,ax4) = plt.subplots(1,3)
+    fig, (ax1,ax3) = plt.subplots(1,2)
 
 
     color = 'tab:red'
     ax1.set_xlabel('Recall / Threshold')
-    ax1.set_ylabel('Precision / f1')
-    ax1.plot(recall_list, precision_list, color=color, label='PR-curve')
-    ax1.legend(loc='upper right')
+    ax1.set_ylabel('Precision / F-score')
+    ax1.scatter(recall_list, precision_list, color=color, label='PR-curve')
     # ax1.tick_params(axis='x', labelcolor=color)
-    
-    color = 'tab:blue'
-    ax2 = ax1.twiny()  # instantiate a second axes that shares the same x-axis
-    ax2.set_axis_off()
-    # ax2.set_xlabel('Threshold', color=color)  # we already handled the x-label with ax1
-    ax2.plot(thresholds, f1, color=color, label = 'f-score')
-    ax2.legend(loc='right')
-    # ax2.tick_params(axis='x', labelcolor=color)
+    # ax1.legend(loc='upper left')
 
-    
+    color = 'tab:blue'
+    # ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    # ax2.set_axis_off()
+    # ax2.set_xlabel('Threshold', color=color)  # we already handled the x-label with ax1
+    ax1.scatter(thresholds, f1, color=color, label='F-score')
+    ax1.legend(loc = 'upper right')
+    ax1.set_title('Detection performance with no distance threshold')
+
+
+    max_dist = euclidean(u=np.array([0,0]),v=np.array([272,488]))
+    bins=np.arange(0,ceil(max_dist),step=1)
     best_thres = thresholds[best_position]
     best_f1 = f1[best_position]
+    best_recall = recall_list[best_position]
+    best_precision = precision_list[best_position]
 
-    ax3.hist(distances_true_positives_list_best_position, bins=30, align='left')
-    ax3.set_title('Distribution of distances for true positives')
-    ax3.set_xlabel('Distance to paired ground truth object')
+    ax3.hist([distances_true_positives_list_best_position, distances_false_positives_list_best_position], bins=bins, histtype='barstacked')
+    ax3.set_title('Distribution of distances')
+    ax3.set_xlabel('Distance to closest ground truth object')
+    ax3.set_ylabel('Quantity')
 
-    ax4.hist(distances_false_positives_list_best_position, bins=30, align='left')
-    ax4.set_title('Distribution of distances for false positives')
-    ax4.set_xlabel('Distance to closest ground truth object')
 
-    plt.suptitle('Max f1 {:.2f} at threshold {:.2f}'.format(best_f1, best_thres))
+
+    plt.suptitle('F-score {:.2f} (Precision {:.2f}, Recall {:.2f}) at threshold {:.2f}'.format(best_f1, best_precision, best_recall, best_thres))
     # fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
+    return (fig, (ax1,ax3))
 
-    return (fig, (ax1,ax2,ax3,ax4))
-
-def pr_curve_from_file(filename,show=True):
+def pr_curve_from_file(filename, show=True):
     plt.close()
     with open(filename, 'rb') as f: 
         fig, axes = plot_pr_curve(*pickle.load(f))
-    fig.tight_layout()
-    plt.savefig(filename.strip('.pickle'))
-    if show:
+        fig.tight_layout()
+    if not show: 
+        with open(filename.strip('.pickle')+'_axes.pickle','wb') as f:
+            data = (fig, axes)
+            pickle.dump(data,f)
+    else:
         plt.show()
     plt.close()
 
@@ -643,31 +635,30 @@ if __name__ == '__main__':
     if parallel: 
         ray.init()
 
-    eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
-    with open(eval_dir+'ground_truth.pickle','rb') as f: 
-        gt = pickle.load(f)
-    with open(eval_dir+'extension_predictions.pickle','rb') as f: 
-        predictions_extension = pickle.load(f)
-    with open(eval_dir+'base_predictions.pickle','rb') as f: 
-        predictions_base = pickle.load(f)
+    # eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
+    # with open(eval_dir+'ground_truth.pickle','rb') as f: 
+    #     gt = pickle.load(f)
+    # with open(eval_dir+'extension_predictions.pickle','rb') as f: 
+    #     predictions_extension = pickle.load(f)
+    # with open(eval_dir+'base_predictions.pickle','rb') as f: 
+        # predictions_base = pickle.load(f)
     # permutation = np.random.permutation(gt.shape[0])
 
     # gt = gt[permutation]
     # predictions_base = predictions_base[permutation]
     # # predictions_extension = predictions_extension[permutation]
     
-
-
     # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
     # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
     # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
     # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
 
-
     # pr_curve_from_file('Evaluation base.pickle')
     # pr_curve_from_file('Evaluation base nms.pickle')
     # pr_curve_from_file('Evaluation extension.pickle')
     # pr_curve_from_file('Evaluation extension nms.pickle')
+
+    # plot_pickle_file('Evaluation extension nms_axes.pickle')
 
     
 

@@ -1,4 +1,4 @@
-from extension.datasets import SurfnetDatasetFlow
+from common.datasets import SurfnetDatasetFlow
 import torch 
 from torch.utils.data import DataLoader
 from extension.models import SurfNet

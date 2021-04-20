@@ -72,8 +72,9 @@ def draw_umich_gaussian(heatmap, center, radius, k=1):
     return heatmap
 
 
-def blob_for_bbox(bbox, heatmap, downsampling_factor):
-    top_left_x, top_left_y, w, h = [bbox_coord // downsampling_factor for bbox_coord in bbox]
+def blob_for_bbox(bbox, heatmap):
+    # top_left_x, top_left_y, w, h = [bbox_coord // downsampling_factor for bbox_coord in bbox]
+    top_left_x, top_left_y, w, h = [bbox_coord for bbox_coord in bbox]
 
     bottom_right_x, bottom_right_y = top_left_x+w, top_left_y+h
     ct_int = None

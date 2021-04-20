@@ -1,5 +1,8 @@
 . scripts_for_experiments/shell_variables.sh
 
+
+rm -rf ${BASE_NETWORK_HEATMAPS}/*
+
 python extract_and_save_heatmaps.py \
 	--input-dir ${SYNTHETIC_VIDEOS_PATH} \
 	--output-dir ${BASE_NETWORK_HEATMAPS} \
