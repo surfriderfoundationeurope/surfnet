@@ -9,6 +9,7 @@ import torch
 import pickle
 # import math 
 import cv2
+from common.utils import blob_for_bbox
 
 class VideoOpenCV(object):
     def __init__(self, video_name):
@@ -132,116 +133,109 @@ class SurfnetDataset(torch.utils.data.Dataset):
             self.id_to_location = self.id_to_location[:int(0.1*len(self.id_to_location))]
 
 class SurfnetDatasetFlow(torch.utils.data.Dataset):
-    def __init__(self, heatmaps_folder, split):
+
+    def __init__(self, annotations_dir, heatmaps_folder, split='val'):
+        self.split = split
+        if self.split == 'train':
+            annotation_filename = annotations_dir + 'annotations_train.json'
+        else: 
+            annotation_filename = annotations_dir + 'annotations_val.json'
+
+        with open(annotation_filename, 'r') as f: 
+            self.annotations = json.load(f)
+
         self.heatmaps_folder = heatmaps_folder
-        self.split = split 
+
         self.subset = False
-        self.heatmap_filenames = [filename for filename in sorted(os.listdir(heatmaps_folder)) if filename.endswith('.pickle')]
-        self.proportion_train = 0.8
-        with open(self.heatmaps_folder + 'vid_nb_to_vid_names.json','r') as f: 
-            self.vid_nb_to_vid_names = json.load(f)
-        self._init_ids()
+
+        self.init_ids()
 
 
     def __getitem__(self, index):
 
+        location_id = self.ids[index]
+
         if self.split == 'train':
-            video_id, pair_id_in_video = self.id_to_location[index]
-            video_name_0 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video)
-            video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
-            flow_name = 'flow_video_{:03d}_frame_{:03d}_{:03d}.npy'.format(video_id, pair_id_in_video, pair_id_in_video+1)
+            heatmap0, gt0, gt1, flow01 = self.get_training_item(location_id)
 
-            with open(self.heatmaps_folder + video_name_0,'rb') as f: 
-                Z_0, Phi0 = pickle.load(f)
-            with open(self.heatmaps_folder + video_name_1,'rb') as f: 
-                Phi1 = pickle.load(f)[1]
-            flow01 = np.load(self.heatmaps_folder+flow_name)
-
-            flow01 = -flow01
-
+            Z_0 = torch.max(heatmap0, axis=0, keepdim=True)[0]
             
-            Z_0 = torch.max(Z_0, axis=0, keepdim=True)[0]
-            
-            return  Z_0, Phi0, Phi1, torch.from_numpy(flow01)
+            return Z_0, gt0, gt1, torch.from_numpy(flow01)
 
         else: 
-            video_id, id_in_video = self.id_to_location[index]
-            video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
+            heatmap, gt = self.get_testing_item(location_id)
 
-            with open(self.heatmaps_folder + video_name,'rb') as f: 
-                 Z, Phi = pickle.load(f)
+            Z = torch.max(heatmap, axis=0, keepdim=True)[0]
 
-            Z = torch.max(Z, axis=0, keepdim=True)[0]
-
-            return Z, Phi
+            return Z, gt
 
     def __len__(self):
-        return len(self.id_to_location)
+        return len(self.ids)
 
-    def _init_ids(self):
-
-        self.ids_dict = dict()
-
-        videos_single_object = [k for k,v in self.vid_nb_to_vid_names.items() if not ('no_object' or 'two_objects') in v]
-        videos_several_objects = [k for k,v in self.vid_nb_to_vid_names.items() if 'two_objects' in v]
-        videos_no_object = [k for k,v in self.vid_nb_to_vid_names.items() if 'no_object' in v]
-
-        all_videos = []
-
-        num_videos_train_single_object = int(self.proportion_train*len(videos_single_object))
-        num_videos_train_several_objects = int(self.proportion_train*len(videos_several_objects))
-        num_videos_train_no_object = int(self.proportion_train*len(videos_no_object))
-
-        if self.split == 'train':
-            all_videos.extend(videos_single_object[:num_videos_train_single_object])
-            all_videos.extend(videos_several_objects[:num_videos_train_several_objects])
-            all_videos.extend(videos_no_object[:num_videos_train_no_object])
-
-        else: 
-            all_videos.extend(videos_single_object[num_videos_train_single_object:])
-            all_videos.extend(videos_several_objects[num_videos_train_several_objects:])
-            all_videos.extend(videos_no_object[num_videos_train_no_object:])
-
+    def init_ids(self):
+        organised_annotations = dict()
         self.id_to_location = []
-
-        for filename in self.heatmap_filenames:
-            splitted_name = filename.split('_')
-            video_nb = splitted_name[0]+'_'+splitted_name[1]
-            if video_nb in all_videos:
-                video_id, frame_id_in_video = splitted_name[1], splitted_name[3].strip('.pickle')
-                self.ids_dict.setdefault(video_id, []).append(frame_id_in_video) 
+        for video in self.annotations['videos']:
+            images_from_video = [image for image in self.annotations['images'] if image['video_id']==video['id']]
+            organised_annotations[video['id']] = []
+            for image in sorted(images_from_video,key=lambda x:x['frame_id']):
+                annotations_for_image = [annotation for annotation in self.annotations['annotations'] if annotation['image_id'] == image['id']]
+                organised_annotations[video['id']].append((image,annotations_for_image))
+        self.annotations = organised_annotations
         
-        self.id_to_location = []
-
+        self.ids = []
         if self.split == 'train':
-            for video_id in list(self.ids_dict.keys()):
-                for frame_id_in_video in self.ids_dict[video_id][:-1]:
-                    self.id_to_location.append((int(video_id), int(frame_id_in_video)))
+            for video_id in self.annotations.keys():
+                for frame in range(len(self.annotations[video_id])-1):
+                    self.ids.append((video_id,frame,frame+1))
+
         else:
-            for video_id in list(self.ids_dict.keys()):
-                for frame_id_in_video in self.ids_dict[video_id]:
-                    self.id_to_location.append((int(video_id), int(frame_id_in_video)))
+            for video_id in self.annotations.keys():
+                for frame in range(len(self.annotations[video_id])):
+                    self.ids.append((video_id,frame))
+    def get_training_item(self, location_id):
+        
+        image0, annotations0 = self.annotations[location_id[0]][location_id[1]]
+        image1, annotations1 = self.annotations[location_id[0]][location_id[2]]
+        frame_id_0 = image0['frame_id']
+        frame_id_1 = image1['frame_id']
+        folder_name = self.heatmaps_folder + image0['file_name'].split('.')[0]
+        with open(folder_name+'/{:03d}.pickle'.format(frame_id_0),'rb') as f:
+            heatmap0 = pickle.load(f)
+        shape = heatmap0.shape
 
-        if self.subset: 
-            self.id_to_location = self.id_to_location[:int(0.1*len(self.id_to_location))]
+        flow01 = np.load(folder_name+'/{:03d}_{:03d}.pickle'.format(frame_id_0,frame_id_1))
+        bboxes0 = [annotation['bbox'] for annotation in annotations0]
+        bboxes1 = [annotation['bbox'] for annotation in annotations1]
+        gt0 = self.build_gt(bboxes0, shape)
+        gt1 = self.build_gt(bboxes1,shape)
 
+        return flow01, heatmap0, gt0, gt1
+    
+    def get_testing_item(self, location_id):
 
+        image, annotations = self.annotations[location_id[0]][location_id[1]]
+        frame_id = image['frame_id']
+        folder_name = self.heatmaps_folder + image['file_name'].split('.')[0]
+        with open(folder_name+'/{:03d}.pickle'.format(frame_id),'rb') as f:
+            heatmap = pickle.load(f)
 
-def profile_dataset(dataset):
-    import cProfile, pstats, io
-    from pstats import SortKey
-    pr = cProfile.Profile()
+        shape = heatmap.shape
+        bboxes = [annotation['bbox'] for annotation in annotations]
+        gt = self.build_gt(bboxes, shape)
 
-    pr.enable()
+        return heatmap, gt
+    
 
-    next(iter(dataset))    
+            
+    def build_gt(self, bboxes, shape):
 
-    pr.disable()
-    s = io.StringIO()
-    sortby = SortKey.CUMULATIVE
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
-    print(s.getvalue())
+        gt = np.zeros(shape=shape)
+        for bbox in bboxes:
+            gt = np.maximum(gt, blob_for_bbox(bbox, gt)[0]) 
+
+        return gt
+
 
 def plot_loader(video_loader):
 
@@ -290,18 +284,13 @@ def plot_loader(video_loader):
             ax1.imshow(Phi_tilde, cmap='gray')
             plt.show()
             
-if __name__ == "__main__":
 
-    heatmaps_folder = "/media/mathis/f88b9c68-1ae1-4ecc-a58e-529ad6808fd3/heatmaps_and_annotations/"
 
-    video_dataset = SurfnetDataset(heatmaps_folder, split='train')
-
-    profile_dataset(video_dataset)
+    # profile_dataset(video_dataset)
 
     # video_loader = torch.utils.data.DataLoader(video_dataset,batch_size=8,shuffle=True)
 
     # plot_loader(video_loader)
-
 
 
 # class SingleVideoDataset(torch.utils.data.Dataset):

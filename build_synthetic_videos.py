@@ -120,7 +120,7 @@ def compute_flows(frame_reader, tractable_band, nb_objects):
         frame_reader.reset_init_frame()
     return pts_sequences, displacement_norm_sequences
         
-def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_objects, output_original_shape=False):
+def add_trash_objects(frame_reader, tractable_band, nb_objects, output_original_shape=False):
     
     pts_sequences, displacement_norm_sequences = compute_flows(frame_reader, tractable_band, nb_objects=nb_objects)
 
@@ -129,7 +129,10 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
     trash_images = []
     alphas = []
     init_shapes = []
-    annotations = dict()
+
+    frames_to_write = []
+    annotations = []
+
 
 
     for pts_sequence, displacement_norm_sequence in zip(pts_sequences,displacement_norm_sequences):
@@ -138,14 +141,11 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
             usable_displacement_norm_sequences.append(utils.clean_displacement_norm_sequence(displacement_norm_sequence))
             trash_images.append(taco_tools.get_random_trash(label="bottle", anns=anns, imgs=imgs, dict_label_to_ann_ids=dict_label_to_ann_ids))
             alphas.append(random.uniform(0.8,1))
-    if not len(usable_pts_sequences): return 100
+    if not len(usable_pts_sequences): 
+        return [], []
 
     shortest_sequence_length = min([len(x) for x in usable_pts_sequences])
-
-    for frame_nb in range(shortest_sequence_length):
-        annotations[frame_nb] = dict()
-    
-    
+        
     if output_original_shape:
         frame_reader.set_original_shape_mode(True)
         init_area = (frame_reader.original_width * frame_reader.original_height) / 500 
@@ -163,9 +163,11 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
         init_shapes.append(utils.rescaling(init_coeff_reshape, trash_img.shape))
 
 
+    id = 1
     for frame_nb in range(shortest_sequence_length):
 
         _ , frame = frame_reader.read_frame()
+        
 
         for object_nb in range(len(usable_pts_sequences)):
 
@@ -180,15 +182,27 @@ def add_trash_objects(frame_reader, frame_writer, json_file, tractable_band, nb_
                 break
             shape = utils.rescaling(displacement_norm_sequence[min(frame_nb,len(displacement_norm_sequence)-1)], init_shape)
             center, (frame, bbox) = utils.overlay_trash(frame, trash_img, alpha, pts_sequence[frame_nb], shape)
-            if frame is not None:
-                annotations[frame_nb][object_nb] = {'bbox': bbox, 'center': center}
-            else: 
-                return frame_nb
-        frame_writer.write(frame)
 
-    if frame_reader.original_shape_mode: frame_reader.set_original_shape_mode(False)
-    json.dump(annotations, json_file)
-    return shortest_sequence_length
+            if frame is None:
+                return [], []
+            else:
+                annotations.append({'image_id':frame_nb+1,
+                                    'id':id,
+                                    'category_id':1,
+                                    'dim':[-1000.0, -1000.0, -1000.0],
+                                    'bbox':bbox,
+                                    'depth':-1.0,
+                                    'alpha':-10.0,
+                                    'truncated':-1,
+                                    'occluded':-1,
+                                    'location':[-10.0,-1.0,-1.0],
+                                    'rotation_y':-1.0,
+                                    'amodel_center':[],
+                                    'track_id':object_nb})
+            id+=1
+        frames_to_write.append(frame)
+
+    return frames_to_write, annotations
 
 
 
@@ -198,7 +212,7 @@ def main(args):
     vid_dir = args.vid_dir
     tractable_band = args.tractable_band
     vid_names = [name for name in os.listdir(vid_dir) if '.MP4' in name]
-    video_filenames = [vid_dir + vid_name for vid_name in vid_names if '.MP4' in vid_name]
+    video_filenames = [vid_name for vid_name in vid_names if '.MP4' in vid_name]
     rescale_factor = args.rescale
     nb_extracts_per_vid = args.nb_extracts_per_vid
     output_dir = args.output_dir
@@ -207,9 +221,8 @@ def main(args):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     for video_nb, video_filename in enumerate(video_filenames):
 
-        frame_reader = cv2_io.FrameReader(video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
+        frame_reader = cv2_io.FrameReader(vid_dir+video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
         fps = frame_reader.fps
-        print(fps)
         shape = (int(frame_reader.original_width), int(frame_reader.original_height))
         if not output_original_shape: shape = frame_reader.new_shape 
         total_frames_read = frame_reader.init_frame
@@ -218,36 +231,50 @@ def main(args):
         while total_frames_read < (total_num_frames - 100): 
 
             frame_reader.set_init_frame(total_frames_read)
-            output_name = output_dir + vid_names[video_nb].strip('.MP4') + '_{}.MP4'.format(portion_nb_in_video)
-            json_file = open(output_name.replace('.MP4','.json'),'w')
-            nb_objects = 2
-            frame_writer = cv2.VideoWriter(filename=output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
+            nb_objects = portion_nb_in_video % 2 + 1
+            frames_to_write, annotations = add_trash_objects(frame_reader, tractable_band=tractable_band, nb_objects=nb_objects, output_original_shape=True)
 
-            nb_frames_read = add_trash_objects(frame_reader, frame_writer, json_file, tractable_band=tractable_band, nb_objects=nb_objects, output_original_shape=True)
+            nb_frames_read = len(frames_to_write)
 
+            if nb_frames_read:
+                COCO_formatted_annotation = {'categories':[{'id':1,'name':'Bottle'}], 
+                                             'images':[], 
+                                             'annotations':annotations}
+                output_name = vid_names[video_nb].strip('.MP4') + '_{}.MP4'.format(portion_nb_in_video)
+                frame_writer = cv2.VideoWriter(filename=output_dir + output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
+                for frame_nb, frame in enumerate(frames_to_write):
+                    COCO_formatted_annotation['images'].append({'file_name':output_name,
+                                                                'id':frame_nb+1,
+                                                                'calib':[[],[],[]],
+                                                                'frame_id':frame_nb+1})
+                    frame_writer.write(frame)
+                with open(output_dir + output_name.replace('.MP4','.json'),'w') as json_file:
+                    json.dump(COCO_formatted_annotation, json_file)
+
+                frame_writer.release()
+                portion_nb_in_video+=1
+
+            if frame_reader.original_shape_mode: frame_reader.set_original_shape_mode(False)
             total_frames_read += nb_frames_read + int(total_num_frames / nb_extracts_per_vid)
-            portion_nb_in_video+=1
-            json_file.close()
-            frame_writer.release()
 
-        # if args.nb_frames_without_object: 
+    # if args.nb_frames_without_object: 
 
-        #     frame_reader = cv2_io.FrameReader(video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
-        #     if output_original_shape:
-        #             frame_reader.set_original_shape_mode(True)
-        #     output_name = output_dir + vid_names[video_nb].replace('.MP4','_no_object.MP4')
-        #     frame_writer = cv2.VideoWriter(filename=output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
-        #     json_file = open(output_name.replace('.MP4','.json'),'w')
-        #     annotations = dict()
-        #     for frame_nb in range(args.nb_frames_without_object):
-        #         _ , frame =  frame_reader.read_frame()
-        #         # cv2.imshow('frame', frame)
-        #         # cv2.waitKey(0)
-        #         frame_writer.write(frame)
-        #         annotations[frame_nb] = dict()
-        #     json.dump(annotations, json_file)
-        #     json_file.close()
-        #     frame_writer.release()
+    #     frame_reader = cv2_io.FrameReader(vid_dir+video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
+    #     if output_original_shape:
+    #             frame_reader.set_original_shape_mode(True)
+    #     output_name = output_dir + vid_names[video_nb].replace('.MP4','_no_object.MP4')
+    #     frame_writer = cv2.VideoWriter(filename=output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
+    #     json_file = open(output_name.replace('.MP4','.json'),'w')
+    #     annotations = dict()
+    #     for frame_nb in range(args.nb_frames_without_object):
+    #         _ , frame =  frame_reader.read_frame()
+    #         # cv2.imshow('frame', frame)
+    #         # cv2.waitKey(0)
+    #         frame_writer.write(frame)
+    #         annotations[frame_nb] = dict()
+    #     json.dump(annotations, json_file)
+    #     json_file.close()
+    #     frame_writer.release()
     
 
 if __name__ == "__main__":
