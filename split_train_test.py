@@ -48,5 +48,5 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--annotation_dir', default='data/generated_videos/', type=str)
-    args=parser.parse_args()
+    args = parser.parse_args()
     main(args)
