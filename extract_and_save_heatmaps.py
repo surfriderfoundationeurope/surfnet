@@ -105,12 +105,12 @@ class VideoOpenCV(object):
 
 #     return Phi
 
-def save_heatmap(folder_for_video, frame_nb, heatmap):
-    with open(folder_for_video + '{:03d}.pickle'.format(frame_nb), 'wb') as f:
+def save_heatmap(heatmaps_dir, frame_nb, heatmap):
+    with open(heatmaps_dir + '{:03d}.pickle'.format(frame_nb), 'wb') as f:
         pickle.dump(heatmap, f)
         
-def save_flow(folder_for_video, frame_nb, flow):
-    output_name = folder_for_video + '{:03d}_{:03d}'.format(frame_nb-1, frame_nb)
+def save_flow(flow_dir, frame_nb, flow):
+    output_name = flow_dir + '{:03d}_{:03d}'.format(frame_nb-1, frame_nb)
     np.save(output_name, flow)
 
 def _get_heatmap(frame, model, transform):
@@ -182,6 +182,9 @@ def resize_annotations(annotations, old_shape, new_shape, downsampling_factor):
 
     return annotations
 
+def save_frame(frames_dir, frame_nb, frame):
+    cv2.imwrite(frames_dir + '{:03d}.png'.format(frame_nb), frame)
+
 def extract_heatmaps_for_video_frames(model, transform, args):
 
     video_folder = args.input_dir
@@ -191,28 +194,40 @@ def extract_heatmaps_for_video_frames(model, transform, args):
 
     with torch.no_grad():
         for video_name in tqdm(video_names): 
-            folder_for_video = args.output_dir + video_name.strip('.MP4') +'/'
+            folder_for_video = args.output_dir + video_name.split('.')[0] +'/'
+            frames_dir = folder_for_video + 'frames/'
+            heatmaps_dir = folder_for_video + 'heatmaps/'
+            flows_dir = folder_for_video + 'flows/'
             os.mkdir(folder_for_video)
+            os.mkdir(frames_dir)
+            os.mkdir(heatmaps_dir)
+            os.mkdir(flows_dir)
+
             # print('Processing video {}'.format(video_nb))
             video = VideoOpenCV(video_folder + video_name, fix_res=False, downsampling_factor=args.downsampling_factor)
             num_frames = video.num_frames
             frame_nb = 1
 
             frame0, old_shape, new_shape = video.read()
+            save_frame(frames_dir, frame_nb, frame0)
+
             heatmap0 = get_heatmap(frame0)
-            save_heatmap(folder_for_video, frame_nb, heatmap0)
+            save_heatmap(heatmaps_dir, frame_nb, heatmap0)
 
             for frame_nb in range(2,num_frames+1):
 
                 frame1, _ , _  = video.read()
+                save_frame(frames_dir, frame_nb, frame0)
+
                 heatmap1 = get_heatmap(frame1)
-                save_heatmap(folder_for_video, frame_nb, heatmap1)
+                save_heatmap(heatmaps_dir, frame_nb, heatmap1)
 
                 flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
-                save_flow(folder_for_video, frame_nb, flow01)
+                save_flow(flows_dir, frame_nb, flow01)
                 # verbose(frame0, frame1, heatmap0, heatmap1, flow01)
 
                 frame0 = frame1.copy()
+                
     with open(args.input_dir+'annotations.json','r') as f:
         COCO_formatted_annotations_old = json.load(f)
     
