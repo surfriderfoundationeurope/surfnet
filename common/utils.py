@@ -84,7 +84,7 @@ def blob_for_bbox(bbox, heatmap):
         ct = np.array([(top_left_x + bottom_right_x) / 2, (top_left_y + bottom_right_y) / 2], dtype=np.float32)
         ct_int = ct.astype(np.int32)
         heatmap = draw_umich_gaussian(heatmap, ct_int, radius)
-    return heatmap, ct_int
+    return heatmap
 
 
 def pre_process_centernet(image, meta=None, fix_res=True):

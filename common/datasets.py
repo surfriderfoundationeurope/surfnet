@@ -202,15 +202,15 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
         folder_name = self.heatmaps_folder + image0['file_name'].split('.')[0]
         with open(folder_name+'/{:03d}.pickle'.format(frame_id_0),'rb') as f:
             heatmap0 = pickle.load(f)
-        shape = heatmap0.shape
+        shape = heatmap0.shape[1:]
 
-        flow01 = np.load(folder_name+'/{:03d}_{:03d}.pickle'.format(frame_id_0,frame_id_1))
+        flow01 = np.load(folder_name+'/{:03d}_{:03d}.npy'.format(frame_id_0,frame_id_1))
         bboxes0 = [annotation['bbox'] for annotation in annotations0]
         bboxes1 = [annotation['bbox'] for annotation in annotations1]
         gt0 = self.build_gt(bboxes0, shape)
         gt1 = self.build_gt(bboxes1,shape)
 
-        return flow01, heatmap0, gt0, gt1
+        return heatmap0, gt0, gt1, flow01 
     
     def get_testing_item(self, location_id):
 
@@ -220,7 +220,7 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
         with open(folder_name+'/{:03d}.pickle'.format(frame_id),'rb') as f:
             heatmap = pickle.load(f)
 
-        shape = heatmap.shape
+        shape = heatmap.shape[1:]
         bboxes = [annotation['bbox'] for annotation in annotations]
         gt = self.build_gt(bboxes, shape)
 
@@ -232,7 +232,7 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
 
         gt = np.zeros(shape=shape)
         for bbox in bboxes:
-            gt = np.maximum(gt, blob_for_bbox(bbox, gt)[0]) 
+            gt = np.maximum(gt, blob_for_bbox(bbox, gt)) 
 
         return gt
 

@@ -1,10 +1,9 @@
 from base.deeplab.models import get_model
-from common.datasets import SingleVideoDataset
 import pickle 
 import os 
 from base.centernet.models import create_model as create_model_centernet
 from base.centernet.models import load_model as load_model_centernet
-from common.utils import blob_for_bbox, pre_process_centernet, transform_test_CenterNet, transforms_test_deeplab
+from common.utils import pre_process_centernet, transform_test_CenterNet, transforms_test_deeplab
 import numpy as np 
 import matplotlib.pyplot as plt
 from common.utils import load_my_model
@@ -186,7 +185,7 @@ def resize_annotations(annotations, old_shape, new_shape, downsampling_factor):
 def extract_heatmaps_for_video_frames(model, transform, args):
 
     video_folder = args.input_dir
-    video_names = [video_name for video_name in sorted(os.listdir(video_folder))[:2] if '.MP4' in video_name]
+    video_names = [video_name for video_name in sorted(os.listdir(video_folder)) if '.MP4' in video_name]
 
     get_heatmap = lambda frame: _get_heatmap(frame, model, transform)
 
@@ -218,7 +217,7 @@ def extract_heatmaps_for_video_frames(model, transform, args):
         COCO_formatted_annotations_old = json.load(f)
     
     COCO_formatted_annotations_new = COCO_formatted_annotations_old.copy()
-    COCO_formatted_annotations_new['annotations'] = resize_annotations(COCO_formatted_annotations_old['annotations'],old_shape, new_shape, args.downsampling_factor)
+    COCO_formatted_annotations_new['annotations'] = resize_annotations(COCO_formatted_annotations_old['annotations'], old_shape, new_shape, args.downsampling_factor)
     with open(args.input_dir+'annotations_resized.json','w') as f:
         json.dump(COCO_formatted_annotations_new, f)
 
