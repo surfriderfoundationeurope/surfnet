@@ -5,8 +5,9 @@ with open('dataset.json','r') as surfrider_annotations_file:
 
 cat_name_to_cat_id = {'__background__':0,
                       'fragments':1,
-                      'bottles':2,
-                      'others':3}
+                      'bottles':1,
+                      'others':1}
+
 
 coco_info_train = {'year':2020,
              'version':'0',
@@ -25,9 +26,7 @@ coco_info_val = {'year':2020,
 coco_license = {'id':0,'name':'','url':''}
 
 coco_categories = [{'id':0,'name':'__background__','supercategory':'unknown'},
-                   {'id':1,'name':'fragments','supercategory':'unknown'},
-                   {'id':2,'name':'bottles','supercategory':'unknown'},
-                   {'id':3,'name':'others','supercategory':'unknown'}]
+                   {'id':1,'name':'trash','supercategory':'unknown'}]
 
 coco_images_train, coco_images_val = list(), list()
 coco_annotations_train, coco_annotations_val = list(), list()

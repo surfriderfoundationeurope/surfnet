@@ -5,7 +5,7 @@ alpha='2'
 beta='4'
 lr=6.25e-5
 model_name='dla_34'
-detail='_2'
+detail='_single_class'
 experiment_name=${model_name}'_downsample_'${downsampling_factor}'_alpha_'${alpha}'_beta_'${beta}'_lr_'${lr}${detail}
 
 output_dir='experiments/base/'${experiment_name}
