@@ -23,7 +23,7 @@ def get_dataset(dir_path, name, image_set, args):
         "voc_aug": (dir_path, sbd, 21),
         "coco": (dir_path, get_coco, 21),
         "surfrider": (dir_path, get_surfrider, 4),
-        "surfrider_focal": (dir_path, get_surfrider_focal, 3)
+        "surfrider_focal": (dir_path, get_surfrider_focal, 1)
     }
     if args.focal:
         name = name+'_focal'
@@ -105,6 +105,9 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, devi
     i=0
     running_loss = 0.0
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
+        print(image.shape)
+        print(target.shape)
+        
         image, target = image.to(device), target.to(device)
 
         output = model(image)
