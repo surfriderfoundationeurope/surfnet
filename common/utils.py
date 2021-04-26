@@ -69,21 +69,23 @@ def draw_umich_gaussian(heatmap, center, radius, k=1):
     masked_gaussian = gaussian[radius - top:radius + bottom, radius - left:radius + right]
     if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0: # TODO debug
         np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
+    else:
+        test = 0
     return heatmap
 
 
 def blob_for_bbox(bbox, heatmap, downsampling_factor=None):
     if downsampling_factor is not None:
-        top_left_x, top_left_y, w, h = [bbox_coord // downsampling_factor for bbox_coord in bbox]
+        left, top, w, h = [bbox_coord // downsampling_factor for bbox_coord in bbox]
     else:
-        top_left_x, top_left_y, w, h = [bbox_coord for bbox_coord in bbox]
+        left, top, w, h = [bbox_coord for bbox_coord in bbox]
 
-    bottom_right_x, bottom_right_y = top_left_x+w, top_left_y+h
+    right, bottom = left+w, top+h
     ct_int = None
     if h > 0 and w > 0:
         radius = gaussian_radius((math.ceil(h), math.ceil(w)))
         radius = max(0, int(radius))
-        ct = np.array([(top_left_x + bottom_right_x) / 2, (top_left_y + bottom_right_y) / 2], dtype=np.float32)
+        ct = np.array([(left + right) / 2, (top + bottom) / 2], dtype=np.float32)
         ct_int = ct.astype(np.int32)
         heatmap = draw_umich_gaussian(heatmap, ct_int, radius)
     return heatmap

@@ -7,7 +7,7 @@ import torch.utils.data
 from torch import nn
 from torchvision import datasets 
 
-from base.utils.coco_utils import get_coco, get_surfrider, get_surfrider_focal
+from base.utils.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
 from base.deeplab.models import get_model as get_model_deeplab
 from base.utils import presets
 from torch.utils.tensorboard import SummaryWriter
@@ -22,11 +22,10 @@ def get_dataset(dir_path, name, image_set, args):
         "voc": (dir_path, datasets.VOCSegmentation, 21),
         "voc_aug": (dir_path, sbd, 21),
         "coco": (dir_path, get_coco, 21),
-        "surfrider": (dir_path, get_surfrider, 4),
-        "surfrider_focal": (dir_path, get_surfrider_focal, 1)
+        "surfrider_old": (dir_path, get_surfrider_old, 4),
+        "surfrider": (dir_path, get_surfrider, 1),
+        "surfrider_video_frames": (dir_path, get_surfrider_video_frames, 1)
     }
-    if args.focal:
-        name = name+'_focal'
     p, ds_fn, num_classes = paths[name]
 
     train = image_set == 'train'
@@ -36,16 +35,19 @@ def get_dataset(dir_path, name, image_set, args):
     return ds, num_classes
 
 def get_transform(train, num_classes, args):
-
-    if args.focal:
+    if args.old_train: 
         base_size = 520
         crop_size = 512
-        downsampling_factor = args.downsampling_factor
-        return  presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(crop_size, num_classes, downsampling_factor)
-    else:
-        base_size = 520
-        crop_size = 480
         return presets.SegmentationPresetTrain(base_size, crop_size) if train else presets.SegmentationPresetEval(base_size)
+
+    else: 
+        if args.dataset == 'surfrider_video_frames':
+            base_size = 1080
+            crop_size = (544, 960)
+        else: 
+            base_size = 520 
+            crop_size = (512, 512)
+        return  presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(crop_size, num_classes, args.downsampling_factor)
 
 
 def cross_entropy(inputs, target):
@@ -58,7 +60,7 @@ def cross_entropy(inputs, target):
     return losses['hm'] + 0.5 * losses['aux']
 
 
-def evaluate(model, data_loader, device, num_classes):
+def evaluate_old(model, data_loader, device, num_classes):
     model.eval()
     confmat = utils.ConfusionMatrix(num_classes)
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -79,7 +81,7 @@ def evaluate(model, data_loader, device, num_classes):
 
     return confmat
 
-def evaluate_focal(model, focal_loss, data_loader, device, num_classes):
+def evaluate(model, focal_loss, data_loader, device, num_classes):
     model.eval()
 
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -105,72 +107,17 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, devi
     i=0
     running_loss = 0.0
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
-        print(image.shape)
-        print(target.shape)
-        
+
         image, target = image.to(device), target.to(device)
 
         output = model(image)
 
-        # if i == 0:
-        #     single_image = image[0].cpu().detach().numpy()
-        #     single_target = target[0,:,:,:].cpu().detach()
-        #     single_output_centers = torch.clamp(output['out'][0,:-2,:,:].cpu().detach().sigmoid_(), min=1e-4, max=1-1e-4)
-        #     single_output_hw = output['out'][0,-2:,:,:].cpu().detach()
-        #     single_image = np.transpose(single_image, axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
-
-        #     fig, ((ax0, ax1, ax2, ax3, ax4), (ax5, ax6, ax7, ax8, ax9), (ax10, ax11, ax12, ax13, ax14)) = plt.subplots(3,5)
-
-        #     ax0.imshow(single_image)
-        #     ax1.set_axis_off()
-        #     ax2.set_axis_off()
-        #     ax3.set_axis_off()
-        #     ax4.set_axis_off()
-
-        #     ax5.imshow(single_target[0],cmap='gray', vmin=0, vmax=1)
-        #     ax5.set_title('min_value:{}, max_value:{}'.format(single_target[0].min(), single_target[0].max()))
-
-        #     ax6.imshow(single_target[1],cmap='gray', vmin=0, vmax=1)
-        #     ax6.set_title('min_value:{}, max_value:{}'.format(single_target[1].min(), single_target[1].max()))
-
-        #     ax7.imshow(single_target[2],cmap='gray', vmin=0, vmax=1)
-        #     ax7.set_title('min_value:{}, max_value:{}'.format(single_target[2].min(), single_target[2].max()))
-
-        #     ax8.imshow(single_target[3],cmap='gray', vmin=0, vmax=1)
-        #     ax8.set_title('min_value:{}, max_value:{}'.format(single_target[3].min(), single_target[3].max()))
-
-        #     ax9.imshow(single_target[4],cmap='gray', vmin=0, vmax=1)
-        #     ax9.set_title('min_value:{}, max_value:{}'.format(single_target[4].min(), single_target[4].max()))
-
-        #     ax10.imshow(single_output_centers[0],cmap='gray', vmin=0, vmax=1)
-        #     ax10.set_title('min_value:{}, max_value:{},'.format(single_output_centers[0].min(), single_output_centers[0].max()))
-
-        #     ax11.imshow(single_output_centers[1],cmap='gray', vmin=0, vmax=1)
-        #     ax11.set_title('min_value:{},, max_value:{},'.format(single_output_centers[1].min(), single_output_centers[1].max()))
-
-        #     ax12.imshow(single_output_centers[2],cmap='gray', vmin=0, vmax=1)
-        #     ax12.set_title('min_value:{}, max_value:{}'.format(single_output_centers[2].min(), single_output_centers[2].max()))
-
-        #     ax13.imshow(single_output_hw[0],cmap='gray')
-        #     ax13.set_title('min_value:{}, max_value:{}'.format(single_output_hw[0].min(), single_output_hw[0].max()))
-
-        #     ax14.imshow(single_output_hw[1],cmap='gray')
-        #     ax14.set_title('min_value:{}, max_value:{}'.format(single_output_hw[1].min(), single_output_hw[1].max()))
-
-            # with open('random_image_epoch_{}.pickle'.format(epoch),'wb') as f:
-            #     data = (fig, ((ax0, ax1, ax2), (ax3, ax4, ax5), (ax6, ax7, ax8)))
-            #     pickle.dump(data, f)
-            # plt.close()
-        # loss = 0.0
-
-        # for i in range(len(output)):
         loss = criterion(output, target)
         running_loss += loss.item()
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # if lr_scheduler is not None: lr_scheduler.step()
 
         metric_logger.update(loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
         
@@ -210,11 +157,12 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn)
 
-    if args.focal:
-        model = get_model_centernet(arch = args.model, heads = {'hm':num_classes,'wh':2}, head_conv=256)
-        model.to(device)
-    else:
+    if args.old_train:
         model = get_model_deeplab(args.model, num_classes, freeze_backbone=args.freeze_backbone, downsampling_factor=args.downsampling_factor)
+    else:
+        model = get_model_centernet(arch = args.model, heads = {'hm':num_classes,'wh':2}, head_conv=256)
+
+    model.to(device)
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
@@ -237,12 +185,13 @@ def main(args):
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-    if args.focal: 
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
-    else:
+    if args.old_train: 
         lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer,
             lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
+    else:
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
+
 
     # lr_scheduler = None
 
@@ -262,15 +211,14 @@ def main(args):
 
     start_time = time.time()
 
-    if args.focal:
+    if args.old_train:
+        criterion_train = cross_entropy
+    else:
         criterion_train = Loss(args.alpha, args.beta, train=True, centernet_output=True)
         criterion_test =  Loss(args.alpha, args.beta, train=False, centernet_output=True)
-    else:
-        criterion_train = cross_entropy
-
     # test = model.classifier[-1].bias.data
 
-    if args.focal and args.model.split('__')[0] == 'deeplabv3':
+    if not args.old_train and args.model.split('__')[0] == 'deeplabv3':
         model.classifier[-1].bias.data[:-2].fill_(-2.19)
         model.aux_classifier[-1].bias.data.fill_(-2.19)
 
@@ -280,8 +228,8 @@ def main(args):
 
         train_one_epoch(model, criterion_train, optimizer, data_loader, lr_scheduler, device, epoch, args.print_freq, writer)
         
-        if not args.focal: 
-            confmat = evaluate(model, data_loader_test, device=device, num_classes=num_classes)
+        if args.old_train: 
+            confmat = evaluate_old(model, data_loader_test, device=device, num_classes=num_classes)
             global_correct, average_row_correct, IoU, mean_IoU = confmat.get()
             writer.add_scalar('Global correct (epoch)', global_correct, epoch)
             writer.add_scalars('Average row correct (epoch)',{str(i):v for i,v in enumerate(average_row_correct)}, epoch)
@@ -291,7 +239,7 @@ def main(args):
                 writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
             print(confmat)
         else: 
-            class_wise_eval_focal_loss = evaluate_focal(model, criterion_test, data_loader_test, device=device, num_classes=num_classes)
+            class_wise_eval_focal_loss = evaluate(model, criterion_test, data_loader_test, device=device, num_classes=num_classes)
             writer.add_scalars('Class-wise focal loss',{str(i):v for i,v in enumerate(class_wise_eval_focal_loss)}, epoch)
             print('Class-wise evaluation loss:', class_wise_eval_focal_loss.numpy())
             for name, param in model.named_parameters():
@@ -362,7 +310,7 @@ def parse_args():
     parser.add_argument('--downsampling-factor', default=4, type=int)
     parser.add_argument('--alpha', default=2, type=int)
     parser.add_argument('--beta', default=4, type=int)
-    parser.add_argument('--focal', default=True, action='store_true')
+    parser.add_argument('--old_train', default=False, action='store_true')
 
     args = parser.parse_args()
     return args
