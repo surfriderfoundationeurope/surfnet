@@ -5,7 +5,7 @@ import random
 import torch
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
-
+import copy
 from common.utils import blob_for_bbox
 
 import math 
@@ -103,16 +103,18 @@ class RandomCrop(object):
         return image, target
 
 
+
 class RandomCropBboxes(object):
     def __init__(self, size):
-        self.size = size
+        self.h = size[0]
+        self.w = size[1]
 
     def __call__(self, image, target):
 
-        image, padded = pad_if_smaller(image, self.size)
-        crop_params = T.RandomCrop.get_params(image, (self.size, self.size))
+        image, padded = pad_if_smaller(image, self.h)
+        crop_params = T.RandomCrop.get_params(image, (self.h, self.w))
         image = F.crop(image, *crop_params)
-        new_h, new_w = image.size
+        new_w, new_h = image.size
 
         if not padded: 
             limit_top = crop_params[0]
@@ -120,10 +122,12 @@ class RandomCropBboxes(object):
             limit_left = crop_params[1]
             limit_right = crop_params[1] + crop_params[3]
 
-            for bbox_nb, bbox in enumerate(target['bboxes']):
+            bboxes = []
+            cats = []
+            for bbox_nb in range(len(target['bboxes'])):
 
-                top_left_x, top_left_y, width, height = bbox
-                bottom_right_x, bottom_right_y = top_left_x + width, top_left_y + height
+                left, top, width, height = target['bboxes'][bbox_nb]
+                right, bottom = left + width, top + height
 
                 # bbox_coords = np.array([[top_left_x, top_left_y],
                 #                         [top_right_x, top_right_y],
@@ -132,16 +136,20 @@ class RandomCropBboxes(object):
 
                 # bbox_center_x, bbox_center_y = np.mean(bbox_coords,axis=0)
 
-                if bottom_right_x < limit_left or bottom_right_y < limit_top or top_left_x > limit_right or top_left_y > limit_bottom:
-                    del target['bboxes'][bbox_nb]
-                    del target['cats'][bbox_nb]
+                if right < limit_left or bottom < limit_top or left > limit_right or top > limit_bottom:
+                    continue
                 else:
-                    new_top_left_x = max(0,top_left_x-limit_left)
-                    new_top_left_y = max(0,top_left_y-limit_top)
-                    new_bottom_right_x = min(new_w, bottom_right_x-limit_left)
-                    new_bottom_right_y = min(new_h, bottom_right_y-limit_top)
-                    new_bbox = [new_top_left_x, new_top_left_y, new_bottom_right_x-new_top_left_x, new_bottom_right_y-new_top_left_y]
-                    target['bboxes'][bbox_nb] = new_bbox
+                    new_left = max(0,left-limit_left)
+                    new_top = max(0,top-limit_top)
+                    new_right = min(new_w, right-limit_left)
+                    new_bottom = min(new_h, bottom-limit_top)
+                    new_bbox = [new_left, new_top, new_right-new_left, new_bottom-new_top]
+                    bboxes.append(new_bbox)
+                    cats.append(target['cats'][bbox_nb])
+            
+            target['bboxes'] = bboxes
+            target['cats'] = cats
+
 
             # target = F.crop(target, *crop_params)
         return image, target
@@ -169,12 +177,17 @@ class ToTensorBboxes(object):
         self.downsampling_factor = downsampling_factor
 
     def __call__(self, image, target):
-        h,w = image.size
+        w,h = image.size
         image = F.to_tensor(image)
-        blobs = np.zeros(shape=(self.num_classes + 2, h // self.downsampling_factor, w // self.downsampling_factor))
+        if self.downsampling_factor is not None: 
+            blobs = np.zeros(shape=(self.num_classes + 2, h // self.downsampling_factor, w // self.downsampling_factor))
+        else: 
+            blobs = np.zeros(shape=(self.num_classes + 2, h, w))
+
         for i, bbox in enumerate(target['bboxes']):
             cat = target['cats'][i]-1
-            blobs[cat], ct_int = blob_for_bbox(bbox,  blobs[cat], self.downsampling_factor)
+            new_blobs, ct_int = blob_for_bbox(bbox,  blobs[cat], self.downsampling_factor)
+            blobs[cat] = new_blobs
             if ct_int is not None: 
                 ct_x, ct_y = ct_int
                 if ct_x < blobs.shape[2] and ct_y < blobs.shape[1]:
