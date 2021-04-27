@@ -66,85 +66,24 @@ class SingleVideoDataset(torch.utils.data.Dataset):
         return len(self.video)     
  
 class SurfnetDataset(torch.utils.data.Dataset):
-    def __init__(self, heatmaps_folder, split):
-        self.heatmaps_folder = heatmaps_folder
-        self.split = split 
-        self.subset = False
-        self.heatmap_filenames = [filename for filename in sorted(os.listdir(heatmaps_folder)) if filename.endswith('.pickle')]
-        self._init_ids()
 
-
-
-    def __getitem__(self, index):
-
-        if self.split == 'train':
-            video_id, pair_id_in_video = self.id_to_location[index]
-            video_name_0 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video)
-            video_name_1 = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, pair_id_in_video+1)
-            flow_name = 'flow_video_{:03d}_frame_{:03d}_{:03d}'.format(video_id,pair_id_in_video, pair_id_in_video+1)
-            with open(self.heatmaps_folder + video_name_0,'rb') as f: 
-                Z_0, Phi0, center_0 = pickle.load(f)
-            with open(self.heatmaps_folder + video_name_1,'rb') as f: 
-                Phi1, center_1 = pickle.load(f)[1:]
-            flow01 = np.load(flow_name)
-
-            d_01 = np.array(center_1) - np.array(center_0)
-
-            Z_0 = torch.max(Z_0, axis=0, keepdim=True)[0]
-            return  Z_0, Phi0, Phi1, d_01
-        else: 
-            video_id, id_in_video = self.id_to_location[index]
-            video_name = 'video_{:03d}_frame_{:03d}.pickle'.format(video_id, id_in_video)
-
-            with open(self.heatmaps_folder + video_name,'rb') as f: 
-                 Z, Phi, _ = pickle.load(f)
-
-            Z = torch.max(Z, axis=0, keepdim=True)[0]
-
-            return Z, Phi
-
-    def __len__(self):
-        return len(self.id_to_location)
-
-    def _init_ids(self):
-
-        self.ids_dict = dict()
-
-        for filename in self.heatmap_filenames:
-            splitted_name = filename.split('_')
-            video_id, frame_id_in_video = splitted_name[1], splitted_name[3].strip('.pickle')
-            self.ids_dict.setdefault(video_id, []).append(frame_id_in_video) 
-        
-        self.id_to_location = []
-        num_videos = len(self.ids_dict.keys())
-        num_videos_train = int(0.9*num_videos)
-
-        if self.split == 'train':
-            for video_id in list(self.ids_dict.keys())[:num_videos_train]:
-                for frame_id_in_video in self.ids_dict[video_id][:-1]:
-                    self.id_to_location.append((int(video_id), int(frame_id_in_video)))
-        
-        else:
-            for video_id in list(self.ids_dict.keys())[num_videos_train:]:
-                for frame_id_in_video in self.ids_dict[video_id]:
-                    self.id_to_location.append((int(video_id), int(frame_id_in_video)))
-
-        if self.subset: 
-            self.id_to_location = self.id_to_location[:int(0.1*len(self.id_to_location))]
-
-class SurfnetDatasetFlow(torch.utils.data.Dataset):
-
-    def __init__(self, annotations_dir, heatmaps_folder, split='val'):
+    def __init__(self, annotations_dir, data_dir, split='val'):
         self.split = split
         if self.split == 'train':
-            annotation_filename = annotations_dir + 'annotations_train.json'
+            annotation_filename = os.path.join(annotations_dir,'annotations_train.json')
         else: 
-            annotation_filename = annotations_dir + 'annotations_val.json'
+            annotation_filename = os.path.join(annotations_dir,'annotations_val.json')
 
         with open(annotation_filename, 'r') as f: 
             self.annotations = json.load(f)
 
-        self.heatmaps_folder = heatmaps_folder
+        self.data_dir = data_dir
+
+        with open(os.path.join(data_dir,'shapes.pickle'),'rb') as f:
+            (self.old_shape, self.new_shape) = pickle.load(f)
+
+        self.flows_dir = os.path.join(data_dir,'flows')
+        self.heatmaps_dir = os.path.join(data_dir,'heatmaps')
 
         self.subset = False
 
@@ -158,16 +97,19 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
         if self.split == 'train':
             heatmap0, gt0, gt1, flow01 = self.get_training_item(location_id)
 
-            Z_0 = torch.max(heatmap0, axis=0, keepdim=True)[0]
-            
-            return Z_0, gt0, gt1, torch.from_numpy(flow01)
+            heatmap0 = heatmap0.unsqueeze(0)
+            gt0 = torch.from_numpy(gt0).unsqueeze(0)
+            gt1 = torch.from_numpy(gt1).unsqueeze(0)
+            flow01 = -torch.from_numpy(flow01)
 
+            return heatmap0, gt0, gt1, flow01
         else: 
             heatmap, gt = self.get_testing_item(location_id)
 
-            Z = torch.max(heatmap, axis=0, keepdim=True)[0]
+            heatmap = heatmap.unsqueeze(0)
+            gt = torch.from_numpy(gt).unsqueeze(0)
 
-            return Z, gt
+            return heatmap, gt
 
     def __len__(self):
         return len(self.ids)
@@ -193,22 +135,23 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
             for video_id in self.annotations.keys():
                 for frame in range(len(self.annotations[video_id])):
                     self.ids.append((video_id,frame))
+
     def get_training_item(self, location_id):
         
         image0, annotations0 = self.annotations[location_id[0]][location_id[1]]
         image1, annotations1 = self.annotations[location_id[0]][location_id[2]]
         frame_id_0 = image0['frame_id']
         frame_id_1 = image1['frame_id']
-        folder_name = self.heatmaps_folder + image0['file_name'].split('.')[0]
-        with open(folder_name+'/{:03d}.pickle'.format(frame_id_0),'rb') as f:
+        heatmap_filename = os.path.join(self.heatmaps_dir, image0['file_name'].split('/')[0], '{:03d}.pickle'.format(frame_id_0))
+        with open(heatmap_filename,'rb') as f:
             heatmap0 = pickle.load(f)
-        shape = heatmap0.shape[1:]
 
-        flow01 = np.load(folder_name+'/{:03d}_{:03d}.npy'.format(frame_id_0,frame_id_1))
+        flow_filename = os.path.join(self.flows_dir, image0['file_name'].split('/')[0], '{:03d}_{:03d}.npy'.format(frame_id_0,frame_id_1))
+        flow01 = np.load(flow_filename)
         bboxes0 = [annotation['bbox'] for annotation in annotations0]
         bboxes1 = [annotation['bbox'] for annotation in annotations1]
-        gt0 = self.build_gt(bboxes0, shape)
-        gt1 = self.build_gt(bboxes1,shape)
+        gt0 = self.build_gt(bboxes0)
+        gt1 = self.build_gt(bboxes1)
 
         return heatmap0, gt0, gt1, flow01 
     
@@ -216,23 +159,26 @@ class SurfnetDatasetFlow(torch.utils.data.Dataset):
 
         image, annotations = self.annotations[location_id[0]][location_id[1]]
         frame_id = image['frame_id']
-        folder_name = self.heatmaps_folder + image['file_name'].split('.')[0]
-        with open(folder_name+'/{:03d}.pickle'.format(frame_id),'rb') as f:
+        heatmap_filename = os.path.join(self.heatmaps_dir, image['file_name'].split('/')[0], '{:03d}.pickle'.format(frame_id))
+        with open(heatmap_filename,'rb') as f:
             heatmap = pickle.load(f)
 
-        shape = heatmap.shape[1:]
         bboxes = [annotation['bbox'] for annotation in annotations]
-        gt = self.build_gt(bboxes, shape)
-
+        gt = self.build_gt(bboxes)
         return heatmap, gt
     
 
             
-    def build_gt(self, bboxes, shape):
+    def build_gt(self, bboxes):
 
-        gt = np.zeros(shape=shape)
+        gt = np.zeros(shape=self.new_shape)
+        ratio_x = self.new_shape[1]/self.old_shape[1]
+        ratio_y = self.new_shape[0]/self.old_shape[0]
+
         for bbox in bboxes:
-            gt = np.maximum(gt, blob_for_bbox(bbox, gt)) 
+            bbox = [ratio_x*bbox[0],ratio_y*bbox[1],ratio_x*bbox[2],ratio_y*bbox[3]]
+            news_blobs, _ = blob_for_bbox(bbox, gt)
+            gt = np.maximum(gt, news_blobs) 
 
         return gt
 

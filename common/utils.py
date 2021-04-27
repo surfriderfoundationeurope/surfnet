@@ -88,7 +88,7 @@ def blob_for_bbox(bbox, heatmap, downsampling_factor=None):
         ct = np.array([(left + right) / 2, (top + bottom) / 2], dtype=np.float32)
         ct_int = ct.astype(np.int32)
         heatmap = draw_umich_gaussian(heatmap, ct_int, radius)
-    return heatmap
+    return heatmap, ct_int
 
 
 def pre_process_centernet(image, meta=None, fix_res=True):
@@ -181,13 +181,12 @@ def load_my_model(model, trained_model_weights_filename):
     return model
 
 
-def transform_test_CenterNet(fix_res=False):
+def transform_test_CenterNet():
 
     transforms = []
 
     # transforms.append(ResizeForCenterNet(fix_res))
     transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
-    # transforms.append(T.ToPILImage())
     transforms.append(T.ToTensor())
     transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
                                   std=[0.229, 0.224, 0.225]))

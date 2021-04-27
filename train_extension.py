@@ -1,4 +1,4 @@
-from common.datasets import SurfnetDatasetFlow
+from common.datasets.datasets import SurfnetDataset
 import torch 
 from torch.utils.data import DataLoader
 from extension.models import SurfNet
@@ -38,8 +38,8 @@ def spatial_transformer(heatmaps, displacement, device, dense_flow=True):
 
 def get_loaders(args):
 
-    dataset_train = SurfnetDatasetFlow(args.data_path, split='train')
-    dataset_test =  SurfnetDatasetFlow(args.data_path, split='test')
+    dataset_train = SurfnetDataset(args.annotations_dir, args.data_dir, split='train')
+    dataset_test =  SurfnetDataset(args.annotations_dir, args.data_dir, split='test')
 
     loader_train = DataLoader(dataset_train, batch_size=args.batch_size, shuffle=True)
     loader_test = DataLoader(dataset_test, batch_size=1, shuffle=False)
@@ -152,7 +152,7 @@ def main(args):
         params_to_optimize,
         lr=args.lr, momentum=args.momentum)
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=150, gamma=0.1)
     
 
     writer = SummaryWriter(args.log_dir)
@@ -174,13 +174,14 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser(description='Surfnet training')
 
-    parser.add_argument('--data-path', default='/media/mathis/f88b9c68-1ae1-4ecc-a58e-529ad6808fd3/heatmaps_and_annotations/', help='dataset path')
+    parser.add_argument('--annotations_dir',type=str)
+    parser.add_argument('--data_dir', default='/media/mathis/f88b9c68-1ae1-4ecc-a58e-529ad6808fd3/heatmaps_and_annotations/', help='dataset path')
     # parser.add_argument('--dataset', default='Heatma', help='dataset name')
     parser.add_argument('--model', default='surfnet32', help='model')
     # parser.add_argument('--aux-loss', action='store_true', help='auxiliar loss')
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=8, type=int)
-    parser.add_argument('--epochs', default=50, type=int, metavar='N',
+    parser.add_argument('--epochs', default=140, type=int, metavar='N',
                         help='number of total epochs to run')
 
 

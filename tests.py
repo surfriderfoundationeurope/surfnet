@@ -5,9 +5,9 @@ from torchvision import datasets
 from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
 from extension.models import SurfNet
-from common.datasets import SurfnetDataset
+from common.datasets.datasets import SurfnetDataset
 import torch 
-from torch.utils.data import DataLoader, dataloader
+from torch.utils.data import DataLoader, dataloader, dataset
 from torch import sigmoid
 import matplotlib.pyplot as plt 
 from torchvision import transforms as T
@@ -37,6 +37,11 @@ from scipy.optimize import linear_sum_assignment
 from math import ceil 
 
 import ray
+
+parallel = False
+if parallel: 
+    ray.init()
+
 class Args(object):
     def __init__(self, focal, data_path, dataset, downsampling_factor, batch_size):
         self.focal = focal
@@ -267,9 +272,11 @@ def load_base(base_weights):
     base_model.eval()
     return base_model
 
-def extract_heatmaps_extension_from_base_heatmaps(extension_weights, input_dir):
-    args = Args(focal=True, data_path=input_dir,dataset='surfrider', downsampling_factor=4, batch_size=1)
-    _ , loader_test = get_loaders(args)
+def extract_heatmaps_extension_from_base_heatmaps(extension_weights, annotations_dir, data_dir):
+    # args = Args(focal=True, data_path=input_dir, dataset='surfrider', downsampling_factor=4, batch_size=1)
+    dataset_test = SurfnetDataset(annotations_dir, data_dir, split='val')
+    loader_test = DataLoader(dataset_test, batch_size=1, shuffle=False)
+
     extension_model  = load_extension(extension_weights)
     with torch.no_grad():
         base_predictions = list()
@@ -606,7 +613,18 @@ def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluat
 
     gt = (gt == 1)
 
-    thresholds = np.linspace(0.4,0.6,2)
+    # prediction_test = predictions[245].flatten()
+    # gt_test = gt[245].flatten()
+
+    # fig, (ax0,ax1) = plt.subplots(2,1)
+    # ax0.plot(gt_test)
+    # ax1.plot(prediction_test)
+    # plt.show()
+
+
+
+
+    thresholds = np.linspace(0,1,100)
     precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = prec_recall_with_hungarian(gt, predictions, thresholds, radius=3)
     
     precision_list, recall_list = np.array(precision_list), np.array(recall_list)
@@ -624,42 +642,41 @@ def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluat
 
 if __name__ == '__main__':
 
-    # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_lr_reduced_epoch_15_multi_obj_no_obj/model_49.pth'
-    # input_dir = 'data/extracted_heatmaps/'
-    # extract_heatmaps_extension_from_base_heatmaps(extension_weights=extension_weights, input_dir=input_dir)
+    # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_single_class_3/model_139.pth'
+    # annotations_dir = '/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations'
+    # data_dir='/home/infres/chagneux/repos/surfnet/data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class'
+    # # input_dir = 'data/extracted_heatmaps/'
+    # extract_heatmaps_extension_from_base_heatmaps(extension_weights=extension_weights, annotations_dir=annotations_dir, data_dir=data_dir)
     # extract_heatmaps_extension_from_images(base_weights='external_pretrained_models/centernet_pretrained.pth', extension_weights='external_pretrained_models/surfnet32.pth', input_dir='data/surfrider_images')
    
     # compute_ROC_curves_brute('data_to_evaluate.pickle')
 
-    parallel = False
-    if parallel: 
-        ray.init()
 
-    eval_dir = 'experiments/evaluations/multi_object_synthetic_videos_trained_including_no_obj/'
-    with open(eval_dir+'ground_truth.pickle','rb') as f: 
+    eval_dir = '/home/infres/chagneux/repos/surfnet/experiments/evaluations/multi_object_single_class'
+    with open(os.path.join(eval_dir,'ground_truth.pickle'),'rb') as f: 
         gt = pickle.load(f)
-    # with open(eval_dir+'extension_predictions.pickle','rb') as f: 
-    #     predictions_extension = pickle.load(f)
-    with open(eval_dir+'base_predictions.pickle','rb') as f: 
-        predictions_base = pickle.load(f)
-    permutation = np.random.permutation(gt.shape[0])
+    with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
+        predictions_extension = pickle.load(f)
+    # with open(os.path.join(eval_dir,'base_predictions.pickle'),'rb') as f: 
+    #     predictions_base = pickle.load(f)
+    # permutation = np.random.permutation(gt.shape[0])
 
-    gt = gt[permutation]
-    predictions_base = predictions_base[permutation]
-    # # predictions_extension = predictions_extension[permutation]
+    # gt = gt[permutation]
+    # predictions_base = predictions_base[permutation]
+    # # # predictions_extension = predictions_extension[permutation]
     
 
 
-    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
+    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
     # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
     # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
-    # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
+    compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
 
 
-    pr_curve_from_file('Evaluation base.pickle')
+    # pr_curve_from_file('Evaluation base.pickle')
     # pr_curve_from_file('Evaluation base nms.pickle')
     # pr_curve_from_file('Evaluation extension.pickle')
-    # pr_curve_from_file('Evaluation extension nms.pickle')
+    pr_curve_from_file('Evaluation extension nms.pickle', show=True)
 
     # plot_pickle_file('Evaluation extension nms_axes.pickle')
 

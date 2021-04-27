@@ -45,9 +45,9 @@ def get_transform(train, num_classes, args):
             base_size = 1080
             crop_size = (544, 960)
         else: 
-            base_size = 520 
+            base_size = 512 
             crop_size = (512, 512)
-        return  presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(crop_size, num_classes, args.downsampling_factor)
+        return  presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, num_classes, args.downsampling_factor)
 
 
 def cross_entropy(inputs, target):
