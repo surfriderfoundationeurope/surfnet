@@ -37,7 +37,7 @@ class StateSpaceModel(object):
         self.state_observation_variance = state_observation_variance
 
     def state_transition(self, current_state, flow):
-        mean = current_state + flow[current_state[0],current_state[1],:][::-1]
+        mean = current_state + flow[round(current_state[0]),round(current_state[1]),:][::-1]
         cov = self.state_transition_variance*np.eye(2)
         return multivariate_normal(mean, cov)
 
@@ -53,11 +53,15 @@ class SMC(object):
         self.n_particles = n_particles
         self.particles, self.weights = self.init_particles(X0)
         self.SSM = SSM 
+        self.updated = False 
+        self.countdown = 0
+        self.is_on = True
+
 
     def init_particles(self, X0):
 
         particles = np.array(self.n_particles*[X0])
-        weights = np.ones(particles.shape[0])/self.n_particles
+        weights = np.ones(self.n_particles)/self.n_particles
 
         return particles, weights 
 
@@ -66,22 +70,33 @@ class SMC(object):
         for particle in self.particles: 
             new_particle = self.SSM.state_transition(particle, flow).rvs(1)
             new_particles.append(new_particle)
-        return new_particles
+        self.particles = np.array(new_particles)
 
     def importance_reweighting(self, observation):
         weights = []
         for particle in self.particles:
-            self.weights.append(self.SSM.state_observation(particle).pdf(observation))
+            weights.append(self.SSM.state_observation(particle).pdf(observation))
         self.weights = np.array(weights)/sum(weights)
 
     def resample(self):
-        return 
+        resampling_indices = np.random.choice(a=self.n_particles, p=self.weights, size = self.n_particles)
+        self.particles = self.particles[resampling_indices]
+        self.weights = np.ones(self.n_particles)/self.n_particles
 
     def update(self, observation, flow):
         self.resample()
         self.state_transition(flow)
         self.importance_reweighting(observation)
+        self.updated = True
 
+    def update_countdown(self):
+        if not self.updated: 
+            self.countdown+=1
+        else:
+            self.countdown=0
+        if self.countdown > 5: 
+            self.is_on = False
+    
 def init_trackers(detections, SSM):
     current_trackers = []
 
@@ -139,37 +154,39 @@ def read_and_resize(filename):
     old_shape = (h,w)
     return frame, old_shape, new_shape
 
-def build_next_estimate_for_tracker(particles, weights, SSM, flow01, nb_new_particles=10):
+def build_confidence_function_for_tracker(particles, weights, SSM, flow01, nb_new_particles=10):
+
     new_particles = []
     new_weights = []
 
     for particle, weight in zip(particles, weights):
         new_particles.extend(SSM.state_transition(particle, flow01).rvs(nb_new_particles))
-        new_weights.extend([weight]*nb_new_particles)
+        new_weights.extend([weight/nb_new_particles]*nb_new_particles)
 
-    distribution = GaussianMixture(new_particles, SSM.state_observation_variance, weights)
+    distribution = GaussianMixture(new_particles, SSM.state_observation_variance, new_weights)
 
-    range = np.array([5,5])
+    range = np.array([2,2])
 
     confidence_for_x = lambda x: distribution.cdf(x+range) - distribution.cdf(x-range)
 
     return confidence_for_x 
 
-def build_next_estimate_for_trackers(current_trackers, SSM, flow01):
+def build_confidence_function_for_trackers(current_trackers, SSM, flow01):
     
-    pdfs = []
-    for tracker in current_trackers:
-        pdfs.append(build_next_estimate_for_tracker(tracker.particles, tracker.weights, SSM, flow01))
+    confidence_functions = dict()
+    for tracker_nb, tracker in enumerate(current_trackers):
+        if tracker.is_on:
+            confidence_functions[tracker_nb] = build_confidence_function_for_tracker(tracker.particles, tracker.weights, SSM, flow01)
+    return confidence_functions
 
-    return pdfs
-
-def track_video(filenames, output_file, detector, SSM, flow):
+def track_video(filenames, detector, SSM, flow):
 
     tracklet = []
 
     init = False 
     frame0, _ , _ = read_and_resize(filenames[0])
     detections = detector(frame0)
+
     if len(detections): 
         current_trackers = init_trackers(detections, SSM)
         for detection in detections:
@@ -187,33 +204,44 @@ def track_video(filenames, output_file, detector, SSM, flow):
 
             else: 
                 flow01 = flow(frame0, frame1)
-                next_estimate_for_trackers = build_next_estimate_for_trackers(current_trackers, SSM, flow01)
-                assigned_trackers_for_detections = []
-                for detection in detections:
-                    scores_detection = np.array([next_estimate_for_tracker(detection) for next_estimate_for_tracker in next_estimate_for_trackers])
-                    candidate_cloud_id = np.argmax(scores_detection)
-                    if scores_detection[candidate_cloud_id] > 0.2:
-                        assigned_trackers_for_detections.append(candidate_cloud_id)
-                    else: 
-                        assigned_trackers_for_detections.append(-1)
+                confidence_functions_for_trackers = build_confidence_function_for_trackers(current_trackers, SSM, flow01)
+                assigned_trackers = -np.ones(len(detections),dtype=int)
+                assignment_confidences = -np.ones(len(detections),dtype=int)
                 
+                for detection_nb in range(len(detections)):
 
+                    tracker_scores = {tracker_nb:confidence_for_tracker(detections[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()} 
+                    trackers = list(tracker_scores.keys())
+                    candidate_tracker_id = trackers[int(np.argmax(tracker_scores.values()))]
+                    
+                    score_for_candidate_cloud = tracker_scores[candidate_tracker_id]
 
-            
-    return 0
+                    if score_for_candidate_cloud > 0.2:
+                        if candidate_tracker_id in assigned_trackers:
+                            detection_id_of_conflict = np.argwhere(assigned_trackers == candidate_tracker_id)
+                            if score_for_candidate_cloud > assignment_confidences[detection_id_of_conflict]:
+                                assigned_trackers[detection_id_of_conflict] = -1
+                                assignment_confidences[detection_id_of_conflict] = -1
+                                assigned_trackers[detection_nb] = candidate_tracker_id
+                                assignment_confidences[detection_nb] = score_for_candidate_cloud
+                        else:
+                            assigned_trackers[detection_nb] = candidate_tracker_id
+                            assignment_confidences[detection_nb] = score_for_candidate_cloud
+                
+                for detection_nb in range(len(detections)):
+                    detection = detections[detection_nb]
+                    assigned_tracker = assigned_trackers[detection_nb]
+                    if assigned_tracker == -1:
+                        current_trackers.append(SMC(detection,SSM))
+                        tracklet.append([(frame_nb,detection)])
+                    else: 
+                        current_trackers[assigned_tracker].update(detection, flow01)
+                        tracklet[assigned_tracker].append((frame_nb, detection))
+                
+        for tracker in current_trackers:
+            tracker.update_countdown()
 
-
-
-
-
-
-
-
-
-
-
-    
-    # for filename in filenames[1:]: 
+    return tracklet
 
 def main(args):
 
@@ -235,7 +263,7 @@ def main(args):
         images_for_video = [image for image in annotations['images'] if image['video_id']==video['id']]
         images_for_video = sorted(images_for_video, key=lambda image:image['frame_id'])
         filenames = [os.path.join(args.data_dir,image['file_name']) for image in images_for_video]
-        track_video(filenames, output_file, detector, SSM, flow)
+        tracklet = track_video(filenames, detector, SSM, flow)
         output_file.close()
 
 
