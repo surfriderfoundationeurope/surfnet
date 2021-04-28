@@ -1,11 +1,9 @@
-from extract_and_save_heatmaps import save_flow
 import cv2
 import json
 from base.centernet.models import create_model as create_base
-from common.utils import load_my_model, warp_flow
+from common.utils import load_my_model
 from extension.models import SurfNet
 import torch
-from torch.nn import Module
 import matplotlib.pyplot as plt 
 from common.utils import transform_test_CenterNet, nms
 from synthetic_videos.flow_tools import flow_opencv_dense
@@ -44,11 +42,11 @@ class StateSpaceModel(object):
     def state_observation(self, current_state):
         mean = current_state
         cov = self.state_observation_variance*np.eye(2)
-        return multivariate_normal(mean,cov)
+        return multivariate_normal(mean, cov)
 
 class SMC(object):
 
-    def __init__(self, X0, SSM, n_particles=20):
+    def __init__(self, X0, SSM, n_particles=10):
 
         self.n_particles = n_particles
         self.particles, self.weights = self.init_particles(X0)
@@ -154,7 +152,7 @@ def read_and_resize(filename):
     old_shape = (h,w)
     return frame, old_shape, new_shape
 
-def build_confidence_function_for_tracker(particles, weights, SSM, flow01, nb_new_particles=10):
+def build_confidence_function_for_tracker(particles, weights, SSM, flow01, nb_new_particles=5):
 
     new_particles = []
     new_weights = []
@@ -165,6 +163,16 @@ def build_confidence_function_for_tracker(particles, weights, SSM, flow01, nb_ne
 
     distribution = GaussianMixture(new_particles, SSM.state_observation_variance, new_weights)
 
+    verbose = False
+    if verbose: 
+        shape = flow01.shape[:-1]
+        y, x = np.mgrid[0:shape[0]:1, 0:shape[1]:1]
+        pos = np.dstack((x, y))
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(111)
+        ax2.contourf(x, y, distribution.pdf(pos))
+        plt.show()
+        
     range = np.array([2,2])
 
     confidence_for_x = lambda x: distribution.cdf(x+range) - distribution.cdf(x-range)
