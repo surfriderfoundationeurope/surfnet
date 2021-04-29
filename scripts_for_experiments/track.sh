@@ -9,10 +9,12 @@ python -m debugpy --listen 5678 --wait-for-client tracking.py \
     --base_weights ${BASE_PRETRAINED} \
     --extension_weights ${EXTENSION_PRETRAINED} \
     --data_dir ${SYNTHETIC_VIDEOS_DATASET}'data/' \
-    --annotation_file '/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations/annotations_val.json' \
+    --annotation_file 'data/synthetic_videos_dataset/annotations/annotations_val.json' \
     --output_dir ${output_dir} \
-    --confidence_threshold 0.33 \
-    --downsampling_factor ${DOWNSAMPLING_FACTOR}
+    --confidence_threshold 0.2 \
+    --detection_threshold 0.33 \
+    --downsampling_factor ${DOWNSAMPLING_FACTOR} \
+    --stop_tracking_threshold 5
 
 
 
