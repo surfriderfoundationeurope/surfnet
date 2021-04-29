@@ -64,7 +64,7 @@ class SMC(object):
         self.n_particles = n_particles
         self.SSM = SSM
         self.particles, self.normalized_weights = self.init_particles(X0)
-        self.updated = True 
+        self.updated = False 
         self.countdown = 0
         self.enabled = True
         self.stop_tracking_threshold = stop_tracking_threshold
@@ -93,15 +93,24 @@ class SMC(object):
         self.particles = self.particles[resampling_indices]
 
     def update(self, observation, flow):
-        self.resample()
-        self.state_transition(flow)
-        self.importance_reweighting(observation)
-        self.updated = True
-        self.latest_data = observation
 
-    def update_status(self):
+        self.resample()
+        self.state_transition(flow)        
+        self.importance_reweighting(observation)
+
+        self.latest_data = observation
+        self.updated = True
+    
+    def resample_move(self, flow):
+        self.resample()
+        self.state_transition(flow)        
+        self.normalized_weights = np.ones(self.n_particles)/self.n_particles
+
+
+    def update_status(self, flow):
         if not self.updated: 
             self.countdown+=1
+            self.resample_move(flow)
         else:
             self.countdown=0
         self.updated=False
@@ -258,13 +267,14 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
             if len(detections): 
                 current_trackers = init_trackers(detections, SSM, stop_tracking_threshold)
                 for detection in detections:
-                    tracklet.append([(0,detection)])
+                    tracklet.append([(frame_nb,detection)])
                 init = True
         else:
             frame1, _ , _ = read_and_resize(filenames[frame_nb])
-            detections = detector(frame1)        
+            detections = detector(frame1)
+            flow01 = flow(frame0, frame1)
+            new_trackers = []
             if len(detections):
-                flow01 = flow(frame0, frame1)
                 confidence_functions_for_trackers = build_confidence_function_for_trackers(current_trackers, flow01)
                 assigned_trackers = -np.ones(len(detections),dtype=int)
                 assignment_confidences = -np.ones(len(detections))
@@ -288,21 +298,21 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
                         else:
                             assigned_trackers[detection_nb] = candidate_tracker_id
                             assignment_confidences[detection_nb] = score_for_candidate_cloud
-                
                 for detection_nb in range(len(detections)):
                     detection = detections[detection_nb]
                     assigned_tracker = assigned_trackers[detection_nb]
                     if assigned_tracker == -1:
-                        current_trackers.append(SMC(detection,SSM,stop_tracking_threshold=stop_tracking_threshold))
+                        new_trackers.append(SMC(detection,SSM,stop_tracking_threshold=stop_tracking_threshold))
                         tracklet.append([(frame_nb,detection)])
                     else: 
                         current_trackers[assigned_tracker].update(detection, flow01)
                         tracklet[assigned_tracker].append((frame_nb, detection))
                     
             for tracker in current_trackers:
-                tracker.update_status()
+                tracker.update_status(flow01)
             
             frame0 = frame1.copy()
+            if len(new_trackers): current_trackers.extend(new_trackers)
 
     return tracklet
 
@@ -320,7 +330,7 @@ def main(args):
     with open(args.annotation_file,'rb') as f: 
         annotations = json.load(f)
     
-    for video in annotations['videos'][5:]:
+    for video in annotations['videos']:
         output_filename = os.path.join(args.output_dir,video['file_name']+'.txt')
         output_file = open(output_filename,'w')
         images_for_video = [image for image in annotations['images'] if image['video_id']==video['id']]
