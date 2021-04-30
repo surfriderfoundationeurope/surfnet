@@ -1,29 +1,33 @@
 from common.datasets.datasets import SurfnetDataset
-import numpy as np 
+import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import torch
+
+
 class Args(object):
     def __init__(self, data_path, dataset, downsampling_factor, old_train):
         self.old_train = old_train
         self.downsampling_factor = downsampling_factor
-        self.dataset = dataset 
+        self.dataset = dataset
         self.data_path = data_path
 
 # args = Args('data/surfrider_images','surfrider', 4, False)
 
-dataset = SurfnetDataset('/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations','/home/infres/chagneux/repos/surfnet/data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class', split='train')
+
+dataset = SurfnetDataset('/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations',
+                         '/home/infres/chagneux/repos/surfnet/data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class', split='train')
 
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-for heatmap0, target0, target1, flows01 in dataloader: 
+for heatmap0, target0, target1, flows01 in dataloader:
     # image = np.transpose(image[0].numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
     # hm, h, w = target[0][0], target[0][1], target[0][2]
-    fig, (ax0,ax1,ax2) = plt.subplots(1,3)
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3)
 
-    ax0.imshow(torch.sigmoid(heatmap0[0][0]),cmap='gray')
-    ax1.imshow(target0[0][0],cmap='gray')
-    ax2.imshow(target1[0][0],cmap='gray')
+    ax0.imshow(torch.sigmoid(heatmap0[0][0]), cmap='gray')
+    ax1.imshow(target0[0][0], cmap='gray')
+    ax2.imshow(target1[0][0], cmap='gray')
     plt.show()
 
     test = 0

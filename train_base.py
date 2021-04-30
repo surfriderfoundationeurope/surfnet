@@ -5,7 +5,7 @@ import time
 import torch
 import torch.utils.data
 from torch import nn
-from torchvision import datasets 
+from torchvision import datasets
 
 from base.utils.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
 from base.deeplab.models import get_model as get_model_deeplab
@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from base.centernet.models import create_model as get_model_centernet
 from base.losses import Loss
 from base.utils import train_utils as utils
+
 
 def get_dataset(dir_path, name, image_set, args):
     def sbd(*args, **kwargs):
@@ -34,26 +35,29 @@ def get_dataset(dir_path, name, image_set, args):
 
     return ds, num_classes
 
+
 def get_transform(train, num_classes, args):
-    if args.old_train: 
+    if args.old_train:
         base_size = 520
         crop_size = 512
         return presets.SegmentationPresetTrain(base_size, crop_size) if train else presets.SegmentationPresetEval(base_size)
 
-    else: 
+    else:
         if args.dataset == 'surfrider_video_frames':
             base_size = 1080
             crop_size = (544, 960)
-        else: 
-            base_size = 512 
+        else:
+            base_size = 512
             crop_size = (512, 512)
-        return  presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, num_classes, args.downsampling_factor)
+        return presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, num_classes, args.downsampling_factor)
 
 
 def cross_entropy(inputs, target):
     losses = {}
-    losses['hm'] = nn.functional.cross_entropy(inputs['hm'], target, ignore_index=255)
-    losses['aux'] = nn.functional.cross_entropy(inputs['aux'], target, ignore_index=255)
+    losses['hm'] = nn.functional.cross_entropy(
+        inputs['hm'], target, ignore_index=255)
+    losses['aux'] = nn.functional.cross_entropy(
+        inputs['aux'], target, ignore_index=255)
     if len(losses) == 1:
         return losses['hm']
 
@@ -81,30 +85,31 @@ def evaluate_old(model, data_loader, device, num_classes):
 
     return confmat
 
+
 def evaluate(model, focal_loss, data_loader, device, num_classes):
     model.eval()
 
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
     class_wise_loss = torch.zeros(size=(num_classes,))
-    batch_nb=0
+    batch_nb = 0
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 100, header):
             image, target = image.to(device), target.to(device)
             output = model(image)
             class_wise_loss += focal_loss(output, target)
-            batch_nb+=1
+            batch_nb += 1
 
     return class_wise_loss / batch_nb
-
 
 
 def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, device, epoch, print_freq, writer):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value}'))
+    metric_logger.add_meter(
+        'lr', utils.SmoothedValue(window_size=1, fmt='{value}'))
     header = 'Epoch: [{}]'.format(epoch)
-    i=0
+    i = 0
     running_loss = 0.0
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
 
@@ -119,14 +124,18 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, devi
         loss.backward()
         optimizer.step()
 
-        metric_logger.update(loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
-        
-        writer.add_scalar('Training loss (mini-batch)', loss.item(), epoch * len(data_loader) + i)
-        writer.add_scalar('Learning rate (mini-batch)', optimizer.param_groups[0]["lr"], epoch * len(data_loader) + i)
-        i+=1
+        metric_logger.update(
+            loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
+
+        writer.add_scalar('Training loss (mini-batch)',
+                          loss.item(), epoch * len(data_loader) + i)
+        writer.add_scalar('Learning rate (mini-batch)',
+                          optimizer.param_groups[0]["lr"], epoch * len(data_loader) + i)
+        i += 1
 
     lr_scheduler.step()
     writer.add_scalar('Training loss (epoch)', running_loss / (i+1), epoch)
+
 
 def main(args):
     if args.output_dir:
@@ -137,12 +146,15 @@ def main(args):
 
     device = torch.device(args.device)
 
-    dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)
+    dataset, num_classes = get_dataset(
+        args.data_path, args.dataset, "train", args)
     dataset_test, _ = get_dataset(args.data_path, args.dataset, "val", args)
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test)
+        train_sampler = torch.utils.data.distributed.DistributedSampler(
+            dataset)
+        test_sampler = torch.utils.data.distributed.DistributedSampler(
+            dataset_test)
     else:
         train_sampler = torch.utils.data.RandomSampler(dataset)
         test_sampler = torch.utils.data.SequentialSampler(dataset_test)
@@ -158,9 +170,11 @@ def main(args):
         collate_fn=utils.collate_fn)
 
     if args.old_train:
-        model = get_model_deeplab(args.model, num_classes, freeze_backbone=args.freeze_backbone, downsampling_factor=args.downsampling_factor)
+        model = get_model_deeplab(
+            args.model, num_classes, freeze_backbone=args.freeze_backbone, downsampling_factor=args.downsampling_factor)
     else:
-        model = get_model_centernet(arch = args.model, heads = {'hm':num_classes,'wh':2}, head_conv=256)
+        model = get_model_centernet(arch=args.model, heads={
+                                    'hm': num_classes, 'wh': 2}, head_conv=256)
 
     model.to(device)
     if args.distributed:
@@ -168,7 +182,8 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(
+            model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
     # params_to_optimize = [
@@ -185,19 +200,20 @@ def main(args):
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
-    if args.old_train: 
+    if args.old_train:
         lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer,
             lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
     else:
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=90, gamma=0.1)
-
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=90, gamma=0.1)
 
     # lr_scheduler = None
 
     if args.resume:
         checkpoint = torch.load(args.resume, map_location='cpu')
-        model_without_ddp.load_state_dict(checkpoint['model'], strict=not args.test_only)
+        model_without_ddp.load_state_dict(
+            checkpoint['model'], strict=not args.test_only)
         if not args.test_only:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
@@ -205,7 +221,8 @@ def main(args):
     writer = SummaryWriter(args.logdir)
 
     if args.test_only:
-        confmat = evaluate(model, data_loader_test, device=device, num_classes=num_classes)
+        confmat = evaluate(model, data_loader_test,
+                           device=device, num_classes=num_classes)
         print(confmat)
         return
 
@@ -214,8 +231,10 @@ def main(args):
     if args.old_train:
         criterion_train = cross_entropy
     else:
-        criterion_train = Loss(args.alpha, args.beta, train=True, centernet_output=True)
-        criterion_test =  Loss(args.alpha, args.beta, train=False, centernet_output=True)
+        criterion_train = Loss(args.alpha, args.beta,
+                               train=True, centernet_output=True)
+        criterion_test = Loss(args.alpha, args.beta,
+                              train=False, centernet_output=True)
     # test = model.classifier[-1].bias.data
 
     if not args.old_train and args.model.split('__')[0] == 'deeplabv3':
@@ -226,24 +245,33 @@ def main(args):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
-        train_one_epoch(model, criterion_train, optimizer, data_loader, lr_scheduler, device, epoch, args.print_freq, writer)
-        
-        if args.old_train: 
-            confmat = evaluate_old(model, data_loader_test, device=device, num_classes=num_classes)
+        train_one_epoch(model, criterion_train, optimizer, data_loader,
+                        lr_scheduler, device, epoch, args.print_freq, writer)
+
+        if args.old_train:
+            confmat = evaluate_old(
+                model, data_loader_test, device=device, num_classes=num_classes)
             global_correct, average_row_correct, IoU, mean_IoU = confmat.get()
             writer.add_scalar('Global correct (epoch)', global_correct, epoch)
-            writer.add_scalars('Average row correct (epoch)',{str(i):v for i,v in enumerate(average_row_correct)}, epoch)
-            writer.add_scalars('IoU (epoch)',{str(i):v for i,v in enumerate(IoU)}, epoch)
+            writer.add_scalars('Average row correct (epoch)', {str(
+                i): v for i, v in enumerate(average_row_correct)}, epoch)
+            writer.add_scalars(
+                'IoU (epoch)', {str(i): v for i, v in enumerate(IoU)}, epoch)
             writer.add_scalar('Mean IoU (epoch)', mean_IoU, epoch)
             for name, param in model.named_parameters():
-                writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+                writer.add_histogram(
+                    name, param.clone().cpu().data.numpy(), epoch)
             print(confmat)
-        else: 
-            class_wise_eval_focal_loss = evaluate(model, criterion_test, data_loader_test, device=device, num_classes=num_classes)
-            writer.add_scalars('Class-wise focal loss',{str(i):v for i,v in enumerate(class_wise_eval_focal_loss)}, epoch)
-            print('Class-wise evaluation loss:', class_wise_eval_focal_loss.numpy())
+        else:
+            class_wise_eval_focal_loss = evaluate(
+                model, criterion_test, data_loader_test, device=device, num_classes=num_classes)
+            writer.add_scalars(
+                'Class-wise focal loss', {str(i): v for i, v in enumerate(class_wise_eval_focal_loss)}, epoch)
+            print('Class-wise evaluation loss:',
+                  class_wise_eval_focal_loss.numpy())
             for name, param in model.named_parameters():
-                writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+                writer.add_histogram(
+                    name, param.clone().cpu().data.numpy(), epoch)
 
         utils.save_on_master(
             {
@@ -262,12 +290,16 @@ def main(args):
 
 def parse_args():
     import argparse
-    parser = argparse.ArgumentParser(description='PyTorch Segmentation Training')
+    parser = argparse.ArgumentParser(
+        description='PyTorch Segmentation Training')
 
-    parser.add_argument('--data-path', default='/home/mathis/Documents/datasets/surfrider/images_subset/', help='dataset path')
+    parser.add_argument(
+        '--data-path', default='/home/mathis/Documents/datasets/surfrider/images_subset/', help='dataset path')
     parser.add_argument('--dataset', default='surfrider', help='dataset name')
-    parser.add_argument('--model', default='deeplabv3__mobilenet_v3_large', help='model')
-    parser.add_argument('--aux-loss', action='store_true', help='auxiliar loss')
+    parser.add_argument(
+        '--model', default='deeplabv3__mobilenet_v3_large', help='model')
+    parser.add_argument('--aux-loss', action='store_true',
+                        help='auxiliar loss')
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=8, type=int)
     parser.add_argument('--epochs', default=140, type=int, metavar='N',
@@ -275,18 +307,21 @@ def parse_args():
 
     parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
                         help='number of data loading workers (default: 16)')
-    parser.add_argument('--lr', default=0.01, type=float, help='initial learning rate')
+    parser.add_argument('--lr', default=0.01, type=float,
+                        help='initial learning rate')
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                         help='momentum')
     parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
-    parser.add_argument('--print-freq', default=10, type=int, help='print frequency')
+    parser.add_argument('--print-freq', default=10,
+                        type=int, help='print frequency')
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     # parser.add_argument('--last-layer-only', dest='last_layer_only', default=True, action='store_true', help='Only retrain ultimate layer')
-    parser.add_argument('--freeze-backbone', dest='freeze_backbone', default=False, action='store_true', help='Freeze backbone weights')
+    parser.add_argument('--freeze-backbone', dest='freeze_backbone',
+                        default=False, action='store_true', help='Freeze backbone weights')
     parser.add_argument(
         "--test-only",
         dest="test_only",
@@ -302,8 +337,9 @@ def parse_args():
     # distributed training parameters
     parser.add_argument('--world-size', default=1, type=int,
                         help='number of distributed processes')
-    parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
-    
+    parser.add_argument('--dist-url', default='env://',
+                        help='url used to set up distributed training')
+
     parser.add_argument('--logdir', default='logs/deeplab')
     parser.add_argument('--output-dir', default='weights/deeplab')
 
