@@ -17,6 +17,7 @@ verbose = False
 latest_detection = None 
 latest_image = None
 show_detections_only = False
+frame_nb_for_plot = None 
 if verbose: 
     fig, ax = plt.subplots()
     plt.ion()
@@ -252,42 +253,54 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
 
 def build_confidence_function_for_trackers(current_trackers, flow01):
     
+    global frame_nb_for_plot
     confidence_functions = dict()
     for tracker_nb, tracker in enumerate(current_trackers):
         if tracker.enabled:
             confidence_functions[tracker_nb] = build_confidence_function_for_tracker(tracker, flow01)
             if verbose:
-                plt.title('Tracker nb {}, updated {} frame(s) before'.format(tracker_nb, tracker.countdown+1))
+                plt.title('Frame nb {}, tracker nb {}, updated {} frame(s) before'.format(frame_nb_for_plot, tracker_nb, tracker.countdown+1))
                 fig.canvas.draw()
                 plt.show()
-                plt.waitforbuttonpress()
-                ax.cla()
+                if plt.waitforbuttonpress(): ax.cla()
+
 
     return confidence_functions
 
 def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confidence_threshold):
 
+    global frame_nb_for_plot
     tracklet = []
 
     init = False 
     current_trackers = dict()
     frame0 = None
+    old_shape, new_shape = None, None 
 
 
     for frame_nb in range(len(filenames)):
+
+        if verbose:
+            frame_nb_for_plot = frame_nb
+
         if not init: 
-            frame0, _ , _ = read_and_resize(filenames[frame_nb])
+
+            frame0, old_shape , new_shape = read_and_resize(filenames[frame_nb])
             detections = detector(frame0)
+
             if len(detections): 
                 current_trackers = init_trackers(detections, SSM, stop_tracking_threshold)
                 for detection in detections:
                     tracklet.append([(frame_nb,detection)])
                 init = True
+
         else:
+
             frame1, _ , _ = read_and_resize(filenames[frame_nb])
             detections = detector(frame1)
             flow01 = flow(frame0, frame1)
             new_trackers = []
+
             if len(detections):
                 confidence_functions_for_trackers = build_confidence_function_for_trackers(current_trackers, flow01)
                 assigned_trackers = -np.ones(len(detections),dtype=int)
@@ -302,6 +315,7 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
                     score_for_candidate_cloud = tracker_scores[candidate_tracker_id]
 
                     if score_for_candidate_cloud > confidence_threshold:
+                        
                         if candidate_tracker_id in assigned_trackers:
                             detection_id_of_conflict = np.argwhere(assigned_trackers == candidate_tracker_id)
                             if score_for_candidate_cloud > assignment_confidences[detection_id_of_conflict]:
@@ -312,6 +326,7 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
                         else:
                             assigned_trackers[detection_nb] = candidate_tracker_id
                             assignment_confidences[detection_nb] = score_for_candidate_cloud
+
                 for detection_nb in range(len(detections)):
                     detection = detections[detection_nb]
                     assigned_tracker = assigned_trackers[detection_nb]
@@ -328,9 +343,24 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
             frame0 = frame1.copy()
             if len(new_trackers): current_trackers.extend(new_trackers)
 
-    return tracklet
+
+    results = []
+    for tracker_nb, associated_detections in enumerate(tracklet):
+        for associated_detection in associated_detections:
+            results.append((associated_detection[0], tracker_nb, associated_detection[1][0], associated_detection[1][1]))
+        
+    results = sorted(results,key=lambda x:x[0])
+
+    return results, old_shape, new_shape
 
 def main(args):
+
+
+    alpha = -10
+    loc = [-1000, -1000, -1000]
+    rot_y = -10
+    score = -1
+    fake_w, fake_h = 5, 5
 
     base_model = load_base(args.base_weights)
     extension_model = load_extension(args.extension_weights, 32)
@@ -344,14 +374,30 @@ def main(args):
     with open(args.annotation_file,'rb') as f: 
         annotations = json.load(f)
     
-    for video in annotations['videos']:
+    for video in annotations['videos'][:4]:
+
         output_filename = os.path.join(args.output_dir,video['file_name']+'.txt')
         output_file = open(output_filename,'w')
         images_for_video = [image for image in annotations['images'] if image['video_id']==video['id']]
         images_for_video = sorted(images_for_video, key=lambda image:image['frame_id'])
         filenames = [os.path.join(args.data_dir,image['file_name']) for image in images_for_video]
-        tracklet = track_video(filenames, detector, SSM, flow, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
+
+        results, old_shape, new_shape = track_video(filenames[:20], detector, SSM, flow, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
+
+        ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor) 
+        ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
+        for result in results: 
+            output_file.write('{} {} {} -1 -1'.format(result[0], result[1], 'Car'))
+            output_file.write(' {:.6f}'.format(alpha))
+            output_file.write(' {:.2f} {:.2f} {:.2f} {:.2f}'.format(
+                ratio_x * result[2]-fake_w, ratio_y * result[3]-fake_h, ratio_x * result[2]+fake_w, ratio_y * result[2]+fake_h))
+            output_file.write(' {:.6f} {:.6f} {:.6f}'.format(
+                int(loc[0]), int(loc[1]), int(loc[2])))
+            output_file.write(' {:6f} {:.6f} {:.6f} {:.6f}\n'.format(int(rot_y), score, score, score))
+
         output_file.close()
+
+        test = 0 
 
 
 if __name__ == '__main__': 
