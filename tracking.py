@@ -11,10 +11,23 @@ import numpy as np
 import os
 from scipy.stats import multivariate_normal
 from torchvision.transforms.functional import resize
+import sys 
+
 verbose = False
 latest_detection = None 
 latest_image = None
 show_detections_only = False
+if verbose: 
+    fig, ax = plt.subplots()
+    plt.ion()
+    # fig.canvas.mpl_connect('key_press_event', handle)
+
+
+# def handle(event):
+#     if event.key == 'r':
+#         update()
+#     if event.key == 'escape':
+#         sys.exit(0)
 
 def exp_and_normalise(lw):
     w = np.exp(lw - lw.max())
@@ -221,7 +234,6 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
 
         latest_data_for_tracker = tracker.latest_data        
 
-        fig, ax = plt.subplots()
         # test = distribution.pdf(pos)
         ax.imshow(latest_image)
         # ax.scatter(np.array([10]),np.array([50]),c='r',s=100)
@@ -246,7 +258,10 @@ def build_confidence_function_for_trackers(current_trackers, flow01):
             confidence_functions[tracker_nb] = build_confidence_function_for_tracker(tracker, flow01)
             if verbose:
                 plt.title('Tracker nb {}, updated {} frame(s) before'.format(tracker_nb, tracker.countdown+1))
+                fig.canvas.draw()
                 plt.show()
+                plt.waitforbuttonpress()
+                ax.cla()
 
     return confidence_functions
 
@@ -260,7 +275,6 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
 
 
     for frame_nb in range(len(filenames)):
-
         if not init: 
             frame0, _ , _ = read_and_resize(filenames[frame_nb])
             detections = detector(frame0)
@@ -338,7 +352,6 @@ def main(args):
         filenames = [os.path.join(args.data_dir,image['file_name']) for image in images_for_video]
         tracklet = track_video(filenames, detector, SSM, flow, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
         output_file.close()
-
 
 
 if __name__ == '__main__': 
