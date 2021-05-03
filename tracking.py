@@ -11,28 +11,33 @@ import numpy as np
 import os
 from scipy.stats import multivariate_normal
 from torchvision.transforms.functional import resize
-import sys
 
 verbose = False
 latest_detection = None
 latest_image = None
 show_detections_only = False
 frame_nb_for_plot = None
+
 if verbose:
+
     fig, ax = plt.subplots()
+    # fig.canvas.mpl_connect('key_press_event', press)
     plt.ion()
-    # fig.canvas.mpl_connect('key_press_event', handle)
 
-
-# def handle(event):
-#     if event.key == 'r':
-#         update()
-#     if event.key == 'escape':
-#         sys.exit(0)
 
 def exp_and_normalise(lw):
     w = np.exp(lw - lw.max())
     return w / w.sum()
+
+
+def in_frame(position, shape):
+
+    shape_x = shape[1]
+    shape_y = shape[0]
+    x = position[0]
+    y = position[1]
+
+    return x > 0 and x < shape_x and y > 0 and y < shape_y
 
 
 class GaussianMixture(object):
@@ -67,7 +72,8 @@ class StateSpaceModel(object):
 
     def state_transition(self, current_state, flow):
         mean = current_state + \
-            flow[round(current_state[1]), round(current_state[0]), :]
+            flow[max(0, int(current_state[1])),
+                 max(0, int(current_state[0])), :]
         cov = self.state_transition_variance*np.eye(2)
         return multivariate_normal(mean, cov)
 
@@ -79,31 +85,35 @@ class StateSpaceModel(object):
 
 class SMC(object):
 
-    def __init__(self, X0, SSM, n_particles=10, stop_tracking_threshold=5):
+    def __init__(self, frame_nb, X0, SSM, n_particles=10, stop_tracking_threshold=5):
 
-        self.n_particles = n_particles
         self.SSM = SSM
-        self.particles, self.normalized_weights = self.init_particles(X0)
+        self.particles, self.normalized_weights = self.init_particles(
+            X0, n_particles)
         self.updated = False
         self.countdown = 0
         self.enabled = True
         self.stop_tracking_threshold = stop_tracking_threshold
-        self.latest_data = X0
+        self.tracklet = [(frame_nb, X0)]
 
-    def init_particles(self, X0):
-        particles = self.SSM.prior(X0).rvs(self.n_particles)
-        normalized_weights = np.ones(self.n_particles)/self.n_particles
+    def init_particles(self, X0, n_particles):
+        particles = self.SSM.prior(X0).rvs(n_particles)
+        normalized_weights = np.ones(n_particles)/n_particles
         return particles, normalized_weights
 
-    def state_transition(self, flow):
+    def move_particles(self, flow):
         new_particles = []
         for particle in self.particles:
             new_particle = self.SSM.state_transition(particle, flow).rvs(1)
-            new_particles.append(new_particle)
-        self.particles = np.array(new_particles)
+            if in_frame(new_particle, flow.shape[:-1]):
+                new_particles.append(new_particle)
+        if len(new_particles):
+            self.particles = np.array(new_particles)
+        else:
+            self.enabled = False
 
     def importance_reweighting(self, observation):
-        log_weights_unnormalized = np.zeros_like(self.normalized_weights)
+        log_weights_unnormalized = np.zeros(len(self.particles))
         for particle_nb, particle in enumerate(self.particles):
             log_weights_unnormalized[particle_nb] = self.SSM.state_observation(
                 particle).logpdf(observation)
@@ -111,22 +121,23 @@ class SMC(object):
 
     def resample(self):
         resampling_indices = np.random.choice(
-            a=self.n_particles, p=self.normalized_weights, size=self.n_particles)
+            a=len(self.particles), p=self.normalized_weights, size=len(self.particles))
         self.particles = self.particles[resampling_indices]
 
-    def update(self, observation, flow):
+    def update(self, observation, flow, frame_nb):
 
         self.resample()
-        self.state_transition(flow)
+        self.move_particles(flow)
         self.importance_reweighting(observation)
 
-        self.latest_data = observation
+        self.tracklet.append((frame_nb, observation))
         self.updated = True
 
     def resample_move(self, flow):
         self.resample()
-        self.state_transition(flow)
-        self.normalized_weights = np.ones(self.n_particles)/self.n_particles
+        self.move_particles(flow)
+        self.normalized_weights = np.ones(
+            len(self.particles))/len(self.particles)
 
     def update_status(self, flow):
         if not self.updated:
@@ -139,15 +150,15 @@ class SMC(object):
             self.enabled = False
 
 
-def init_trackers(detections, SSM, stop_tracking_threshold):
-    current_trackers = []
+def init_trackers(detections, frame_nb, SSM, stop_tracking_threshold):
+    trackers = []
 
     for detection in detections:
-        particle_filter_for_detection = SMC(
-            detection, SSM, stop_tracking_threshold=stop_tracking_threshold)
-        current_trackers.append(particle_filter_for_detection)
+        particle_filter_for_detection = SMC(frame_nb,
+                                            detection, SSM, stop_tracking_threshold=stop_tracking_threshold)
+        trackers.append(particle_filter_for_detection)
 
-    return current_trackers
+    return trackers
 
 
 def compute_flow(frame0, frame1, downsampling_factor):
@@ -187,7 +198,8 @@ def load_base(base_weights):
     return base_model
 
 
-def detect(frame, threshold, base_model, extension_model):
+
+def detect_base_extension(frame, threshold, base_model, extension_model):
 
     frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
     base_result = base_model(frame)[-1]['hm']
@@ -220,7 +232,7 @@ def read_and_resize(filename):
 
 def confidence_from_multivariate_distribution(coord, distribution):
 
-    delta = 2
+    delta = 3
     x = coord[0]
     y = coord[1]
     right_top = np.array([x+delta, y+delta])
@@ -240,10 +252,17 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
     new_weights = []
 
     for particle, normalized_weight in zip(tracker.particles, tracker.normalized_weights):
-        new_particles.extend(tracker.SSM.state_transition(
-            particle, flow01).rvs(nb_new_particles))
-        new_weights.extend(
-            [normalized_weight/nb_new_particles]*nb_new_particles)
+        new_particles_for_particle = tracker.SSM.state_transition(
+            particle, flow01).rvs(nb_new_particles)
+
+        new_particles_for_particle = [
+            particle for particle in new_particles_for_particle if in_frame(particle, flow01.shape[:-1])]
+
+        if len(new_particles_for_particle):
+            new_particles.extend(new_particles_for_particle)
+            new_weights.extend([normalized_weight/len(new_particles_for_particle)] *
+                               len(new_particles_for_particle))
+
     distribution = GaussianMixture(
         new_particles, tracker.SSM.state_observation_variance, new_weights)
 
@@ -253,7 +272,7 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
         # pos = pos[:,:,::-1]
         # test = multivariate_normal(mean=np.array([50,180]),cov=10*np.diag([1,2]))
 
-        latest_data_for_tracker = tracker.latest_data
+        latest_data_for_tracker = tracker.tracklet[-1][1]
 
         # test = distribution.pdf(pos)
         ax.imshow(latest_image)
@@ -263,8 +282,8 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
                    1], c='r', s=40, label='Latest detections')
         ax.scatter(tracker.particles[:, 0], tracker.particles[:, 1],
                    c='b', s=10, label='Particles for that tracker')
-        ax.scatter(np.array(new_particles)[:, 0], np.array(
-            new_particles)[:, 1], c='y', s=5)
+        # ax.scatter(np.array(new_particles)[:, 0], np.array(
+        # new_particles)[:, 1], c='y', s=5)
         ax.scatter(latest_data_for_tracker[0], latest_data_for_tracker[1],
                    c='g', s=40, label='Last seen observation for that tracker')
         ax.contourf(distribution.pdf(pos), alpha=0.4)
@@ -276,11 +295,11 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
     return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
 
 
-def build_confidence_function_for_trackers(current_trackers, flow01):
+def build_confidence_function_for_trackers(trackers, flow01):
 
     global frame_nb_for_plot
     confidence_functions = dict()
-    for tracker_nb, tracker in enumerate(current_trackers):
+    for tracker_nb, tracker in enumerate(trackers):
         if tracker.enabled:
             confidence_functions[tracker_nb] = build_confidence_function_for_tracker(
                 tracker, flow01)
@@ -289,8 +308,8 @@ def build_confidence_function_for_trackers(current_trackers, flow01):
                     frame_nb_for_plot, tracker_nb, tracker.countdown+1))
                 fig.canvas.draw()
                 plt.show()
-                if plt.waitforbuttonpress():
-                    ax.cla()
+                plt.waitforbuttonpress()
+                ax.cla()
 
     return confidence_functions
 
@@ -298,10 +317,9 @@ def build_confidence_function_for_trackers(current_trackers, flow01):
 def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confidence_threshold):
 
     global frame_nb_for_plot
-    tracklet = []
 
     init = False
-    current_trackers = dict()
+    trackers = dict()
     frame0 = None
     old_shape, new_shape = None, None
 
@@ -316,10 +334,8 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
             detections = detector(frame0)
 
             if len(detections):
-                current_trackers = init_trackers(
-                    detections, SSM, stop_tracking_threshold)
-                for detection in detections:
-                    tracklet.append([(frame_nb, detection)])
+                trackers = init_trackers(
+                    detections, frame_nb, SSM, stop_tracking_threshold)
                 init = True
 
         else:
@@ -331,7 +347,7 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
 
             if len(detections):
                 confidence_functions_for_trackers = build_confidence_function_for_trackers(
-                    current_trackers, flow01)
+                    trackers, flow01)
                 assigned_trackers = -np.ones(len(detections), dtype=int)
                 assignment_confidences = -np.ones(len(detections))
 
@@ -339,8 +355,8 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
 
                     tracker_scores = {tracker_nb: confidence_for_tracker(
                         detections[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
-                    trackers = list(tracker_scores.keys())
-                    candidate_tracker_id = trackers[int(
+                    tracker_ids = list(tracker_scores.keys())
+                    candidate_tracker_id = tracker_ids[int(
                         np.argmax(tracker_scores.values()))]
 
                     score_for_candidate_cloud = tracker_scores[candidate_tracker_id]
@@ -364,23 +380,21 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
                     assigned_tracker = assigned_trackers[detection_nb]
                     if assigned_tracker == -1:
                         new_trackers.append(
-                            SMC(detection, SSM, stop_tracking_threshold=stop_tracking_threshold))
-                        tracklet.append([(frame_nb, detection)])
+                            SMC(frame_nb, detection, SSM, stop_tracking_threshold=stop_tracking_threshold))
                     else:
-                        current_trackers[assigned_tracker].update(
-                            detection, flow01)
-                        tracklet[assigned_tracker].append(
-                            (frame_nb, detection))
+                        trackers[assigned_tracker].update(
+                            detection, flow01, frame_nb)
 
-            for tracker in current_trackers:
+            for tracker in trackers:
                 tracker.update_status(flow01)
 
             frame0 = frame1.copy()
             if len(new_trackers):
-                current_trackers.extend(new_trackers)
+                trackers.extend(new_trackers)
 
     results = []
-    for tracker_nb, associated_detections in enumerate(tracklet):
+    tracklets = [tracker.tracklet for tracker in trackers]
+    for tracker_nb, associated_detections in enumerate(tracklets):
         for associated_detection in associated_detections:
             results.append(
                 (associated_detection[0], tracker_nb, associated_detection[1][0], associated_detection[1][1]))
@@ -392,17 +406,12 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
 
 def main(args):
 
-    alpha = -10
-    loc = [-1000, -1000, -1000]
-    rot_y = -10
-    score = -1
-    fake_w, fake_h = 5, 5
-
     base_model = load_base(args.base_weights)
     extension_model = load_extension(args.extension_weights, 32)
 
-    def detector(frame): return detect(frame, threshold=args.detection_threshold,
-                                       base_model=base_model, extension_model=extension_model)
+    def detector(frame): 
+        return detect_base_extension(frame, threshold=args.detection_threshold,
+                                                      base_model=base_model, extension_model=extension_model)
 
     def flow(frame0, frame1): return compute_flow(
         frame0, frame1, args.downsampling_factor)
@@ -413,7 +422,7 @@ def main(args):
     with open(args.annotation_file, 'rb') as f:
         annotations = json.load(f)
 
-    for video in annotations['videos'][:4]:
+    for video in annotations['videos']:
 
         output_filename = os.path.join(
             args.output_dir, video['file_name']+'.txt')
@@ -426,24 +435,26 @@ def main(args):
                      for image in images_for_video]
 
         results, old_shape, new_shape = track_video(
-            filenames[:20], detector, SSM, flow, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
+            filenames, detector, SSM, flow, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
 
         ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor)
         ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
+
         for result in results:
-            output_file.write(
-                '{} {} {} -1 -1'.format(result[0], result[1], 'Car'))
-            output_file.write(' {:.6f}'.format(alpha))
-            output_file.write(' {:.2f} {:.2f} {:.2f} {:.2f}'.format(
-                ratio_x * result[2]-fake_w, ratio_y * result[3]-fake_h, ratio_x * result[2]+fake_w, ratio_y * result[2]+fake_h))
-            output_file.write(' {:.6f} {:.6f} {:.6f}'.format(
-                int(loc[0]), int(loc[1]), int(loc[2])))
-            output_file.write(' {:6f} {:.6f} {:.6f} {:.6f}\n'.format(
-                int(rot_y), score, score, score))
+            output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
+                                                                       result[1]+1,
+                                                                       ratio_x *
+                                                                       result[2],
+                                                                       ratio_y *
+                                                                       result[3],
+                                                                       -1,
+                                                                       -1,
+                                                                       1,
+                                                                       -1,
+                                                                       -1,
+                                                                       -1))
 
         output_file.close()
-
-        test = 0
 
 
 if __name__ == '__main__':
@@ -452,8 +463,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Tracking')
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--annotation_file', type=str)
-    parser.add_argument('--stop_tracking_threshold', type=float, default=0.4)
-    parser.add_argument('--detection_threshold', type=float, default=0.4)
+    parser.add_argument('--stop_tracking_threshold', type=float, default=5)
+    parser.add_argument('--detection_threshold', type=float, default=0.33)
     parser.add_argument('--confidence_threshold', type=float, default=0.2)
     parser.add_argument('--base_weights', type=str)
     parser.add_argument('--extension_weights', type=str)
@@ -463,3 +474,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args)
+

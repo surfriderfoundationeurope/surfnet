@@ -5,7 +5,7 @@ output_dir='experiments/tracking/'${experiment_name}
 
 create_clean_directory $output_dir 
 
-python -m debugpy --listen 5678 --wait-for-client tracking.py \
+python tracking.py \
     --base_weights ${BASE_PRETRAINED} \
     --extension_weights ${EXTENSION_PRETRAINED} \
     --data_dir ${SYNTHETIC_VIDEOS_DATASET}'data/' \

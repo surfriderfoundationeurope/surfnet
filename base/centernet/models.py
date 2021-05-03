@@ -25,14 +25,13 @@ def create_model(arch, heads, head_conv):
   model = get_model(num_layers=num_layers, heads=heads, head_conv=head_conv)
   return model
 
-def load_model(model, model_path, optimizer=None, resume=False, 
-               lr=None, lr_step=None):
+def load_model(model, model_path, opt, optimizer=None):
   start_epoch = 0
   checkpoint = torch.load(model_path, map_location=lambda storage, loc: storage)
   print('loaded {}, epoch {}'.format(model_path, checkpoint['epoch']))
   state_dict_ = checkpoint['state_dict']
   state_dict = {}
-  
+   
   # convert data_parallal to model
   for k in state_dict_:
     if k.startswith('module') and not k.startswith('module_list'):
@@ -42,32 +41,39 @@ def load_model(model, model_path, optimizer=None, resume=False,
   model_state_dict = model.state_dict()
 
   # check loaded parameters and created model parameters
-  msg = 'If you see this, your model does not fully load the ' + \
-        'pre-trained weight. Please make sure ' + \
-        'you have correctly specified --arch xxx ' + \
-        'or set the correct --num_classes for your own dataset.'
   for k in state_dict:
     if k in model_state_dict:
-      if state_dict[k].shape != model_state_dict[k].shape:
-        print('Skip loading parameter {}, required shape{}, '\
-              'loaded shape{}. {}'.format(
-          k, model_state_dict[k].shape, state_dict[k].shape, msg))
-        state_dict[k] = model_state_dict[k]
+      if (state_dict[k].shape != model_state_dict[k].shape) or \
+        (opt.reset_hm and k.startswith('hm') and (state_dict[k].shape[0] in [80, 1])):
+        if opt.reuse_hm:
+          print('Reusing parameter {}, required shape{}, '\
+                'loaded shape{}.'.format(
+            k, model_state_dict[k].shape, state_dict[k].shape))
+          if state_dict[k].shape[0] < state_dict[k].shape[0]:
+            model_state_dict[k][:state_dict[k].shape[0]] = state_dict[k]
+          else:
+            model_state_dict[k] = state_dict[k][:model_state_dict[k].shape[0]]
+          state_dict[k] = model_state_dict[k]
+        else:
+          print('Skip loading parameter {}, required shape{}, '\
+                'loaded shape{}.'.format(
+            k, model_state_dict[k].shape, state_dict[k].shape))
+          state_dict[k] = model_state_dict[k]
     else:
-      print('Drop parameter {}.'.format(k) + msg)
+      print('Drop parameter {}.'.format(k))
   for k in model_state_dict:
     if not (k in state_dict):
-      print('No param {}.'.format(k) + msg)
+      print('No param {}.'.format(k))
       state_dict[k] = model_state_dict[k]
   model.load_state_dict(state_dict, strict=False)
 
   # resume optimizer parameters
-  if optimizer is not None and resume:
+  if optimizer is not None and opt.resume:
     if 'optimizer' in checkpoint:
-      optimizer.load_state_dict(checkpoint['optimizer'])
+      # optimizer.load_state_dict(checkpoint['optimizer'])
       start_epoch = checkpoint['epoch']
-      start_lr = lr
-      for step in lr_step:
+      start_lr = opt.lr
+      for step in opt.lr_step:
         if start_epoch >= step:
           start_lr *= 0.1
       for param_group in optimizer.param_groups:
