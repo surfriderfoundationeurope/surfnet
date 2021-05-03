@@ -5,7 +5,7 @@ output_dir='experiments/tracking/'${experiment_name}
 
 create_clean_directory $output_dir 
 
-python tracking.py \
+python -m debugpy --listen 5678 --wait-for-client tracking.py \
     --base_weights ${BASE_PRETRAINED} \
     --extension_weights ${EXTENSION_PRETRAINED} \
     --data_dir ${SYNTHETIC_VIDEOS_DATASET}'data/' \
@@ -14,7 +14,8 @@ python tracking.py \
     --confidence_threshold 0.2 \
     --detection_threshold 0.33 \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
-    --stop_tracking_threshold 5
+    --stop_tracking_threshold 5 \
+    --detections_from_images
 
 
 

@@ -17,7 +17,7 @@ latest_detection = None
 latest_image = None
 show_detections_only = False
 frame_nb_for_plot = None
-
+frames = []
 if verbose:
 
     fig, ax = plt.subplots()
@@ -198,7 +198,6 @@ def load_base(base_weights):
     return base_model
 
 
-
 def detect_base_extension(frame, threshold, base_model, extension_model):
 
     frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
@@ -314,7 +313,7 @@ def build_confidence_function_for_trackers(trackers, flow01):
     return confidence_functions
 
 
-def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confidence_threshold):
+def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_threshold):
 
     global frame_nb_for_plot
 
@@ -404,17 +403,36 @@ def track_video(filenames, detector, SSM, flow, stop_tracking_threshold, confide
     return results, old_shape, new_shape
 
 
+def detection_results_from_images(filenames, detector, flow):
+    global frames
+    detections, flows = [], []
+    for filename0, filename1 in zip(filenames[:-1],filenames[1:]):
+        frame0, old_shape, new_shape = read_and_resize(filename0)
+        frame1, _ , _ = read_and_resize(filename1)
+        detections.append(detector(frame0))
+        detections.append(detector(frame1))
+        flows.append(flow(frame0, frame1))
+        if verbose: 
+            frames.append(frame0)
+            frames.append(frame1)
+    return detections, flows, old_shape, new_shape
+
+
 def main(args):
 
     base_model = load_base(args.base_weights)
     extension_model = load_extension(args.extension_weights, 32)
 
-    def detector(frame): 
-        return detect_base_extension(frame, threshold=args.detection_threshold,
-                                                      base_model=base_model, extension_model=extension_model)
-
     def flow(frame0, frame1): return compute_flow(
         frame0, frame1, args.downsampling_factor)
+
+    if args.detections_from_images:
+            
+        def detector(frame): return detect_base_extension(frame, threshold=args.detection_threshold,
+                                     base_model=base_model, extension_model=extension_model)
+        def load_detection_results(filenames): return detection_results_from_images(
+        filenames, detector, flow)
+
 
     SSM = StateSpaceModel(state_transition_variance=2,
                           state_observation_variance=2)
@@ -434,8 +452,10 @@ def main(args):
         filenames = [os.path.join(args.data_dir, image['file_name'])
                      for image in images_for_video]
 
-        results, old_shape, new_shape = track_video(
-            filenames, detector, SSM, flow, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
+        detections, flows, old_shape, new_shape = load_detection_results(filenames)
+
+        results = track_video(
+            detections, flows, SSM, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
 
         ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor)
         ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
@@ -470,8 +490,8 @@ if __name__ == '__main__':
     parser.add_argument('--extension_weights', type=str)
     parser.add_argument('--output_dir', type=str)
     parser.add_argument('--downsampling_factor', type=int)
+    parser.add_argument('--detections_from_images', action='store_true')
 
     args = parser.parse_args()
 
     main(args)
-
