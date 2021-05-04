@@ -78,9 +78,14 @@ def crop_img(img, pts):
     rgba[:, :, 3] = mask
     return rgba
 
-def get_random_trash(label, anns, imgs, dict_label_to_ann_ids):
+def get_random_trash(label, anns, imgs, dict_label_to_ann_ids, split='train'):
     list_idx = dict_label_to_ann_ids[label]
-    idx = random.choice(list_idx)
+    train_ids = int(0.6*len(list_idx))
+    if split == 'train': 
+        idx = random.choice(list_idx[:train_ids])
+    else:
+        idx = random.choice(list_idx[train_ids:])
+
     ann = anns[idx]
     img_id = ann['image_id']
     img_path = os.path.join(taco_path, imgs[img_id]['file_name'])

@@ -141,7 +141,7 @@ def compute_flows(frame_reader, tractable_band, nb_objects):
     return pts_sequences, displacement_norm_sequences
 
 
-def add_trash_objects(frame_reader, tractable_band, nb_objects, output_original_shape=False):
+def add_trash_objects(frame_reader, tractable_band, nb_objects, output_original_shape=False, split='train'):
 
     pts_sequences, displacement_norm_sequences = compute_flows(
         frame_reader, tractable_band, nb_objects=nb_objects)
@@ -161,7 +161,7 @@ def add_trash_objects(frame_reader, tractable_band, nb_objects, output_original_
             usable_displacement_norm_sequences.append(
                 utils.clean_displacement_norm_sequence(displacement_norm_sequence))
             trash_images.append(taco_tools.get_random_trash(
-                label="bottle", anns=anns, imgs=imgs, dict_label_to_ann_ids=dict_label_to_ann_ids))
+                label="bottle", anns=anns, imgs=imgs, dict_label_to_ann_ids=dict_label_to_ann_ids, split=split))
             alphas.append(random.uniform(0.8, 1))
     if not len(usable_pts_sequences):
         return [], []
@@ -215,15 +215,7 @@ def add_trash_objects(frame_reader, tractable_band, nb_objects, output_original_
                 annotations.append({'image_id': frame_nb+1,
                                     'id': id,
                                     'category_id': 1,
-                                    'dim': [-1000.0, -1000.0, -1000.0],
                                     'bbox': bbox,
-                                    'depth': -1.0,
-                                    'alpha': -10.0,
-                                    'truncated': -1,
-                                    'occluded': -1,
-                                    'location': [-10.0, -1.0, -1.0],
-                                    'rotation_y': -1.0,
-                                    'amodel_center': [],
                                     'track_id': object_nb})
             id += 1
         frames_to_write.append(frame)
@@ -242,13 +234,28 @@ def main(args):
     rescale_factor = args.rescale
     nb_extracts_per_vid = args.nb_extracts_per_vid
     output_dir = args.output_dir
+
+    output_dir_train = os.path.join(output_dir,'train')
+    os.mkdir(output_dir_train)
+
+    output_dir_val = os.path.join(output_dir,'val')
+    os.mkdir(output_dir_val)
     read_every = args.read_every
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    num_available_videos = len(video_filenames)
+    num_train_videos = int(0.6*num_available_videos)
     for video_nb, video_filename in enumerate(video_filenames):
+        
+        if video_nb < num_train_videos: 
+            split = 'train'
+            output_dir = output_dir_train
+        else:
+            split='val'
+            output_dir = output_dir_val
 
         frame_reader = cv2_io.FrameReader(
-            vid_dir+video_filename, read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
+            os.path.join(vid_dir,video_filename), read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
         fps = frame_reader.fps
         shape = (int(frame_reader.original_width),
                  int(frame_reader.original_height))
@@ -260,9 +267,10 @@ def main(args):
         while total_frames_read < (total_num_frames - 100):
 
             frame_reader.set_init_frame(total_frames_read)
-            nb_objects = portion_nb_in_video % 2 + 1
+            nb_objects = (portion_nb_in_video % args.max_nb_objects) + 1
+            print(nb_objects)
             frames_to_write, annotations = add_trash_objects(
-                frame_reader, tractable_band=tractable_band, nb_objects=nb_objects, output_original_shape=True)
+                frame_reader, tractable_band=tractable_band, nb_objects=nb_objects, output_original_shape=True, split=split)
 
             nb_frames_read = len(frames_to_write)
 
@@ -273,14 +281,13 @@ def main(args):
                 output_name = vid_names[video_nb].strip(
                     '.MP4') + '_{}.MP4'.format(portion_nb_in_video)
                 frame_writer = cv2.VideoWriter(
-                    filename=output_dir + output_name, apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
+                    filename=os.path.join(output_dir, output_name), apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=fps, frameSize=shape)
                 for frame_nb, frame in enumerate(frames_to_write):
                     COCO_formatted_annotation['images'].append({'file_name': output_name,
                                                                 'id': frame_nb+1,
-                                                                'calib': [[], [], []],
                                                                 'frame_id': frame_nb+1})
                     frame_writer.write(frame)
-                with open(output_dir + output_name.replace('.MP4', '.json'), 'w') as json_file:
+                with open(os.path.join(output_dir, output_name.replace('.MP4', '.json')), 'w') as json_file:
                     json.dump(COCO_formatted_annotation, json_file)
 
                 frame_writer.release()
@@ -329,6 +336,7 @@ if __name__ == "__main__":
                         dest='nb_frames_without_object', default=50)
     parser.add_argument('--max-nb-objects',
                         dest='max_nb_objects', type=int, default=3)
+    parser.add_argument('--split', type=str, default='train')
 
     args = parser.parse_args()
     taco_path = args.synthetic_objects
