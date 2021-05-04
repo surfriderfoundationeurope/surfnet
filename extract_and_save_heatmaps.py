@@ -15,7 +15,7 @@ from synthetic_videos.flow_tools import flow_opencv_dense
 from PIL import Image
 from tqdm import tqdm
 from torchvision.transforms import ToTensor, ToPILImage
-
+import shutil 
 
 def save_heatmap(heatmaps_dir, frame_nb, heatmap):
     filename = os.path.join(heatmaps_dir, '{:03d}.pickle'.format(frame_nb+1))
@@ -130,7 +130,7 @@ def extract_heatmaps_for_video(filenames, heatmaps_dir_for_video, flows_dir_for_
             heatmap1 = get_heatmap(frame1)
             save_heatmap(heatmaps_dir_for_video, frame_nb, heatmap1)
 
-            verbose(frame0, frame1, heatmap0, heatmap1, flow01)
+            # verbose(frame0, frame1, heatmap0, heatmap1, flow01)
             frame0 = frame1.copy()
 
     return old_shape, new_shape
@@ -153,6 +153,8 @@ def extract(args):
 
     output_dir = os.path.join(
         args.output_dir, trained_model_weights_filename.split('/')[-2])
+        
+    shutil.rmtree(output_dir)
     os.mkdir(output_dir)
     flows_dir = os.path.join(output_dir, 'flows')
     os.mkdir(flows_dir)

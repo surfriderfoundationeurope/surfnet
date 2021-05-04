@@ -10,7 +10,7 @@ from extension.losses import TrainLoss, TestLoss
 from torchvision.transforms.functional import affine
 from common.utils import warp_flow
 # torch.autograd.set_detect_anomaly(True)
-
+import os
 
 def spatial_transformer(heatmaps, displacement, device, dense_flow=True):
 
@@ -39,10 +39,11 @@ def spatial_transformer(heatmaps, displacement, device, dense_flow=True):
 
 def get_loaders(args):
 
+    data_dir = os.path.join(args.heatmaps_dir,args.base_name)
     dataset_train = SurfnetDataset(
-        args.annotations_dir, args.data_dir, split='train')
+        args.annotations_dir, data_dir, split='train')
     dataset_test = SurfnetDataset(
-        args.annotations_dir, args.data_dir, split='test')
+        args.annotations_dir, data_dir, split='test')
 
     loader_train = DataLoader(
         dataset_train, batch_size=args.batch_size, shuffle=True)
@@ -195,7 +196,7 @@ def parse_args():
 
     parser.add_argument('--annotations_dir', type=str)
     parser.add_argument(
-        '--data_dir', default='/media/mathis/f88b9c68-1ae1-4ecc-a58e-529ad6808fd3/heatmaps_and_annotations/', help='dataset path')
+        '--heatmaps_dir', default='/media/mathis/f88b9c68-1ae1-4ecc-a58e-529ad6808fd3/heatmaps_and_annotations/', help='dataset path')
     # parser.add_argument('--dataset', default='Heatma', help='dataset name')
     parser.add_argument('--model', default='surfnet32', help='model')
     # parser.add_argument('--aux-loss', action='store_true', help='auxiliar loss')
@@ -223,6 +224,7 @@ def parse_args():
 
     parser.add_argument('--beta', type=float)
     parser.add_argument('--downsampling-factor', type=int)
+    parser.add_argument('--base_name',type=str)
 
     args = parser.parse_args()
 

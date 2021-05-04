@@ -33,7 +33,7 @@ from scipy.optimize import linear_sum_assignment
 
 # from joblib import Parallel, delayed 
 # import multiprocessing as mp 
-
+import shutil
 from math import ceil 
 
 import ray
@@ -272,9 +272,9 @@ def load_base(base_weights):
     base_model.eval()
     return base_model
 
-def extract_heatmaps_extension_from_base_heatmaps(extension_weights, annotations_dir, data_dir):
+def extract_heatmaps_extension_from_base_heatmaps(extension_weights, annotations_dir, data_dir, split='val'):
     # args = Args(focal=True, data_path=input_dir, dataset='surfrider', downsampling_factor=4, batch_size=1)
-    dataset_test = SurfnetDataset(annotations_dir, data_dir, split='val')
+    dataset_test = SurfnetDataset(annotations_dir, data_dir, split=split)
     loader_test = DataLoader(dataset_test, batch_size=1, shuffle=False)
 
     extension_model  = load_extension(extension_weights)
@@ -642,24 +642,25 @@ def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluat
 
 if __name__ == '__main__':
 
-    # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_single_class_3/model_139.pth'
+    # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_single_class_video_frames/model_72.pth'
     # annotations_dir = '/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations'
-    # data_dir='/home/infres/chagneux/repos/surfnet/data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class'
+    # data_dir='data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class_video_frames'
     # # input_dir = 'data/extracted_heatmaps/'
-    # extract_heatmaps_extension_from_base_heatmaps(extension_weights=extension_weights, annotations_dir=annotations_dir, data_dir=data_dir)
+    # extract_heatmaps_extension_from_base_heatmaps(extension_weights=extension_weights, annotations_dir=annotations_dir, data_dir=data_dir, split='val')
     # extract_heatmaps_extension_from_images(base_weights='external_pretrained_models/centernet_pretrained.pth', extension_weights='external_pretrained_models/surfnet32.pth', input_dir='data/surfrider_images')
    
     # compute_ROC_curves_brute('data_to_evaluate.pickle')
 
 
-    eval_dir = '/home/infres/chagneux/repos/surfnet/experiments/evaluations/multi_object_single_class'
+    eval_dir = 'experiments/evaluations/multi_object_single_class_base_retrained_video_frames'
+
     with open(os.path.join(eval_dir,'ground_truth.pickle'),'rb') as f: 
         gt = pickle.load(f)
-    with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
-        predictions_extension = pickle.load(f)
-    # with open(os.path.join(eval_dir,'base_predictions.pickle'),'rb') as f: 
-    #     predictions_base = pickle.load(f)
-    # permutation = np.random.permutation(gt.shape[0])
+    # with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
+    #     predictions_extension = pickle.load(f)
+    with open(os.path.join(eval_dir,'base_predictions.pickle'),'rb') as f: 
+        predictions_base = pickle.load(f)
+    permutation = np.random.permutation(gt.shape[0])
 
     # gt = gt[permutation]
     # predictions_base = predictions_base[permutation]
@@ -668,15 +669,15 @@ if __name__ == '__main__':
 
 
     # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
-    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base nms', enable_nms=True)
+    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation_base_nms_retrained_video_frames', enable_nms=True)
     # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
-    compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension nms', enable_nms=True)
+    # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation_extension_nms_retrained_video_frames', enable_nms=True)
 
 
     # pr_curve_from_file('Evaluation base.pickle')
-    # pr_curve_from_file('Evaluation base nms.pickle')
+    pr_curve_from_file('Evaluation_base_nms_retrained_video_frames.pickle')
     # pr_curve_from_file('Evaluation extension.pickle')
-    pr_curve_from_file('Evaluation extension nms.pickle', show=True)
+    # pr_curve_from_file('Evaluation_extension_nms_retrained_video_frames.pickle', show=True)
 
     # plot_pickle_file('Evaluation extension nms_axes.pickle')
 

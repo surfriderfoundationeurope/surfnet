@@ -1,7 +1,7 @@
 . scripts_for_experiments/shell_variables.sh
 
 
-rm -r ${BASE_NETWORK_HEATMAPS}/*
+# rm -r ${BASE_NETWORK_HEATMAPS}/*
 
 python extract_and_save_heatmaps.py \
 	--dataset_dir ${SYNTHETIC_VIDEOS_DATASET} \

@@ -219,6 +219,23 @@ def detect_base_extension(frame, threshold, base_model, extension_model):
 
     return detections_array
 
+def detect_base(frame, threshold, base_model):
+
+    frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
+    base_result = torch.sigmoid(base_model(frame)[-1]['hm'])
+    detections = nms(base_result).gt(threshold).squeeze()
+    detections_array = torch.nonzero(detections).cpu().numpy()[:, ::-1]
+
+    if verbose:
+        global latest_image
+        global latest_detection
+        image = np.transpose(
+            resize(frame, detections.shape).squeeze().cpu().numpy(), axes=[1, 2, 0])
+        image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
+        latest_image = image
+        latest_detection = detections_array
+
+    return detections_array
 
 def read_and_resize(filename):
     frame = cv2.imread(filename)
@@ -459,9 +476,6 @@ def external_detection_results(video, annotations, data_dir, external_detections
 
     return detections, flows, old_shape, new_shape
     
-    
-
-
 def main(args):
 
 
@@ -470,9 +484,13 @@ def main(args):
 
     if args.detections_from_images:
         base_model = load_base(args.base_weights)
-        extension_model = load_extension(args.extension_weights, 32)
-        def detector(frame): return detect_base_extension(frame, threshold=args.detection_threshold,
-                                     base_model=base_model, extension_model=extension_model)
+        if not args.base_only: 
+            extension_model = load_extension(args.extension_weights, 32)
+            def detector(frame): return detect_base_extension(frame, threshold=args.detection_threshold,
+                                        base_model=base_model, extension_model=extension_model)
+        else: 
+            def detector(frame): return detect_base(frame, threshold=args.detection_threshold,
+                                        base_model=base_model)
 
     SSM = StateSpaceModel(state_transition_variance=2,
                           state_observation_variance=2)
@@ -533,6 +551,7 @@ if __name__ == '__main__':
     parser.add_argument('--downsampling_factor', type=int)
     parser.add_argument('--detections_from_images', action='store_true')
     parser.add_argument('--external_detections_dir',type=str)
+    parser.add_argument('--base_only',action='store_true')
     args = parser.parse_args()
 
     main(args)
