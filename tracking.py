@@ -11,6 +11,8 @@ import numpy as np
 import os
 from scipy.stats import multivariate_normal
 from torchvision.transforms.functional import resize
+from tqdm import tqdm
+from collections import defaultdict
 
 verbose = False
 latest_detection = None
@@ -319,41 +321,35 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
 
     init = False
     trackers = dict()
-    frame0 = None
-    old_shape, new_shape = None, None
+    
 
-    for frame_nb in range(len(filenames)):
+    for frame_nb in tqdm(range(len(detections))):
+        detections_for_frame = detections[frame_nb]
 
         if verbose:
             frame_nb_for_plot = frame_nb
 
         if not init:
-
-            frame0, old_shape, new_shape = read_and_resize(filenames[frame_nb])
-            detections = detector(frame0)
-
-            if len(detections):
+            if len(detections_for_frame):
                 trackers = init_trackers(
-                    detections, frame_nb, SSM, stop_tracking_threshold)
+                    detections_for_frame, frame_nb, SSM, stop_tracking_threshold)
                 init = True
 
         else:
 
-            frame1, _, _ = read_and_resize(filenames[frame_nb])
-            detections = detector(frame1)
-            flow01 = flow(frame0, frame1)
+            flow01 = flows[frame_nb-1]
             new_trackers = []
 
-            if len(detections):
+            if len(detections_for_frame):
                 confidence_functions_for_trackers = build_confidence_function_for_trackers(
                     trackers, flow01)
-                assigned_trackers = -np.ones(len(detections), dtype=int)
-                assignment_confidences = -np.ones(len(detections))
+                assigned_trackers = -np.ones(len(detections_for_frame), dtype=int)
+                assignment_confidences = -np.ones(len(detections_for_frame))
 
-                for detection_nb in range(len(detections)):
+                for detection_nb in range(len(detections_for_frame)):
 
                     tracker_scores = {tracker_nb: confidence_for_tracker(
-                        detections[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
+                        detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
                     tracker_ids = list(tracker_scores.keys())
                     candidate_tracker_id = tracker_ids[int(
                         np.argmax(tracker_scores.values()))]
@@ -374,8 +370,8 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
                             assigned_trackers[detection_nb] = candidate_tracker_id
                             assignment_confidences[detection_nb] = score_for_candidate_cloud
 
-                for detection_nb in range(len(detections)):
-                    detection = detections[detection_nb]
+                for detection_nb in range(len(detections_for_frame)):
+                    detection = detections_for_frame[detection_nb]
                     assigned_tracker = assigned_trackers[detection_nb]
                     if assigned_tracker == -1:
                         new_trackers.append(
@@ -387,7 +383,6 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
             for tracker in trackers:
                 tracker.update_status(flow01)
 
-            frame0 = frame1.copy()
             if len(new_trackers):
                 trackers.extend(new_trackers)
 
@@ -400,39 +395,84 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
 
     results = sorted(results, key=lambda x: x[0])
 
-    return results, old_shape, new_shape
+    return results
 
 
-def detection_results_from_images(filenames, detector, flow):
+def detection_results_from_images(video, annotations, data_dir, detector, flow):
+
     global frames
+
+    images_for_video = [image for image in annotations['images'] if image['video_id'] == video['id']]
+    images_for_video = sorted(images_for_video, key=lambda image: image['frame_id'])
+
+    filenames = [os.path.join(data_dir, image['file_name'])
+                    for image in images_for_video]
+
     detections, flows = [], []
-    for filename0, filename1 in zip(filenames[:-1],filenames[1:]):
-        frame0, old_shape, new_shape = read_and_resize(filename0)
-        frame1, _ , _ = read_and_resize(filename1)
-        detections.append(detector(frame0))
+    frame0, old_shape, new_shape = read_and_resize(filenames[0])
+    detections.append(detector(frame0))
+    for filename in tqdm(filenames[1:]):
+        frame1, _ , _ = read_and_resize(filename)
         detections.append(detector(frame1))
         flows.append(flow(frame0, frame1))
         if verbose: 
             frames.append(frame0)
             frames.append(frame1)
+        frame0 = frame1.copy()
     return detections, flows, old_shape, new_shape
+
+def external_detection_results(video, annotations, data_dir, external_detections_dir, flow):
+
+    images_for_video = [image for image in annotations['images'] if image['video_id'] == video['id']]
+    images_for_video = sorted(images_for_video, key=lambda image: image['frame_id'])
+
+    filenames = [os.path.join(data_dir, image['file_name'])
+                    for image in images_for_video]
+
+    detections, flows = [], []
+
+    detections_filename = os.path.join(external_detections_dir, video['file_name']+'.txt')
+    with open(detections_filename,'r') as f:
+        detections_read = [detection.split(',') for detection in f.readlines()]
+    detections_from_file = defaultdict(list)
+    for detection in detections_read: 
+        detections_from_file[int(detection[0])].append([float(detection[2]),float(detection[3])])
+
+    detections_from_file = {k:np.array(v) for k,v in detections_from_file.items()}
+
+    detections, flows = [], []
+    frame_nb = 0
+    frame0, old_shape, new_shape = read_and_resize(filenames[frame_nb])    
+    if frame_nb+1 in detections_from_file.keys():
+        detections.append(detections_from_file[frame_nb+1])
+
+    for frame_nb in range(1,len(filenames)):
+        if frame_nb+1 in detections_from_file.keys():
+            detections.append(detections_from_file[frame_nb+1])
+
+        frame1, _ , _ = read_and_resize(filenames[frame_nb])
+        flows.append(flow(frame0, frame1))
+        if verbose: 
+            frames.append(frame0)
+            frames.append(frame1)
+        frame0 = frame1.copy()
+
+    return detections, flows, old_shape, new_shape
+    
+    
 
 
 def main(args):
 
-    base_model = load_base(args.base_weights)
-    extension_model = load_extension(args.extension_weights, 32)
 
     def flow(frame0, frame1): return compute_flow(
         frame0, frame1, args.downsampling_factor)
 
     if args.detections_from_images:
-            
+        base_model = load_base(args.base_weights)
+        extension_model = load_extension(args.extension_weights, 32)
         def detector(frame): return detect_base_extension(frame, threshold=args.detection_threshold,
                                      base_model=base_model, extension_model=extension_model)
-        def load_detection_results(filenames): return detection_results_from_images(
-        filenames, detector, flow)
-
 
     SSM = StateSpaceModel(state_transition_variance=2,
                           state_observation_variance=2)
@@ -445,20 +485,21 @@ def main(args):
         output_filename = os.path.join(
             args.output_dir, video['file_name']+'.txt')
         output_file = open(output_filename, 'w')
-        images_for_video = [
-            image for image in annotations['images'] if image['video_id'] == video['id']]
-        images_for_video = sorted(
-            images_for_video, key=lambda image: image['frame_id'])
-        filenames = [os.path.join(args.data_dir, image['file_name'])
-                     for image in images_for_video]
 
-        detections, flows, old_shape, new_shape = load_detection_results(filenames)
+
+        if args.detections_from_images: detections, flows, old_shape, new_shape = detection_results_from_images(video, annotations, args.data_dir, detector, flow)
+        else: detections, flows, old_shape, new_shape = external_detection_results(video, annotations, args.data_dir, args.external_detections_dir, flow)
+
+        ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor)
+        ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
+
+        if not args.detections_from_images:
+            detections = [np.array([1/ratio_x,1/ratio_y])*detection for detection in detections]
 
         results = track_video(
             detections, flows, SSM, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
 
-        ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor)
-        ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
+
 
         for result in results:
             output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
@@ -491,7 +532,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', type=str)
     parser.add_argument('--downsampling_factor', type=int)
     parser.add_argument('--detections_from_images', action='store_true')
-
+    parser.add_argument('--external_detections_dir',type=str)
     args = parser.parse_args()
 
     main(args)

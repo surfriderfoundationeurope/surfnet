@@ -12,25 +12,40 @@ class Args(object):
         self.dataset = dataset
         self.data_path = data_path
 
+
+args = Args('./data/synthetic_videos_dataset/','surfrider_video_frames',downsampling_factor=4,old_train=False)
+
+from train_base import get_dataset
+
+dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)
+
+for image, target in dataset: 
+    image = np.transpose(image.numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
+    target = target[0]
+    fig, (ax0, ax1) = plt.subplots(1,2)
+    ax0.imshow(image)
+    ax1.imshow(target,cmap='gray',vmin=0,vmax=1)
+    plt.show()
+
 # args = Args('data/surfrider_images','surfrider', 4, False)
 
 
-dataset = SurfnetDataset('/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations',
-                         '/home/infres/chagneux/repos/surfnet/data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class', split='train')
+# dataset = SurfnetDataset('/home/infres/chagneux/repos/surfnet/data/synthetic_videos_dataset/annotations',
+#                          '/home/infres/chagneux/repos/surfnet/data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class', split='train')
 
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+# dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-for heatmap0, target0, target1, flows01 in dataloader:
-    # image = np.transpose(image[0].numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
-    # hm, h, w = target[0][0], target[0][1], target[0][2]
-    fig, (ax0, ax1, ax2) = plt.subplots(1, 3)
+# for heatmap0, target0, target1, flows01 in dataloader:
+#     # image = np.transpose(image[0].numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
+#     # hm, h, w = target[0][0], target[0][1], target[0][2]
+#     fig, (ax0, ax1, ax2) = plt.subplots(1, 3)
 
-    ax0.imshow(torch.sigmoid(heatmap0[0][0]), cmap='gray')
-    ax1.imshow(target0[0][0], cmap='gray')
-    ax2.imshow(target1[0][0], cmap='gray')
-    plt.show()
+#     ax0.imshow(torch.sigmoid(heatmap0[0][0]), cmap='gray')
+#     ax1.imshow(target0[0][0], cmap='gray')
+#     ax2.imshow(target1[0][0], cmap='gray')
+#     plt.show()
 
-    test = 0
+#     test = 0
 
 # import pickle
 # old_shape = (1080,1920)

@@ -9,13 +9,13 @@ import copy
 from common.utils import blob_for_bbox
 
 import math 
-def pad_if_smaller(img, size, fill=0):
+def pad_if_smaller(img, crop_h, crop_w, fill=0):
     min_size = min(img.size)
     padded=False
-    if min_size < size:
+    if min_size < crop_h:
         ow, oh = img.size
-        padh = size - oh if oh < size else 0
-        padw = size - ow if ow < size else 0
+        padh = crop_h - oh if oh < crop_h else 0
+        padw = crop_w - ow if ow < crop_w else 0
         img = F.pad(img, (0, 0, padw, padh), fill=fill)
         padded=True
     return img, padded
@@ -104,6 +104,7 @@ class RandomCrop(object):
 
 
 
+
 class RandomCropBboxes(object):
     def __init__(self, size):
         self.h = size[0]
@@ -111,8 +112,58 @@ class RandomCropBboxes(object):
 
     def __call__(self, image, target):
 
-        image, padded = pad_if_smaller(image, self.h)
+        image, padded = pad_if_smaller(image, self.h, self.w)
         crop_params = T.RandomCrop.get_params(image, (self.h, self.w))
+        image = F.crop(image, *crop_params)
+        new_w, new_h = image.size
+
+        if not padded: 
+            limit_top = crop_params[0]
+            limit_bottom = crop_params[0] + crop_params[2]
+            limit_left = crop_params[1]
+            limit_right = crop_params[1] + crop_params[3]
+
+            bboxes = []
+            cats = []
+            for bbox_nb in range(len(target['bboxes'])):
+
+                left, top, width, height = target['bboxes'][bbox_nb]
+                right, bottom = left + width, top + height
+
+                # bbox_coords = np.array([[top_left_x, top_left_y],
+                #                         [top_right_x, top_right_y],
+                #                         [bottom_right_x, bottom_right_y],
+                #                         [bottom_left_x, bottom_left_y]])
+
+                # bbox_center_x, bbox_center_y = np.mean(bbox_coords,axis=0)
+
+                if right < limit_left or bottom < limit_top or left > limit_right or top > limit_bottom:
+                    continue
+                else:
+                    new_left = max(0,left-limit_left)
+                    new_top = max(0,top-limit_top)
+                    new_right = min(new_w, right-limit_left)
+                    new_bottom = min(new_h, bottom-limit_top)
+                    new_bbox = [new_left, new_top, new_right-new_left, new_bottom-new_top]
+                    bboxes.append(new_bbox)
+                    cats.append(target['cats'][bbox_nb])
+            
+            target['bboxes'] = bboxes
+            target['cats'] = cats
+
+
+            # target = F.crop(target, *crop_params)
+        return image, target
+
+class CropBboxes(object):
+    def __init__(self, size):
+        self.h = size[0]
+        self.w = size[1]
+
+    def __call__(self, image, target):
+
+        image, padded = pad_if_smaller(image, self.h, self.w)
+        crop_params = (0,0,self.h,self.w)
         image = F.crop(image, *crop_params)
         new_w, new_h = image.size
 

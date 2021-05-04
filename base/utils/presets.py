@@ -51,9 +51,10 @@ class SegmentationPresetEval:
         return self.transforms(img, target)
 
 class SegmentationPresetEvalBboxes:
-    def __init__(self, base_size, num_classes, downsampling_factor, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    def __init__(self, base_size, crop_size, num_classes, downsampling_factor, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         self.transforms = T.Compose([
             T.RandomResizeBboxes(base_size, base_size),
+            T.CropBboxes(crop_size),
             T.ToTensorBboxes(num_classes, downsampling_factor),
             T.Normalize(mean=mean, std=std),
         ])

@@ -44,12 +44,12 @@ def get_transform(train, num_classes, args):
 
     else:
         if args.dataset == 'surfrider_video_frames':
-            base_size = 1080
+            base_size = 544
             crop_size = (544, 960)
         else:
             base_size = 512
             crop_size = (512, 512)
-        return presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, num_classes, args.downsampling_factor)
+        return presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, crop_size, num_classes, args.downsampling_factor)
 
 
 def cross_entropy(inputs, target):
@@ -206,7 +206,7 @@ def main(args):
             lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
     else:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, step_size=90, gamma=0.1)
+            optimizer, step_size=71, gamma=0.1)
 
     # lr_scheduler = None
 
