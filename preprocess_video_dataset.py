@@ -25,17 +25,17 @@ def main(args):
         os.listdir(video_folder)) if '.MP4' in video_name]
 
     for video_name in tqdm(video_names):
-        folder_for_video = args.output_dir + video_name.split('.')[0] + '/'
+        folder_for_video = os.path.join(args.output_dir, 'data', video_name.split('.')[0])
         os.mkdir(folder_for_video)
         video = VideoOpenCV(video_folder + video_name)
         num_frames = video.num_frames
 
         for frame_nb in range(1, num_frames+1):
             frame = video.read()
-            cv2.imwrite(folder_for_video +
-                        '{:03d}.png'.format(frame_nb), frame)
+            cv2.imwrite(os.path.join(folder_for_video,
+                        '{:03d}.png'.format(frame_nb)), frame)
 
-    with open(args.input_dir+'annotations.json', 'r') as f:
+    with open(os.path.join(args.input_dir,'annotations_val.json'), 'r') as f:
         annotations = json.load(f)
 
     for video in annotations['videos']:
@@ -45,10 +45,10 @@ def main(args):
         image['file_name'] = image['file_name'].split(
             '.')[0]+'/{:03d}.png'.format(image['frame_id'])
 
-    annotations_path = args.output_dir + '/annotations'
-    os.mkdir(annotations_path)
+    annotations_path = os.path.join(args.output_dir,'annotations')
+    # os.mkdir(annotations_path)
 
-    with open(annotations_path+'/annotations.json', 'w') as f:
+    with open(os.path.join(annotations_path, 'annotations_val.json'), 'w') as f:
         json.dump(annotations, f)
 
 
@@ -56,8 +56,8 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--input-dir', type=str)
-    parser.add_argument('--output-dir', type=str)
+    parser.add_argument('--input_dir', type=str)
+    parser.add_argument('--output_dir', type=str)
 
     args = parser.parse_args()
 

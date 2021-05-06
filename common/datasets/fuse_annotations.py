@@ -1,5 +1,6 @@
 import os
 import json 
+
 def main(args):
     annotations_grouped = {'categories':[],
                            'images':[],

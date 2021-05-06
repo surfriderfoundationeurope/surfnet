@@ -1,3 +1,4 @@
+from threading import Condition
 import cv2
 import json
 from base.centernet.models import create_model as create_base
@@ -15,7 +16,8 @@ from tqdm import tqdm
 from collections import defaultdict
 
 verbose = False
-latest_detection = None
+latest_detections = None
+latest_frame_to_show = None 
 latest_image = None
 show_detections_only = False
 frame_nb_for_plot = None
@@ -44,7 +46,7 @@ def in_frame(position, shape):
 
 class GaussianMixture(object):
     def __init__(self, means, variance, weights):
-        cov = variance*np.eye(2)
+        cov = np.diag(variance)
         self.components = [multivariate_normal(
             mean=mean, cov=cov) for mean in means]
         self.weights = weights
@@ -69,25 +71,26 @@ class StateSpaceModel(object):
     def __init__(self, state_transition_variance, state_observation_variance):
         self.state_transition_variance = state_transition_variance
         self.state_observation_variance = state_observation_variance
+
         self.prior = lambda x: multivariate_normal(
-            x, cov=self.state_observation_variance*np.eye(2))
+            x, cov=np.diag(self.state_observation_variance))
 
     def state_transition(self, current_state, flow):
         mean = current_state + \
             flow[max(0, int(current_state[1])),
                  max(0, int(current_state[0])), :]
-        cov = self.state_transition_variance*np.eye(2)
+        cov = np.diag(self.state_transition_variance)
         return multivariate_normal(mean, cov)
 
     def state_observation(self, current_state):
         mean = current_state
-        cov = self.state_observation_variance*np.eye(2)
+        cov = np.diag(self.state_observation_variance)
         return multivariate_normal(mean, cov)
 
 
 class SMC(object):
 
-    def __init__(self, frame_nb, X0, SSM, n_particles=10, stop_tracking_threshold=5):
+    def __init__(self, frame_nb, X0, SSM, n_particles=20, stop_tracking_threshold=5):
 
         self.SSM = SSM
         self.particles, self.normalized_weights = self.init_particles(
@@ -247,7 +250,6 @@ def read_and_resize(filename):
     old_shape = (h, w)
     return frame, old_shape, new_shape
 
-
 def confidence_from_multivariate_distribution(coord, distribution):
 
     delta = 3
@@ -263,8 +265,7 @@ def confidence_from_multivariate_distribution(coord, distribution):
         - distribution.cdf(left_top) \
         + distribution.cdf(left_low)
 
-
-def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
+def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=10):
 
     new_particles = []
     new_weights = []
@@ -293,10 +294,9 @@ def build_confidence_function_for_tracker(tracker, flow01, nb_new_particles=5):
         latest_data_for_tracker = tracker.tracklet[-1][1]
 
         # test = distribution.pdf(pos)
-        ax.imshow(latest_image)
         # ax.scatter(np.array([10]),np.array([50]),c='r',s=100)
-
-        ax.scatter(latest_detection[:, 0], latest_detection[:,
+        ax.imshow(latest_frame_to_show)
+        ax.scatter(latest_detections[:, 0], latest_detections[:,
                    1], c='r', s=40, label='Latest detections')
         ax.scatter(tracker.particles[:, 0], tracker.particles[:, 1],
                    c='b', s=10, label='Particles for that tracker')
@@ -334,8 +334,9 @@ def build_confidence_function_for_trackers(trackers, flow01):
 
 def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_threshold):
 
+    global latest_detections
     global frame_nb_for_plot
-
+    global latest_frame_to_show 
     init = False
     trackers = dict()
     
@@ -345,6 +346,10 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
 
         if verbose:
             frame_nb_for_plot = frame_nb
+            latest_detections = detections_for_frame
+            latest_frame_to_show = frames[frame_nb]
+            
+
 
         if not init:
             if len(detections_for_frame):
@@ -363,29 +368,31 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
                 assigned_trackers = -np.ones(len(detections_for_frame), dtype=int)
                 assignment_confidences = -np.ones(len(detections_for_frame))
 
-                for detection_nb in range(len(detections_for_frame)):
+                if len(confidence_functions_for_trackers):
+                    for detection_nb in range(len(detections_for_frame)):
 
-                    tracker_scores = {tracker_nb: confidence_for_tracker(
-                        detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
-                    tracker_ids = list(tracker_scores.keys())
-                    candidate_tracker_id = tracker_ids[int(
-                        np.argmax(tracker_scores.values()))]
+                        tracker_scores = {tracker_nb: confidence_for_tracker(
+                            detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
+                        
+                        tracker_ids = list(tracker_scores.keys())
+                        candidate_tracker_id = tracker_ids[int(
+                            np.argmax(list(tracker_scores.values())))]
 
-                    score_for_candidate_cloud = tracker_scores[candidate_tracker_id]
+                        score_for_candidate_cloud = tracker_scores[candidate_tracker_id]
 
-                    if score_for_candidate_cloud > confidence_threshold:
+                        if score_for_candidate_cloud > confidence_threshold:
 
-                        if candidate_tracker_id in assigned_trackers:
-                            detection_id_of_conflict = np.argwhere(
-                                assigned_trackers == candidate_tracker_id)
-                            if score_for_candidate_cloud > assignment_confidences[detection_id_of_conflict]:
-                                assigned_trackers[detection_id_of_conflict] = -1
-                                assignment_confidences[detection_id_of_conflict] = -1
+                            if candidate_tracker_id in assigned_trackers:
+                                detection_id_of_conflict = np.argwhere(
+                                    assigned_trackers == candidate_tracker_id)
+                                if score_for_candidate_cloud > assignment_confidences[detection_id_of_conflict]:
+                                    assigned_trackers[detection_id_of_conflict] = -1
+                                    assignment_confidences[detection_id_of_conflict] = -1
+                                    assigned_trackers[detection_nb] = candidate_tracker_id
+                                    assignment_confidences[detection_nb] = score_for_candidate_cloud
+                            else:
                                 assigned_trackers[detection_nb] = candidate_tracker_id
                                 assignment_confidences[detection_nb] = score_for_candidate_cloud
-                        else:
-                            assigned_trackers[detection_nb] = candidate_tracker_id
-                            assignment_confidences[detection_nb] = score_for_candidate_cloud
 
                 for detection_nb in range(len(detections_for_frame)):
                     detection = detections_for_frame[detection_nb]
@@ -462,16 +469,20 @@ def external_detection_results(video, annotations, data_dir, external_detections
     frame0, old_shape, new_shape = read_and_resize(filenames[frame_nb])    
     if frame_nb+1 in detections_from_file.keys():
         detections.append(detections_from_file[frame_nb+1])
+    else:
+        detections.append(np.array([]))
 
     for frame_nb in range(1,len(filenames)):
         if frame_nb+1 in detections_from_file.keys():
             detections.append(detections_from_file[frame_nb+1])
+        else:
+            detections.append(np.array([]))
 
         frame1, _ , _ = read_and_resize(filenames[frame_nb])
         flows.append(flow(frame0, frame1))
         if verbose: 
-            frames.append(frame0)
-            frames.append(frame1)
+            frames.append(cv2.cvtColor(cv2.resize(frame0,flows[-1].shape[:-1][::-1]),cv2.COLOR_BGR2RGB))
+            frames.append(cv2.cvtColor(cv2.resize(frame1,flows[-1].shape[:-1][::-1]),cv2.COLOR_BGR2RGB))
         frame0 = frame1.copy()
 
     return detections, flows, old_shape, new_shape
@@ -492,13 +503,18 @@ def main(args):
             def detector(frame): return detect_base(frame, threshold=args.detection_threshold,
                                         base_model=base_model)
 
-    SSM = StateSpaceModel(state_transition_variance=2,
-                          state_observation_variance=2)
+    state_variance = np.load(os.path.join(args.data_dir,'state_variance.npy'))
+    observation_variance = np.load(os.path.join(args.data_dir,'observation_variance.npy'))
+    
+    SSM = StateSpaceModel(state_transition_variance=state_variance,
+                          state_observation_variance=observation_variance)
 
     with open(args.annotation_file, 'rb') as f:
         annotations = json.load(f)
 
     for video in annotations['videos']:
+
+        # video = [video_annotation for video_annotation in annotations['videos'] if video_annotation['file_name'] == 'leloing__2'][0] # debug
 
         output_filename = os.path.join(
             args.output_dir, video['file_name']+'.txt')
@@ -512,7 +528,13 @@ def main(args):
         ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
 
         if not args.detections_from_images:
-            detections = [np.array([1/ratio_x,1/ratio_y])*detection for detection in detections]
+            detections_resized = []
+            for detection in detections: 
+                if len(detection):
+                    detections_resized.append(np.array([1/ratio_x,1/ratio_y])*detection)
+                else:
+                    detections_resized.append(detection)
+            detections = detections_resized
 
         results = track_video(
             detections, flows, SSM, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
@@ -521,17 +543,17 @@ def main(args):
 
         for result in results:
             output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
-                                                                       result[1]+1,
-                                                                       ratio_x *
-                                                                       result[2],
-                                                                       ratio_y *
-                                                                       result[3],
-                                                                       -1,
-                                                                       -1,
-                                                                       1,
-                                                                       -1,
-                                                                       -1,
-                                                                       -1))
+                                                                    result[1]+1,
+                                                                    ratio_x *
+                                                                    result[2],
+                                                                    ratio_y *
+                                                                    result[3],
+                                                                    -1,
+                                                                    -1,
+                                                                    1,
+                                                                    -1,
+                                                                    -1,
+                                                                    -1))
 
         output_file.close()
 
