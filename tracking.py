@@ -412,6 +412,8 @@ def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_thre
 
     results = []
     tracklets = [tracker.tracklet for tracker in trackers]
+    tracklets = [tracklet for tracklet in tracklets if len(tracklet) > stop_tracking_threshold]
+
     for tracker_nb, associated_detections in enumerate(tracklets):
         for associated_detection in associated_detections:
             results.append(
