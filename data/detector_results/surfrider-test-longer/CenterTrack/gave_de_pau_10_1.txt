@@ -1,1 +1,0 @@
-/home/infres/chagneux/repos/CenterTrack/exp/tracking/new_test_surfrider_val/results_mot_tracking/gave_de_pau_10_1.txt
