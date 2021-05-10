@@ -1,8 +1,6 @@
 from threading import Condition
 import cv2
 import json
-
-from torch.functional import align_tensors
 from base.centernet.models import create_model as create_base
 from common.utils import load_my_model
 from extension.models import SurfNet
@@ -16,18 +14,15 @@ from scipy.stats import multivariate_normal
 from torchvision.transforms.functional import resize
 from tqdm import tqdm
 from collections import defaultdict
-import matplotlib.patches as mpatches
-
-
-verbose = False
+from pykalman import KalmanFilter
+from tracking import load_extension, load_base
+verbose = True
 latest_detections = None
 latest_frame_to_show = None
 latest_image = None
 show_detections_only = False
 frame_nb_for_plot = None
 frames = []
-legends = []
-from pykalman import KalmanFilter
 if verbose:
 
     fig, ax = plt.subplots()
@@ -53,10 +48,11 @@ def in_frame(position, shape):
     return x > 0 and x < shape_x and y > 0 and y < shape_y
 
 
-class GaussianMixture(object):
-    def __init__(self, means, covariance, weights):
+class GaussianMixture:
+    def __init__(self, means, variance, weights):
+        cov = np.diag(variance)
         self.components = [multivariate_normal(
-            mean=mean, cov=covariance) for mean in means]
+            mean=mean, cov=cov) for mean in means]
         self.weights = weights
 
     def pdf(self, x):
@@ -74,198 +70,22 @@ class GaussianMixture(object):
             result += weight*component.cdf(x)
         return result
 
-def confidence_from_multivariate_distribution(coord, distribution):
 
-    delta = 3
-    x = coord[0]
-    y = coord[1]
-    right_top = np.array([x+delta, y+delta])
-    left_low = np.array([x-delta, y-delta])
-    right_low = np.array([x+delta, y-delta])
-    left_top = np.array([x-delta, y+delta])
-
-    return distribution.cdf(right_top) \
-        - distribution.cdf(right_low) \
-        - distribution.cdf(left_top) \
-        + distribution.cdf(left_low)
-
-
-class Tracker:
-
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold=5, algorithm='Kalman'):
-
+class StateSpaceModel:
+    def __init__(self, state_variance, observation_variance):
         self.state_covariance = np.diag(state_variance)
-        self.observation_covariance = np.diag(observation_variance)
-        self.algorithm = algorithm
-
-        if self.algorithm =='SMC' :
-            self.particles, self.normalized_weights = self.init_particles(
-            X0, n_particles=20)
-        else: 
-                
-            self.filter = KalmanFilter(initial_state_mean=X0, 
-                                       initial_state_covariance=self.observation_covariance, 
-                                       transition_matrices=np.eye(2), 
-                                       transition_covariance=self.state_covariance,
-                                       observation_matrices=np.eye(2))
-
-            self.filtered_state_mean = X0
-            self.filtered_state_covariance = self.observation_covariance
-
-        self.updated = False
-        self.countdown = 0
-        self.enabled = True
-        self.stop_tracking_threshold = stop_tracking_threshold
-        self.tracklet = [(frame_nb, X0)]
-
-    def init_particles(self, X0, n_particles):
-        particles = multivariate_normal(
-            X0, cov=self.observation_covariance).rvs(n_particles)
-        normalized_weights = np.ones(n_particles)/n_particles
-        return particles, normalized_weights
-
-    def SMC_state_transition(self, state, flow):
-
-        mean = state + \
-            flow[max(0, int(state[1])),
-                 max(0, int(state[0])), :]
-        cov = np.diag(self.state_covariance)
-        return multivariate_normal(mean, cov)
-    
-    def SMC_observation(self, state):
-
-        return multivariate_normal(state, self.observation_covariance)
-
-    def move_particles(self, flow):
-        new_particles = []
-        for particle in self.particles:
-            new_particle = self.SMC_state_transition(particle, flow).rvs(1)
-            if in_frame(new_particle, flow.shape[:-1]):
-                new_particles.append(new_particle)
-        if len(new_particles):
-            self.particles = np.array(new_particles)
-        else:
-            self.enabled = False
-
-    def importance_reweighting(self, observation):
-        log_weights_unnormalized = np.zeros(len(self.particles))
-        for particle_nb, particle in enumerate(self.particles):
-            log_weights_unnormalized[particle_nb] = self.SMC_observation(
-                particle).logpdf(observation)
-        self.normalized_weights = exp_and_normalise(log_weights_unnormalized)
-
-    def resample(self):
-        resampling_indices = np.random.choice(
-            a=len(self.particles), p=self.normalized_weights, size=len(self.particles))
-        self.particles = self.particles[resampling_indices]
-
-    def update_SMC(self, observation, flow):
-
-        self.resample()
-        self.move_particles(flow)
-        if observation is not None: 
-            self.importance_reweighting(observation)
-        else: 
-            self.normalized_weights = np.ones(
-                len(self.particles))/len(self.particles)
+        self.observation_variance = np.diag(observation_variance)
 
 
-    def update_Kalman(self, observation, flow):
-        transition_offset = flow[max(0, int(self.filtered_state_mean[1])),
-                 max(0, int(self.filtered_state_mean[0])), :]
-
-        self.filtered_state_mean, self.filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
-                                                                                             self.filtered_state_covariance, 
-                                                                                             observation=observation,
-                                                                                             transition_offset=transition_offset)
-        if not in_frame(self.filtered_state_mean,flow.shape[:-1]): self.enabled=False
-
-    def update(self, observation, flow, frame_nb):
-        if self.algorithm == 'SMC': 
-            self.update_SMC(observation, flow)
-        else: 
-            self.update_Kalman(observation, flow)
-
-        self.tracklet.append((frame_nb, observation))
-        self.updated = True
-
-    def update_status(self, flow):
-        if self.enabled and not self.updated:
-            self.countdown += 1
-            if self.algorithm == 'SMC':
-                self.update_SMC(None, flow)
-            else: 
-                self.update_Kalman(None, flow)
-        else:
-            self.countdown = 0
-        self.updated = False
-
-        # if self.countdown > self.stop_tracking_threshold:
-        #     self.enabled = False
-        # if len(self.particles) < 10:
-        #     self.enabled = False
-
-    def confidence_function_SMC(self, flow, tracker_nb=None, nb_new_particles=5):
-        global legends
-        new_particles = []
-        new_weights = []
-
-        for particle, normalized_weight in zip(self.particles, self.normalized_weights):
-            new_particles_for_particle = self.SMC_state_transition(
-                particle, flow).rvs(nb_new_particles)
-
-            new_particles_for_particle = [
-                particle for particle in new_particles_for_particle if in_frame(particle, flow.shape[:-1])]
-
-            if len(new_particles_for_particle):
-                new_particles.extend(new_particles_for_particle)
-                new_weights.extend([normalized_weight/len(new_particles_for_particle)] *
-                                len(new_particles_for_particle))
-
-        new_particles = np.array(new_particles)
-
-        if verbose: 
-            ax.scatter(new_particles[:,0], new_particles[:,1], s=5, c=colors[tracker_nb])
-            legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
-
-        return GaussianMixture(new_particles, self.observation_covariance, new_weights)
-
-    def confidence_function_Kalman(self, flow, tracker_nb=None):
-        global legends
-        transition_offset = flow[max(0, int(self.filtered_state_mean[1])), max(0, int(self.filtered_state_mean[0])), :]
-
-        filtered_state_mean, filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
-                                                                                             self.filtered_state_covariance, 
-                                                                                             observation=None,
-                                                                                             transition_offset=transition_offset)
-
-        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance)
-
-        if verbose: 
-            yy, xx = np.mgrid[0:flow.shape[0]:1, 0:flow.shape[1]:1]
-            pos = np.dstack((xx, yy))            
-            ax.contour(distribution.pdf(pos), colors=colors[tracker_nb])
-            legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
-
-        return distribution
-
-    def build_confidence_function(self, flow, tracker_nb=None):
-        if self.algorithm == 'SMC':
-            distribution = self.confidence_function_SMC(flow, tracker_nb)
-        else:
-            distribution = self.confidence_function_Kalman(flow, tracker_nb)
-        
-        return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
 
 
-            
 
-def init_trackers(detections, frame_nb, state_variance, observation_variance, algorithm, stop_tracking_threshold):
+
+def init_trackers(detections, frame_nb, SSM, stop_tracking_threshold):
     trackers = []
 
     for detection in detections:
-        tracker_for_detection = Tracker(frame_nb,
-                                            detection, state_variance, observation_variance, stop_tracking_threshold=stop_tracking_threshold, algorithm=algorithm)
+        tracker_for_detection = KalmanFilter(initial_state_mean=detection,initial_state_covariance=SSM.state_variance)
         trackers.append(tracker_for_detection)
 
     return trackers
@@ -287,25 +107,6 @@ def compute_flow(frame0, frame1, downsampling_factor):
     #     flow01[:,:,1] = 100
     return flow01
 
-
-def load_extension(extension_weights, intermediate_layer_size=32):
-    extension_model = SurfNet(intermediate_layer_size)
-    extension_model.load_state_dict(torch.load(extension_weights))
-    for param in extension_model.parameters():
-        param.requires_grad = False
-    extension_model.to('cuda')
-    extension_model.eval()
-    return extension_model
-
-
-def load_base(base_weights):
-    base_model = create_base('dla_34', heads={'hm': 1, 'wh': 2}, head_conv=256)
-    base_model = load_my_model(base_model, base_weights)
-    for param in base_model.parameters():
-        param.requires_grad = False
-    base_model.to('cuda')
-    base_model.eval()
-    return base_model
 
 
 def detect_base_extension(frame, threshold, base_model, extension_model):
@@ -347,6 +148,22 @@ def detect_base(frame, threshold, base_model):
     return detections_array
 
 
+def confidence_from_multivariate_distribution(coord, distribution):
+
+    delta = 3
+    x = coord[0]
+    y = coord[1]
+    right_top = np.array([x+delta, y+delta])
+    left_low = np.array([x-delta, y-delta])
+    right_low = np.array([x+delta, y-delta])
+    left_top = np.array([x-delta, y+delta])
+
+    return distribution.cdf(right_top) \
+        - distribution.cdf(right_low) \
+        - distribution.cdf(left_top) \
+        + distribution.cdf(left_low)
+
+
 def read_and_resize(filename):
     frame = cv2.imread(filename)
     h, w = frame.shape[:-1]
@@ -357,35 +174,43 @@ def read_and_resize(filename):
     old_shape = (h, w)
     return frame, old_shape, new_shape
 
+def build_confidence_function_for_tracker(tracker, flow01, tracker_nb=None):
+
+    test = KalmanFilter()
+
+    if verbose:
+        ax.imshow(latest_frame_to_show)
+        new_particles = np.array(new_particles)
+        ax.scatter(new_particles[:, 0], new_particles[:, 1],
+                   c=colors[tracker_nb], s=2, label=str(tracker.countdown))
+
+    return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
+
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
     global frame_nb_for_plot
-    global legends
     confidence_functions = dict()
-    if verbose: 
-        ax.imshow(latest_frame_to_show)
     for tracker_nb, tracker in enumerate(trackers):
         if tracker.enabled:
-            confidence_functions[tracker_nb] = tracker.build_confidence_function(flow01, tracker_nb)
-
+            confidence_functions[tracker_nb] = build_confidence_function_for_tracker(
+                tracker, flow01, tracker_nb=tracker_nb)
     if verbose:
-        if len(latest_detections): 
-            ax.scatter(latest_detections[:, 0], latest_detections[:, 1], c='r', s=40)
-
+        if len(latest_detections): ax.scatter(latest_detections[:, 0], latest_detections[:,
+                                                              1], c='r', s=40)
+        ax.grid(True)
         ax.xaxis.tick_top()
-        plt.legend(handles=legends)
+        ax.legend()
         fig.canvas.draw()
         plt.show()
         while not plt.waitforbuttonpress():
             continue
         ax.cla()
-        legends = []
 
     return confidence_functions
 
 
-def track_video(detections, flows, state_variance, observation_variance, algorithm, stop_tracking_threshold, confidence_threshold):
+def track_video(detections, flows, SSM, stop_tracking_threshold, confidence_threshold):
 
     global latest_detections
     global frame_nb_for_plot
@@ -404,18 +229,14 @@ def track_video(detections, flows, state_variance, observation_variance, algorit
         if not init:
             if len(detections_for_frame):
                 trackers = init_trackers(
-                    detections_for_frame, frame_nb, state_variance, observation_variance, algorithm, stop_tracking_threshold)
+                    detections_for_frame, frame_nb, SSM, stop_tracking_threshold)
                 init = True
 
         else:
 
             flow01 = flows[frame_nb-1]
             new_trackers = []
-            if verbose:
-                confidence_functions_for_trackers = build_confidence_function_for_trackers(
-                    trackers, flow01)
             if len(detections_for_frame):
-                if not verbose:
                     confidence_functions_for_trackers = build_confidence_function_for_trackers(
                         trackers, flow01)
                 assigned_trackers = - \
@@ -453,7 +274,7 @@ def track_video(detections, flows, state_variance, observation_variance, algorit
                     assigned_tracker = assigned_trackers[detection_nb]
                     if assigned_tracker == -1:
                         new_trackers.append(
-                            Tracker(frame_nb, detection, state_variance, observation_variance, stop_tracking_threshold=stop_tracking_threshold, algorithm=algorithm))
+                            SMC(frame_nb, detection, SSM, stop_tracking_threshold=stop_tracking_threshold))
                     else:
                         trackers[assigned_tracker].update(
                             detection, flow01, frame_nb)
@@ -578,14 +399,16 @@ def main(args):
     observation_variance = np.load(os.path.join(
         args.data_dir, 'observation_variance.npy'))
 
+    SSM = StateSpaceModel(state_variance=state_variance,
+                          observation=observation_variance)
 
     with open(args.annotation_file, 'rb') as f:
         annotations = json.load(f)
 
     for video in annotations['videos']:
 
-        # video = [video_annotation for video_annotation in annotations['videos']
-        #          if video_annotation['file_name'] == 'leloing__5'][0]  # debug
+        video = [video_annotation for video_annotation in annotations['videos']
+                 if video_annotation['file_name'] == 'leloing__5'][0]  # debug
 
         output_filename = os.path.join(
             args.output_dir, video['file_name']+'.txt')
@@ -612,7 +435,7 @@ def main(args):
             detections = detections_resized
 
         results = track_video(
-            detections, flows, state_variance, observation_variance, algorithm=args.algorithm, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
+            detections, flows, SSM, stop_tracking_threshold=args.stop_tracking_threshold, confidence_threshold=args.confidence_threshold)
 
         for result in results:
             output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
@@ -647,7 +470,6 @@ if __name__ == '__main__':
     parser.add_argument('--detections_from_images', action='store_true')
     parser.add_argument('--external_detections_dir', type=str)
     parser.add_argument('--base_only', action='store_true')
-    parser.add_argument('--algorithm', type=str, default='Kalman')
     args = parser.parse_args()
 
     main(args)
