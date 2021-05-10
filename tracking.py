@@ -151,8 +151,9 @@ class SMC(object):
         else:
             self.countdown = 0
         self.updated = False
-        if self.countdown > self.stop_tracking_threshold:
-            self.enabled = False
+        # if self.countdown > self.stop_tracking_threshold:
+        #     self.enabled = False
+        if len(self.particles) < 10: self.enabled=False
 
 
 def init_trackers(detections, frame_nb, SSM, stop_tracking_threshold):
@@ -516,7 +517,7 @@ def main(args):
 
     for video in annotations['videos']:
 
-        # video = [video_annotation for video_annotation in annotations['videos'] if video_annotation['file_name'] == 'leloing__2'][0] # debug
+        # video = [video_annotation for video_annotation in annotations['videos'] if video_annotation['file_name'] == 'leloing__5'][0] # debug
 
         output_filename = os.path.join(
             args.output_dir, video['file_name']+'.txt')
