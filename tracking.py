@@ -19,7 +19,7 @@ from collections import defaultdict
 import matplotlib.patches as mpatches
 
 
-verbose = False
+verbose = True
 latest_detections = None
 latest_frame_to_show = None
 latest_image = None
@@ -28,6 +28,7 @@ frame_nb_for_plot = None
 frames = []
 legends = []
 from pykalman import KalmanFilter
+
 if verbose:
 
     fig, ax = plt.subplots()
@@ -42,7 +43,6 @@ def exp_and_normalise(lw):
     w = np.exp(lw - lw.max())
     return w / w.sum()
 
-
 def in_frame(position, shape):
 
     shape_x = shape[1]
@@ -51,7 +51,6 @@ def in_frame(position, shape):
     y = position[1]
 
     return x > 0 and x < shape_x and y > 0 and y < shape_y
-
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
@@ -88,7 +87,6 @@ def confidence_from_multivariate_distribution(coord, distribution):
         - distribution.cdf(right_low) \
         - distribution.cdf(left_top) \
         + distribution.cdf(left_low)
-
 
 class Tracker:
 
@@ -257,9 +255,6 @@ class Tracker:
         
         return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
 
-
-            
-
 def init_trackers(detections, frame_nb, state_variance, observation_variance, algorithm, stop_tracking_threshold):
     trackers = []
 
@@ -333,18 +328,8 @@ def detect_base(frame, threshold, base_model):
     frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
     base_result = torch.sigmoid(base_model(frame)[-1]['hm'])
     detections = nms(base_result).gt(threshold).squeeze()
-    detections_array = torch.nonzero(detections).cpu().numpy()[:, ::-1]
 
-    if verbose:
-        global latest_image
-        global latest_detection
-        image = np.transpose(
-            resize(frame, detections.shape).squeeze().cpu().numpy(), axes=[1, 2, 0])
-        image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
-        latest_image = image
-        latest_detection = detections_array
-
-    return detections_array
+    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
 
 
 def read_and_resize(filename):
@@ -479,9 +464,10 @@ def track_video(detections, flows, state_variance, observation_variance, algorit
     return results
 
 
-def detection_results_from_images(video, annotations, data_dir, detector, flow):
+def detection_results_from_images(video, annotations, data_dir, detector, flow, downsampling_factor=4):
 
-    global frames
+    global frames 
+    frames = []
 
     images_for_video = [image for image in annotations['images']
                         if image['video_id'] == video['id']]
@@ -491,18 +477,34 @@ def detection_results_from_images(video, annotations, data_dir, detector, flow):
     filenames = [os.path.join(data_dir, image['file_name'])
                  for image in images_for_video]
 
+
     detections, flows = [], []
-    frame0, old_shape, new_shape = read_and_resize(filenames[0])
-    detections.append(detector(frame0))
-    for filename in tqdm(filenames[1:]):
-        frame1, _, _ = read_and_resize(filename)
-        detections.append(detector(frame1))
+    frame_nb = 0
+    frame0, old_shape, new_shape = read_and_resize(filenames[frame_nb])
+    downsampled_shape = (
+        new_shape[1] // downsampling_factor, new_shape[0] // downsampling_factor)
+    if verbose:
+        frames.append(cv2.cvtColor(cv2.resize(
+            frame0, downsampled_shape), cv2.COLOR_BGR2RGB))
+    detections_for_frame = detector(frame0)
+    if len(detections_for_frame): detections.append(detections_for_frame)
+    else: detections.append(np.array([]))
+
+    for frame_nb in tqdm(range(1, len(filenames))):
+
+        frame1, _, _ = read_and_resize(filenames[frame_nb])
+        detections_for_frame = detector(frame1)
+        if len(detections_for_frame): detections.append(detections_for_frame)
+        else: detections.append(np.array([]))
+
         flows.append(flow(frame0, frame1))
         if verbose:
-            frames.append(frame0)
-            frames.append(frame1)
+            frames.append(cv2.cvtColor(cv2.resize(
+                frame1, downsampled_shape), cv2.COLOR_BGR2RGB))
         frame0 = frame1.copy()
+
     return detections, flows, old_shape, new_shape
+
 
 
 def external_detection_results(video, annotations, data_dir, external_detections_dir, flow, downsampling_factor=4):
