@@ -5,7 +5,7 @@ output_dir='experiments/tracking/'${experiment_name}
 external_detections_dir='data/detector_results/surfrider-test-longer/CenterTrack'
 create_clean_directory $output_dir 
 
-python tracking.py \
+python -m debugpy --listen 5678 --wait-for-client tracking.py \
     --data_dir ${SYNTHETIC_VIDEOS_DATASET}'data/' \
     --annotation_file ${SYNTHETIC_VIDEOS_DATASET}'annotations/annotations_val.json' \
     --output_dir ${output_dir} \
@@ -14,7 +14,10 @@ python tracking.py \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
     --stop_tracking_threshold 5 \
     --external_detections_dir ${external_detections_dir} \
-    --algorithm 'Kalman'
+    --algorithm 'Kalman' \
+    --read_from 'annotations' \
+    --detector 'external_mot' \
+    --tracker_parameters_dir 'data/tracking_parameters'
 
 
 
