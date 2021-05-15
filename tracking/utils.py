@@ -173,3 +173,21 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
             else: detections.append(np.array([]))
 
     return detections 
+
+
+class VideoReader:
+
+    def __init__(self, video_filename):
+        self.video = cv2.VideoCapture(video_filename)
+
+    def __next__(self):
+        ret, frame = self.video.read()
+        if ret: 
+            return resize_for_network_input(frame)
+        raise StopIteration
+
+    def __iter__(self):
+        return self
+    
+    def init(self):
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)

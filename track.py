@@ -3,7 +3,7 @@ import json
 import numpy as np
 import os
 from tqdm import tqdm
-from tracking.utils import init_trackers, compute_flow, load_base, load_extension, resize_for_network_input, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
+from tracking.utils import init_trackers, compute_flow, load_base, load_extension, resize_for_network_input, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal, VideoReader
 from tracking.trackers import trackers
 import matplotlib.pyplot as plt
 
@@ -43,23 +43,6 @@ class Display:
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
-
-class VideoReader:
-
-    def __init__(self, video_filename):
-        self.video = cv2.VideoCapture(video_filename)
-
-    def __next__(self):
-        ret, frame = self.video.read()
-        if ret: 
-            return resize_for_network_input(frame)
-        raise StopIteration
-
-    def __iter__(self):
-        return self
-    
-    def init(self):
-        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
 display = Display(on=False)
 
