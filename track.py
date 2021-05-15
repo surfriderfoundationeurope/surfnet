@@ -1,15 +1,10 @@
 import cv2
 import json
-import torch
-from common.utils import transform_test_CenterNet, nms
 import numpy as np
 import os
 from tqdm import tqdm
-from collections import defaultdict
-from tracking.utils import init_trackers, compute_flow, load_base, load_extension, resize_for_network_input, gather_filenames_for_video_in_annotations
+from tracking.utils import init_trackers, compute_flow, load_base, load_extension, resize_for_network_input, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
 from tracking.trackers import trackers
-import pickle
-
 import matplotlib.pyplot as plt
 
 
@@ -67,70 +62,6 @@ class VideoReader:
         self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
 display = Display(on=False)
-
-def detect_base_extension(frame, threshold, base_model, extension_model):
-
-    frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
-    base_result = base_model(frame)[-1]['hm']
-    extension_result = torch.sigmoid(extension_model(base_result))
-    detections = nms(extension_result).gt(threshold).squeeze()
-
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
-
-def detect_base(frame, threshold, base_model):
-
-    frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
-    base_result = torch.sigmoid(base_model(frame)[-1]['hm'])
-    detections = nms(base_result).gt(threshold).squeeze()
-
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
-
-def detect_internal(reader, detector):
-
-    detections = []
-
-    for frame in tqdm(reader):
-
-        detections_for_frame = detector(frame)
-        if len(detections_for_frame): detections.append(detections_for_frame)
-        else: detections.append(np.array([]))
-
-    return detections
-
-def detect_external(detections_filename, file_type='mot', nb_frames=None):
-
-    if file_type == 'mot':
-        with open(detections_filename, 'r') as f:
-            detections_read = [detection.split(',') for detection in f.readlines()]
-        detections_from_file = defaultdict(list)
-        for detection in detections_read:
-            detections_from_file[int(detection[0])].append(
-                [float(detection[2]), float(detection[3])])
-
-        detections_from_file = {k: np.array(v)
-                                for k, v in detections_from_file.items()}
-
-        detections = []
-
-        for frame_nb in range(nb_frames):
-            if frame_nb+1 in detections_from_file.keys():
-                detections.append(detections_from_file[frame_nb+1])
-            else:
-                detections.append(np.array([]))
-
-
-    elif file_type == 'pickle':
-        with open(detections_filename, 'rb') as f:
-            detections_read = pickle.load(f)
-        
-        detections = []
-
-        for detections_for_frame in detections_read.values():
-            if len(detections_for_frame): 
-                detections.append(np.concatenate([detection['ct'].reshape(1,2) for detection in detections_for_frame]))
-            else: detections.append(np.array([]))
-
-    return detections 
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
@@ -364,15 +295,6 @@ def main(args):
                                                                         -1))
 
             output_file.close()
-
-
-
-
-            
-        
-
-
-
 
 
 if __name__ == '__main__':
