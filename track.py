@@ -11,18 +11,62 @@ from tracking.trackers import trackers
 import pickle
 
 import matplotlib.pyplot as plt
-from types import SimpleNamespace
-display = SimpleNamespace()
-display.on = True 
-display.legends = []
 
-if display.on:
 
-    fig, display.ax = plt.subplots()
-    plt.ion()
+class Display:
 
-prop_cycle = plt.rcParams['axes.prop_cycle']
-display.colors = prop_cycle.by_key()['color']
+    def __init__(self, on):
+        self.on = on
+        self.fig, self.ax = plt.subplots()
+        plt.ion()
+        self.colors =  plt.rcParams['axes.prop_cycle'].by_key()['color']
+        self.legends = []
+
+    def display(self, trackers):
+
+        something_to_show = False
+        for tracker_nb, tracker in enumerate(trackers): 
+            if tracker.enabled:
+                tracker.fill_display(self, tracker_nb)
+                something_to_show = True
+
+        self.ax.imshow(self.latest_frame_to_show)
+
+        if len(self.latest_detections): 
+            self.ax.scatter(self.latest_detections[:, 0], self.latest_detections[:, 1], c='r', s=40)
+            
+        if something_to_show: 
+            self.ax.xaxis.tick_top()
+            plt.legend(handles=self.legends)
+            self.fig.canvas.draw()
+            plt.show()
+            while not plt.waitforbuttonpress():
+                continue
+            self.ax.cla()
+            self.legends = []
+
+    def update_detections_and_frame(self, latest_detections, frame):
+        self.latest_detections = latest_detections
+        self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
+
+class VideoReader:
+
+    def __init__(self, video_filename):
+        self.video = cv2.VideoCapture(video_filename)
+
+    def __next__(self):
+        ret, frame = self.video.read()
+        if ret: 
+            return resize_for_network_input(frame)
+        raise StopIteration
+
+    def __iter__(self):
+        return self
+    
+    def init(self):
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+display = Display(on=False)
 
 def detect_base_extension(frame, threshold, base_model, extension_model):
 
@@ -90,26 +134,10 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
-    global legends
     confidence_functions = dict()
-    if display.on: 
-        display.ax.imshow(display.latest_frame_to_show)
     for tracker_nb, tracker in enumerate(trackers):
         if tracker.enabled:
-            confidence_functions[tracker_nb] = tracker.build_confidence_function(flow01, tracker_nb, display)
-
-    if display.on:
-        if len(display.latest_detections): 
-            display.ax.scatter(display.latest_detections[:, 0], display.latest_detections[:, 1], c='r', s=40)
-
-        display.ax.xaxis.tick_top()
-        plt.legend(handles=display.legends)
-        fig.canvas.draw()
-        plt.show()
-        while not plt.waitforbuttonpress():
-            continue
-        display.ax.cla()
-        display.legends = []
+            confidence_functions[tracker_nb] = tracker.build_confidence_function(flow01)
 
     return confidence_functions
 
@@ -118,25 +146,25 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     init = False
     trackers = dict()
     frame_nb = 0
-    frame0, old_shape, new_shape  = next(reader)
-
-    downsampled_shape = (new_shape[1] // args.downsampling_factor, new_shape[0] // args.downsampling_factor)
+    frame0, _ , new_shape  = next(reader)
     detections_for_frame = detections[frame_nb]
 
-    if display.on:
-        display.latest_detections = detections_for_frame        
-        display.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame0, downsampled_shape), cv2.COLOR_BGR2RGB)
+    if display.on: 
+        display.display_shape = (new_shape[1] // args.downsampling_factor, new_shape[0] // args.downsampling_factor)
+        display.update_detections_and_frame(detections_for_frame, frame0)
+
 
     if len(detections_for_frame):
         trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, args.stop_tracking_threshold)
         init = True
 
+    if display.on: display.display(trackers)
+
     for frame_nb in tqdm(range(1,len(detections))):
+
         detections_for_frame = detections[frame_nb]
         frame1 = next(reader)[0]
-        if display.on:
-            display.latest_detections = detections_for_frame
-            display.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame1, downsampled_shape), cv2.COLOR_BGR2RGB)
+        if display.on: display.update_detections_and_frame(detections_for_frame, frame1)
 
         if not init:
             if len(detections_for_frame):
@@ -146,16 +174,13 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
         else:
 
             new_trackers = []
-            if display.on:
-                flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
-                confidence_functions_for_trackers = build_confidence_function_for_trackers(trackers, flow01)
+            flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
+
             if len(detections_for_frame):
-                if not display.on:
-                    flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
-                    confidence_functions_for_trackers = build_confidence_function_for_trackers(trackers, flow01)
+                confidence_functions_for_trackers = build_confidence_function_for_trackers(trackers, flow01)
                 assigned_trackers = -np.ones(len(detections_for_frame), dtype=int)
                 assignment_confidences = -np.ones(len(detections_for_frame))
-
+                
                 if len(confidence_functions_for_trackers):
                     for detection_nb in range(len(detections_for_frame)):
 
@@ -186,7 +211,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                     assigned_tracker = assigned_trackers[detection_nb]
                     if assigned_tracker == -1:
                         new_trackers.append(
-                            engine(frame_nb, detection, state_variance, observation_variance, stop_tracking_threshold=args.stop_tracking_threshold, algorithm=args.algorithm))
+                            engine(frame_nb, detection, state_variance, observation_variance, stop_tracking_threshold=args.stop_tracking_threshold))
                     else:
                         trackers[assigned_tracker].update(
                             detection, flow01, frame_nb)
@@ -196,8 +221,10 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
             if len(new_trackers):
                 trackers.extend(new_trackers)
-             
+
+        if display.on: display.display(trackers)
         frame0 = frame1.copy()
+
 
     results = []
     tracklets = [tracker.tracklet for tracker in trackers]
@@ -210,25 +237,8 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                 (associated_detection[0], tracker_nb, associated_detection[1][0], associated_detection[1][1]))
 
     results = sorted(results, key=lambda x: x[0])
-
+ 
     return results
-
-class VideoReader:
-
-    def __init__(self, video_filename):
-        self.video = cv2.VideoCapture(video_filename)
-
-    def __next__(self):
-        ret, frame = self.video.read()
-        if ret: 
-            return resize_for_network_input(frame)
-        raise StopIteration
-
-    def __iter__(self):
-        return self
-    
-    def init(self):
-        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
 def main(args):
 
@@ -257,8 +267,8 @@ def main(args):
 
         for video in annotations['videos']:
 
-            # video = [video_annotation for video_annotation in annotations['videos']
-            #          if video_annotation['file_name'] == 'leloing__5'][0]  # debug
+            video = [video_annotation for video_annotation in annotations['videos']
+                     if video_annotation['file_name'] == 'leloing__5'][0]  # debug
             filenames_for_video = gather_filenames_for_video_in_annotations(video, annotations['images'], args.data_dir)
             reader = (resize_for_network_input(cv2.imread(filename)) for filename in filenames_for_video)
             _ , old_shape, new_shape = resize_for_network_input(cv2.imread(filenames_for_video[0])) 
@@ -335,7 +345,6 @@ def main(args):
                 detections = detections_resized
 
             reader.init()
-
 
             results = track_video(
                 reader, detections, args, engine, state_variance, observation_variance)

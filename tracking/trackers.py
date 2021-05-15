@@ -2,8 +2,6 @@ import numpy as np
 from scipy.stats import multivariate_normal
 from tracking.utils import in_frame, exp_and_normalise, GaussianMixture
 from pykalman import KalmanFilter
-
-
 import matplotlib.patches as mpatches
 
 class Tracker:
@@ -25,12 +23,12 @@ class Tracker:
     def update_status(self, flow):
         if self.enabled and not self.updated:
             self.countdown += 1
-            self.update(None, flow)
+            self.enabled = self.update(None, flow)
         else:
             self.countdown = 0
         self.updated = False
 
-    def build_confidence_function(self, flow, tracker_nb=None, display=None):
+    def build_confidence_function(self, flow):
 
         def confidence_from_multivariate_distribution(coord, distribution):
 
@@ -47,7 +45,7 @@ class Tracker:
                 - distribution.cdf(left_top) \
                 + distribution.cdf(left_low)
 
-        distribution = self.predictive_distribution(flow, tracker_nb, display=display)
+        distribution = self.predictive_distribution(flow)
         
         return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
 
@@ -110,7 +108,7 @@ class SMC(Tracker):
             a=len(self.particles), p=self.normalized_weights, size=len(self.particles))
         self.particles = self.particles[resampling_indices]
 
-    def predictive_distribution(self, flow, tracker_nb=None, nb_new_particles=5, display=None):
+    def predictive_distribution(self, flow, nb_new_particles=5):
         new_particles = []
         new_weights = []
 
@@ -128,13 +126,15 @@ class SMC(Tracker):
 
         new_particles = np.array(new_particles)
 
-        if display.on: 
-            if len(new_particles):
-                colors = display.colors
-                display.ax.scatter(new_particles[:,0], new_particles[:,1], s=5, c=colors[tracker_nb])
-                display.legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
+
 
         return GaussianMixture(new_particles, self.observation_covariance, new_weights)
+
+    def fill_display(self, display, tracker_nb):
+        colors = display.colors
+        display.ax.scatter(self.particles[:,0], self.particles[:,1], s=5, c=colors[tracker_nb])
+        display.legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
+
 
 class Kalman(Tracker): 
 
@@ -162,7 +162,7 @@ class Kalman(Tracker):
 
         return enabled
 
-    def predictive_distribution(self, flow, tracker_nb=None, display=None):
+    def predictive_distribution(self, flow):
         global legends
         transition_offset = flow[max(0, int(self.filtered_state_mean[1])), max(0, int(self.filtered_state_mean[0])), :]
 
@@ -173,14 +173,17 @@ class Kalman(Tracker):
 
         distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance)
 
-        if display.on: 
-            colors = display.colors
-            yy, xx = np.mgrid[0:flow.shape[0]:1, 0:flow.shape[1]:1]
-            pos = np.dstack((xx, yy))            
-            display.ax.contour(distribution.pdf(pos), colors=colors[tracker_nb])
-            display.legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
-
         return distribution
+    
+    def fill_display(self, display, tracker_nb):
+        colors = display.colors
+        yy, xx = np.mgrid[0:display.display_shape[1]:1, 0:display.display_shape[0]:1]
+        pos = np.dstack((xx, yy))    
+        distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
+        
+        display.ax.contour(distribution.pdf(pos), colors=colors[tracker_nb])
+        display.legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
+
 
 trackers = {'Kalman':Kalman,
            'SMC':SMC}

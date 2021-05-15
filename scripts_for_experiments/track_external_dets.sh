@@ -14,7 +14,7 @@ python -m debugpy --listen 5678 --wait-for-client track.py \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
     --stop_tracking_threshold 5 \
     --external_detections_dir ${external_detections_dir} \
-    --algorithm 'SMC' \
+    --algorithm 'Kalman' \
     --read_from 'annotations' \
     --detector 'external_mot' \
     --tracker_parameters_dir 'data/tracking_parameters'
