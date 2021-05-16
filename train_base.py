@@ -202,7 +202,7 @@ def main(args):
             lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
     else:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, step_size=71, gamma=0.1)
+            optimizer, step_size=150, gamma=0.1)
 
     # lr_scheduler = None
 

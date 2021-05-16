@@ -131,7 +131,7 @@ def detect_internal(reader, detector):
 
     detections = []
 
-    for frame in tqdm(reader):
+    for (frame, _ , _ )in tqdm(reader):
 
         detections_for_frame = detector(frame)
         if len(detections_for_frame): detections.append(detections_for_frame)
