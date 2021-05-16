@@ -5,20 +5,18 @@ import random
 import torch
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
-import copy
 from common.utils import blob_for_bbox
 
-import math 
 def pad_if_smaller(img, crop_h, crop_w, fill=0):
-    min_size = min(img.size)
-    padded=False
-    if min_size < crop_h:
-        ow, oh = img.size
+
+    ow, oh = img.size
+    padded_both=False
+    if oh < crop_h or ow < crop_w:
         padh = crop_h - oh if oh < crop_h else 0
         padw = crop_w - ow if ow < crop_w else 0
         img = F.pad(img, (0, 0, padw, padh), fill=fill)
-        padded=True
-    return img, padded
+        padded_both = padh !=0 and padw !=0
+    return img, padded_both
 
 
 class Compose(object):
@@ -52,10 +50,10 @@ class RandomResizeBboxes(object):
         self.max_size = max_size
 
     def __call__(self, image, target):
-        old_h, old_w = image.size
+        old_w, old_h = image.size
         size = random.randint(self.min_size, self.max_size)
         image = F.resize(image, size)
-        new_h, new_w = image.size
+        new_w, new_h = image.size
         ratio_h = new_h/old_h
         ratio_w = new_w/old_w
         for bbox_nb, bbox in enumerate(target['bboxes']):
@@ -112,12 +110,12 @@ class RandomCropBboxes(object):
 
     def __call__(self, image, target):
 
-        image, padded = pad_if_smaller(image, self.h, self.w)
+        image, padded_both = pad_if_smaller(image, self.h, self.w)
         crop_params = T.RandomCrop.get_params(image, (self.h, self.w))
         image = F.crop(image, *crop_params)
         new_w, new_h = image.size
 
-        if not padded: 
+        if not padded_both: 
             limit_top = crop_params[0]
             limit_bottom = crop_params[0] + crop_params[2]
             limit_left = crop_params[1]

@@ -43,12 +43,8 @@ def get_transform(train, num_classes, args):
         return presets.SegmentationPresetTrain(base_size, crop_size) if train else presets.SegmentationPresetEval(base_size)
 
     else:
-        if args.dataset == 'surfrider_video_frames':
-            base_size = 544
-            crop_size = (544, 960)
-        else:
-            base_size = 512
-            crop_size = (512, 512)
+        base_size = 544
+        crop_size = (544, 960)
         return presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, crop_size, num_classes, args.downsampling_factor)
 
 

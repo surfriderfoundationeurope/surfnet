@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import torch
 
+plt.ion()
+fig, (ax0, ax1) = plt.subplots(1,2)
 
 class Args(object):
     def __init__(self, data_path, dataset, downsampling_factor, old_train):
@@ -13,7 +15,7 @@ class Args(object):
         self.data_path = data_path
 
 
-args = Args('./data/synthetic_videos_dataset/','surfrider_video_frames',downsampling_factor=4,old_train=False)
+args = Args('./data/surfrider_images/','surfrider', downsampling_factor=1, old_train=False)
 
 from train_base import get_dataset
 
@@ -22,10 +24,11 @@ dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)
 for image, target in dataset: 
     image = np.transpose(image.numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
     target = target[0]
-    fig, (ax0, ax1) = plt.subplots(1,2)
     ax0.imshow(image)
     ax1.imshow(target,cmap='gray',vmin=0,vmax=1)
     plt.show()
+    while not plt.waitforbuttonpress(): continue 
+    plt.cla()
 
 # args = Args('data/surfrider_images','surfrider', 4, False)
 
