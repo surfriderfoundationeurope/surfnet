@@ -13,7 +13,7 @@ python -m debugpy --listen 5678 --wait-for-client track.py \
     --stop_tracking_threshold 5 \
     --algorithm 'Kalman' \
     --read_from 'folder' \
-    --detector 'internal_base' \
+    --detector 'external_pickle' \
     --tracker_parameters_dir 'data/tracking_parameters' \
     --base_weights 'experiments/base/dla_34_downsample_4_alpha_2_beta_4_lr_1.25e-4_batch_size_32_single_class_rectangular_shape/model_70.pth'
 

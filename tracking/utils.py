@@ -161,7 +161,7 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
                 detections.append(np.array([]))
 
 
-    elif file_type == 'pickle':
+    elif file_type == 'CenterTrackpickle':
         with open(detections_filename, 'rb') as f:
             detections_read = pickle.load(f)
         
@@ -171,6 +171,10 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
             if len(detections_for_frame): 
                 detections.append(np.concatenate([detection['ct'].reshape(1,2) for detection in detections_for_frame]))
             else: detections.append(np.array([]))
+    
+    elif file_type == 'simplepickle':
+        with open(detections_filename, 'rb') as f:
+            detections = pickle.load(f)
 
     return detections 
 

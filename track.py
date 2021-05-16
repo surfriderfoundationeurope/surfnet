@@ -249,14 +249,15 @@ def main(args):
             else:
                 detections_filename = os.path.join(args.external_detections_dir, video_filename.split('.')[0]+'.pickle')
                 detections = detect_external(detections_filename=detections_filename, file_type=args.detector.split('_')[1], nb_frames=None)
-                detections_resized = []
-                for detection in detections:
-                    if len(detection):
-                        detections_resized.append(
-                            np.array([1/ratio_x, 1/ratio_y])*detection)
-                    else:
-                        detections_resized.append(detection)
-                detections = detections_resized
+                if not args.detector.split('_')[1] == 'simplepickle':
+                    detections_resized = []
+                    for detection in detections:
+                        if len(detection):
+                            detections_resized.append(
+                                np.array([1/ratio_x, 1/ratio_y])*detection)
+                        else:
+                            detections_resized.append(detection)
+                    detections = detections_resized
 
             reader.init()
 
