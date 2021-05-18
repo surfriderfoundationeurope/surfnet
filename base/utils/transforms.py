@@ -3,6 +3,7 @@ from PIL import Image
 import random
 
 import torch
+from torch import Tensor
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
 from common.utils import blob_for_bbox
@@ -281,7 +282,34 @@ class RandomResizeImageOnly(object):
         return image
 
 
-    
+class ColorJitter:
+    def __init__(self):
+        self.image_transformer = T.ColorJitter()
+
+    def forward(self, image, target):
+        image = self.image_transformer.forward(image)
+        return image, target
+
+# class RandomRotation(T.RandomRotation):
+#     def __init__(self, degrees):
+#         super().__init__(degrees)
+
+#     def forward(self, img):
+#         fill = self.fill
+#         if isinstance(img, Tensor):
+#             if isinstance(fill, (int, float)):
+#                 fill = [float(fill)] * F._get_image_num_channels(img)
+#             else:
+#                 fill = [float(f) for f in fill]
+#         angle = self.get_params(self.degrees)
+
+#         image = F.rotate(img, angle, self.resample, self.expand, self.center, fill)
+
+
+
+
+
+
 
 # def blob_for_bbox(bbox, shape_x, shape_y, downsampling_factor):
 

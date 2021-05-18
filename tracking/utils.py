@@ -192,7 +192,7 @@ class VideoReader:
             self.first_frame_read = True
         else:
             for _ in range(self.skip_frames): 
-                ret, frame = self.video.read()
+                self.video.read()
         ret, frame = self.video.read()
         if ret: 
             return cv2.resize(frame, self.output_shape)

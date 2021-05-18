@@ -32,6 +32,7 @@ class SegmentationPresetTrainBboxes:
             T.RandomCropBboxes(crop_size),
             T.ToTensorBboxes(num_classes, downsampling_factor),
             T.Normalize(mean=mean, std=std),
+            T.ColorJitter()
         ])
         self.transforms = T.Compose(trans)
 

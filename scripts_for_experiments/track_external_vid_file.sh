@@ -1,12 +1,12 @@
 . scripts_for_experiments/shell_variables.sh 
 
-experiment_name='real_vid_centertrack'
+experiment_name='external_mine_544_960_half_fps_threshold_04'
 output_dir='experiments/tracking/'${experiment_name}
-external_detections_dir='data/detector_results/real_val/CenterTrack'
+external_detections_dir='data/detector_results/real_val/mine/threshold_04'
 create_clean_directory $output_dir 
 
 python track.py \
-    --data_dir '/home/infres/chagneux/datasets/surfrider_data/video_dataset/true_validation/T1' \
+    --data_dir '/home/mathis/Documents/datasets/surfrider/videos/gopro_video/true_validation/videos/T1/good_one' \
     --output_dir ${output_dir} \
     --confidence_threshold 0.2 \
     --detection_threshold 0.33 \
@@ -15,8 +15,11 @@ python track.py \
     --external_detections_dir ${external_detections_dir} \
     --algorithm 'Kalman' \
     --read_from 'folder' \
-    --detector 'external_CenterTrackpickle' \
-    --tracker_parameters_dir 'data/tracking_parameters'
+    --detector 'external_simplepickle' \
+    --tracker_parameters_dir 'data/tracking_parameters' \
+    --output_w 960 \
+    --output_h 544 \
+    --skip_frames 1
 
 
 

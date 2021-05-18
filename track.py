@@ -34,6 +34,7 @@ class Display:
             self.ax.xaxis.tick_top()
             plt.legend(handles=self.legends)
             self.fig.canvas.draw()
+            plt.title('Raw count: {}'.format(len(trackers)))
             plt.show()
             while not plt.waitforbuttonpress():
                 continue
@@ -66,7 +67,6 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     if display.on: 
         display.display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
         display.update_detections_and_frame(detections_for_frame, frame0)
-
 
     if len(detections_for_frame):
         trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, args.stop_tracking_threshold)
@@ -142,8 +142,8 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
     results = []
     tracklets = [tracker.tracklet for tracker in trackers]
-    tracklets = [tracklet for tracklet in tracklets if len(
-        tracklet) > args.stop_tracking_threshold]
+    tracklets = [tracklet for tracklet in tracklets if len(tracklet) > args.stop_tracking_threshold]
+    
 
     for tracker_nb, associated_detections in enumerate(tracklets):
         for associated_detection in associated_detections:
@@ -217,7 +217,7 @@ def main(args):
                 detections = detections_resized
 
             with open(output_filename.split('.')[0]+'.pickle','wb') as f:
-                pickle.dump(detections,f)
+                pickle.dump(detections, f)
 
             results = track_video(
                 reader, detections, args, engine, state_variance, observation_variance)
@@ -257,6 +257,10 @@ def main(args):
 
             if args.detector.split('_')[0] == 'internal':
                 detections = detect_internal(reader, detector)
+                detections_save_folder = os.path.join(args.output_dir,'detections')
+                os.mkdir(detections_save_folder)
+                with open(os.path.join(detections_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:
+                    pickle.dump(detections,f)
             else:
                 detections_filename = os.path.join(args.external_detections_dir, video_filename.split('.')[0]+'.pickle')
                 detections = detect_external(detections_filename=detections_filename, file_type=args.detector.split('_')[1], nb_frames=None)
@@ -271,8 +275,6 @@ def main(args):
                     detections = detections_resized
 
 
-            with open(output_filename.split('.')[0]+'.pickle','wb') as f:
-                pickle.dump(detections,f)
                 
             results = track_video(
                 reader, detections, args, engine, state_variance, observation_variance)

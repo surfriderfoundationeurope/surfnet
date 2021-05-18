@@ -6,6 +6,7 @@ pylab.rcParams['figure.figsize'] = (8.0, 10.0)
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 from PIL import Image, ImageFile
+import os 
 
 def draw_bbox(anns):
     """
@@ -31,24 +32,28 @@ def draw_bbox(anns):
     p = PatchCollection(polygons, facecolor='none', edgecolors=color, linewidths=2)
     ax.add_collection(p)
 
-dir = 'data/synthetic_videos_dataset/'
+dir = 'data/surfrider_images'
 
-ann_dir = dir+'annotations/'
-data_dir = dir+'data/'
-ann_file = ann_dir + 'annotations_train.json'
+ann_dir = os.path.join(dir,'annotations')
+data_dir = os.path.join(dir,'images')
+ann_file = os.path.join(ann_dir, 'annotations.json')
 coco = COCO(ann_file)
 
 imgIds = np.array(coco.getImgIds())
-permutation = np.random.permutation(imgIds.shape[0])
+# permutation = np.random.permutation(imgIds.shape[0])
 
-for imgId in imgIds[permutation]:
+plt.ion()
+
+for imgId in imgIds:
     image = coco.loadImgs(ids=[imgId])[0]
-    plt.imshow(Image.open(data_dir+image['file_name']))
+    plt.imshow(Image.open(os.path.join(data_dir,image['file_name'])))
     
     annIds = coco.getAnnIds(imgIds=[imgId],catIds=[1])
     anns = coco.loadAnns(ids=annIds)
     draw_bbox(anns)
     plt.show()
+    while not plt.waitforbuttonpress(): continue
+    plt.cla()
 
 
 

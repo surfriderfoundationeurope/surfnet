@@ -15,6 +15,7 @@ class Tracker:
         self.enabled = True
         self.stop_tracking_threshold = stop_tracking_threshold
         self.tracklet = [(frame_nb, X0)]
+        self.summed_countdown = 0 
 
     def update(self, observation, frame_nb):
         self.tracklet.append((frame_nb, observation))
@@ -23,6 +24,7 @@ class Tracker:
     def update_status(self, flow):
         if self.enabled and not self.updated:
             self.countdown += 1
+            self.summed_countdown+=1
             self.enabled = self.update(None, flow)
         else:
             self.countdown = 0
@@ -48,6 +50,12 @@ class Tracker:
         distribution = self.predictive_distribution(flow)
         
         return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
+    
+    def fill_display(self, display, tracker_nb):
+        colors = display.colors
+        color = colors[tracker_nb % len(colors)]
+        display.legends.append(mpatches.Patch(color=color, label=self.countdown))
+        return colors[tracker_nb % len(colors)]
 
 class SMC(Tracker): 
 
@@ -131,10 +139,8 @@ class SMC(Tracker):
         return GaussianMixture(new_particles, self.observation_covariance, new_weights)
 
     def fill_display(self, display, tracker_nb):
-        colors = display.colors
-        display.ax.scatter(self.particles[:,0], self.particles[:,1], s=5, c=colors[tracker_nb])
-        display.legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
-
+        color = super().fill_display(display, tracker_nb)
+        display.ax.scatter(self.particles[:,0], self.particles[:,1], s=5, c=color)
 
 class Kalman(Tracker): 
 
@@ -176,13 +182,12 @@ class Kalman(Tracker):
         return distribution
     
     def fill_display(self, display, tracker_nb):
-        colors = display.colors
         yy, xx = np.mgrid[0:display.display_shape[1]:1, 0:display.display_shape[0]:1]
         pos = np.dstack((xx, yy))    
         distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
-        
-        display.ax.contour(distribution.pdf(pos), colors=colors[tracker_nb])
-        display.legends.append(mpatches.Patch(color=colors[tracker_nb], label=self.countdown))
+
+        color = super().fill_display(display, tracker_nb)
+        display.ax.contour(distribution.pdf(pos), colors=color)
 
 
 trackers = {'Kalman':Kalman,
