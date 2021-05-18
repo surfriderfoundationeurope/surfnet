@@ -3,10 +3,10 @@ import json
 import numpy as np
 import os
 from tqdm import tqdm
-from tracking.utils import init_trackers, compute_flow, load_base, load_extension, resize_for_network_input, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal, VideoReader
+from tracking.utils import init_trackers, compute_flow, load_base, load_extension, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal, VideoReader
 from tracking.trackers import trackers
 import matplotlib.pyplot as plt
-
+import pickle
 
 class Display:
 
@@ -60,11 +60,11 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     init = False
     trackers = dict()
     frame_nb = 0
-    frame0, _ , new_shape  = next(reader)
+    frame0 = next(reader)
     detections_for_frame = detections[frame_nb]
 
     if display.on: 
-        display.display_shape = (new_shape[1] // args.downsampling_factor, new_shape[0] // args.downsampling_factor)
+        display.display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
         display.update_detections_and_frame(detections_for_frame, frame0)
 
 
@@ -77,7 +77,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     for frame_nb in tqdm(range(1,len(detections))):
 
         detections_for_frame = detections[frame_nb]
-        frame1 = next(reader)[0]
+        frame1 = next(reader)
         if display.on: display.update_detections_and_frame(detections_for_frame, frame1)
 
         if not init:
@@ -184,10 +184,19 @@ def main(args):
             video = [video_annotation for video_annotation in annotations['videos']
                      if video_annotation['file_name'] == 'leloing__5'][0]  # debug
             filenames_for_video = gather_filenames_for_video_in_annotations(video, annotations['images'], args.data_dir)
-            reader = (resize_for_network_input(cv2.imread(filename)) for filename in filenames_for_video)
-            _ , old_shape, new_shape = resize_for_network_input(cv2.imread(filenames_for_video[0])) 
-            ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor)
-            ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
+
+            input_shape = cv2.imread(filenames_for_video[0]).shape[::-1]
+            if args.output_shape is None:
+                h, w = input_shape
+                new_h = (h | 31) + 1
+                new_w = (w | 31) + 1
+                output_shape = (new_w, new_h)
+            else: 
+                output_shape = args.output_shape
+
+            reader = (cv2.resize(cv2.imread(filename), output_shape) for filename in filenames_for_video)
+            ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
+            ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
             output_filename = os.path.join(
                 args.output_dir, video['file_name']+'.txt')
@@ -207,6 +216,8 @@ def main(args):
                         detections_resized.append(detection)
                 detections = detections_resized
 
+            with open(output_filename.split('.')[0]+'.pickle','wb') as f:
+                pickle.dump(detections,f)
 
             results = track_video(
                 reader, detections, args, engine, state_variance, observation_variance)
@@ -232,16 +243,16 @@ def main(args):
 
         for video_filename in video_filenames: 
 
-            reader = VideoReader(os.path.join(args.data_dir,video_filename))
+            reader = VideoReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
             output_filename = os.path.join(
                 args.output_dir, video_filename.split('.')[0] +'.txt')
             output_file = open(output_filename, 'w')
 
-            _ , old_shape, new_shape = next(reader)
-            reader.init()
-            ratio_y = old_shape[0] / (new_shape[0] // args.downsampling_factor)
-            ratio_x = old_shape[1] / (new_shape[1] // args.downsampling_factor)
+            input_shape = reader.input_shape
+            output_shape = reader.output_shape
+            ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
+            ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
 
             if args.detector.split('_')[0] == 'internal':
@@ -259,8 +270,10 @@ def main(args):
                             detections_resized.append(detection)
                     detections = detections_resized
 
-            reader.init()
 
+            with open(output_filename.split('.')[0]+'.pickle','wb') as f:
+                pickle.dump(detections,f)
+                
             results = track_video(
                 reader, detections, args, engine, state_variance, observation_variance)
 
@@ -299,6 +312,16 @@ if __name__ == '__main__':
     parser.add_argument('--algorithm', type=str, default='Kalman')
     parser.add_argument('--read_from',type=str)
     parser.add_argument('--tracker_parameters_dir',type=str)
+    parser.add_argument('--skip_frames',type=int,default=0)
+    parser.add_argument('--output_w',type=int,default=None)
+    parser.add_argument('--output_h',type=int,default=None)
+
     args = parser.parse_args()
+
+    if args.output_w is not None:
+        args.output_shape = (args.output_w, args.output_h)
+    else: 
+        args.output_shape = None
+
 
     main(args)

@@ -75,16 +75,8 @@ def load_base(base_weights):
     base_model.eval()
     return base_model
 
-def resize_for_network_input(frame):
-    h, w = frame.shape[:-1]
-    new_h = (h | 31) + 1
-    new_w = (w | 31) + 1
-    frame = cv2.resize(frame, (new_w, new_h))
-    new_shape = (new_h, new_w)
-    old_shape = (h, w)
-    return frame, old_shape, new_shape
 
-
+    
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
     images_for_video = [image for image in images
                         if image['video_id'] == video['id']]
@@ -131,12 +123,13 @@ def detect_internal(reader, detector):
 
     detections = []
 
-    for (frame, _ , _ )in tqdm(reader):
+    for frame in tqdm(reader):
 
         detections_for_frame = detector(frame)
         if len(detections_for_frame): detections.append(detections_for_frame)
         else: detections.append(np.array([]))
 
+    reader.init()
     return detections
 
 def detect_external(detections_filename, file_type='mot', nb_frames=None):
@@ -181,13 +174,28 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
 
 class VideoReader:
 
-    def __init__(self, video_filename):
+    def __init__(self, video_filename, skip_frames=0, output_shape=None):
         self.video = cv2.VideoCapture(video_filename)
-
+        self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.skip_frames = skip_frames
+        self.first_frame_read = False
+        if output_shape is None: 
+            w, h = self.input_shape
+            new_h = (h | 31) + 1
+            new_w = (w | 31) + 1
+            self.output_shape = (new_w, new_h)
+        else:
+            self.output_shape = output_shape
+            
     def __next__(self):
+        if not self.first_frame_read:
+            self.first_frame_read = True
+        else:
+            for _ in range(self.skip_frames): 
+                ret, frame = self.video.read()
         ret, frame = self.video.read()
         if ret: 
-            return resize_for_network_input(frame)
+            return cv2.resize(frame, self.output_shape)
         raise StopIteration
 
     def __iter__(self):
@@ -195,3 +203,4 @@ class VideoReader:
     
     def init(self):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.first_frame_read = False

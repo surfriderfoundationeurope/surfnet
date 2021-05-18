@@ -43,12 +43,13 @@ if parallel:
     ray.init()
 
 class Args(object):
-    def __init__(self, focal, data_path, dataset, downsampling_factor, batch_size):
-        self.focal = focal
-        self.data_path = data_path
-        self.dataset = dataset
+    def __init__(self, data_path, dataset, downsampling_factor, old_train):
+        self.old_train = old_train
         self.downsampling_factor = downsampling_factor
-        self.batch_size = batch_size
+        self.dataset = dataset
+        self.data_path = data_path
+
+
 
 def plot_single_image_and_heatmaps(image, heatmaps, normalize):
 
@@ -264,7 +265,7 @@ def load_extension(extension_weights, intermediate_layer_size=32):
     return extension_model
 
 def load_base(base_weights):
-    base_model = create_model_centernet('dla_34', heads = {'hm':3,'wh':2}, head_conv=256)
+    base_model = create_model_centernet('dla_34', heads = {'hm':1,'wh':2}, head_conv=256)
     base_model = load_my_model(base_model, base_weights)
     for param in base_model.parameters():
         param.requires_grad = False 
@@ -298,11 +299,12 @@ def extract_heatmaps_extension_from_base_heatmaps(extension_weights, annotations
             pickle.dump(torch.stack(ground_truth),f) 
 
 def extract_heatmaps_extension_from_images(base_weights, extension_weights, input_dir):
-    args = Args(focal=True, data_path=input_dir, dataset='surfrider',downsampling_factor=4, batch_size=1)
-    dataset = get_dataset(input_dir,'surfrider','val', args)[0]
-    loader_test = DataLoader(dataset, shuffle=False, batch_size=args.batch_size)
+
+    args = Args(input_dir, 'surfrider', downsampling_factor=4, old_train=False)
+    dataset, _  = get_dataset(args.data_path, args.dataset, "val", args)
+    loader_test = DataLoader(dataset, shuffle=False, batch_size=1)
     base_model = load_base(base_weights)
-    extension_model = load_extension(extension_weights)
+    if extension_weights is not None: extension_model = load_extension(extension_weights)
 
     with torch.no_grad():
         base_predictions = list()
@@ -311,18 +313,19 @@ def extract_heatmaps_extension_from_images(base_weights, extension_weights, inpu
 
         for (X, target) in tqdm(loader_test):
             X = X.to('cuda')
-            target = torch.max(target[:,:-2,:,:], dim=1)[0]
-            Z = torch.max(base_model(X)[-1]['hm'],dim=1,keepdim=True)[0]
-            h = extension_model(Z)
+            target = target[:,0,:,:]
+            Z = base_model(X)[-1]['hm']
+            if extension_weights is not None: h = extension_model(Z)
 
-            base_predictions.append(torch.sigmoid(Z).cpu()[0][0])
-            extension_predictions.append(torch.sigmoid(h).cpu()[0][0])
-            ground_truth.append(target[0])
+            base_predictions.append(torch.sigmoid(Z).cpu().squeeze())
+            if extension_weights is not None: extension_predictions.append(torch.sigmoid(h).cpu()[0][0])
+            ground_truth.append(target.squeeze())
 
         with open('base_predictions.pickle','wb') as f: 
             pickle.dump(torch.stack(base_predictions),f)
-        with open('extension_predictions.pickle','wb') as f: 
-            pickle.dump(torch.stack(extension_predictions),f)     
+        if extension_weights is not None:
+            with open('extension_predictions.pickle','wb') as f: 
+                pickle.dump(torch.stack(extension_predictions),f)     
         with open('ground_truth.pickle','wb') as f: 
             pickle.dump(torch.stack(ground_truth),f)     
 
@@ -647,35 +650,35 @@ if __name__ == '__main__':
     # data_dir='data/extracted_heatmaps/dla_34_downsample_4_alpha_2_beta_4_lr_6.25e-5_single_class_video_frames'
     # # input_dir = 'data/extracted_heatmaps/'
     # extract_heatmaps_extension_from_base_heatmaps(extension_weights=extension_weights, annotations_dir=annotations_dir, data_dir=data_dir, split='val')
-    # extract_heatmaps_extension_from_images(base_weights='external_pretrained_models/centernet_pretrained.pth', extension_weights='external_pretrained_models/surfnet32.pth', input_dir='data/surfrider_images')
+    # extract_heatmaps_extension_from_images(base_weights='experiments/base/dla_34_downsample_4_alpha_2_beta_4_lr_1.25e-4_batch_size_32_single_class_rectangular_shape/model_70.pth', extension_weights=None, input_dir='data/surfrider_images')
    
     # compute_ROC_curves_brute('data_to_evaluate.pickle')
 
 
-    eval_dir = 'experiments/evaluations/multi_object_single_class_base_retrained_video_frames'
+    eval_dir = 'experiments/evaluations/real_images_test_split'
 
-    with open(os.path.join(eval_dir,'ground_truth.pickle'),'rb') as f: 
-        gt = pickle.load(f)
-    # with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
-    #     predictions_extension = pickle.load(f)
-    with open(os.path.join(eval_dir,'base_predictions.pickle'),'rb') as f: 
-        predictions_base = pickle.load(f)
-    permutation = np.random.permutation(gt.shape[0])
+    # with open(os.path.join(eval_dir,'ground_truth.pickle'),'rb') as f: 
+    #     gt = pickle.load(f)
+    # # # with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
+    # # #     predictions_extension = pickle.load(f)
+    # with open(os.path.join(eval_dir,'base_predictions.pickle'),'rb') as f: 
+    #     predictions_base = pickle.load(f)
+    # # permutation = np.random.permutation(gt.shape[0])
 
-    # gt = gt[permutation]
-    # predictions_base = predictions_base[permutation]
-    # # # predictions_extension = predictions_extension[permutation]
+    # # # gt = gt[permutation]
+    # # # predictions_base = predictions_base[permutation]
+    # # # # # predictions_extension = predictions_extension[permutation]
     
 
 
-    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
-    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation_base_nms_retrained_video_frames', enable_nms=True)
-    # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
-    # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation_extension_nms_retrained_video_frames', enable_nms=True)
+    # # # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
+    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation_base_nms', enable_nms=True)
+    # # # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
+    # # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation_extension_nms_retrained_video_frames', enable_nms=True)
 
 
-    # pr_curve_from_file('Evaluation base.pickle')
-    pr_curve_from_file('Evaluation_base_nms_retrained_video_frames.pickle')
+    # # # pr_curve_from_file('Evaluation base.pickle')
+    pr_curve_from_file(os.path.join(eval_dir,'Evaluation_base_nms.pickle'))
     # pr_curve_from_file('Evaluation extension.pickle')
     # pr_curve_from_file('Evaluation_extension_nms_retrained_video_frames.pickle', show=True)
 
