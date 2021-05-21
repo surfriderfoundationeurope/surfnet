@@ -55,7 +55,7 @@ def in_frame(position, shape):
     x = position[0]
     y = position[1]
 
-    return x > 0 and x < shape_x and y > 0 and y < shape_y
+    return x > 0 and x < shape_x-1 and y > 0 and y < shape_y-1
 
 def load_extension(extension_weights, intermediate_layer_size=32):
     extension_model = SurfNet(intermediate_layer_size)

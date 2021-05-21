@@ -15,7 +15,8 @@ class Tracker:
         self.enabled = True
         self.stop_tracking_threshold = stop_tracking_threshold
         self.tracklet = [(frame_nb, X0)]
-        self.summed_countdown = 0 
+        self.summed_countdown = 0
+        self.unstable = False
 
     def update(self, observation, frame_nb):
         self.tracklet.append((frame_nb, observation))
@@ -29,6 +30,11 @@ class Tracker:
         else:
             self.countdown = 0
         self.updated = False
+
+        # if self.summed_countdown > 2*self.stop_tracking_threshold:
+        #     self.unstable = True
+        #     self.enabled = False
+
 
     def build_confidence_function(self, flow):
 

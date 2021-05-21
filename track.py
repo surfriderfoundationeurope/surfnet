@@ -141,7 +141,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
 
     results = []
-    tracklets = [tracker.tracklet for tracker in trackers]
+    tracklets = [tracker.tracklet for tracker in trackers if not tracker.unstable]
     tracklets = [tracklet for tracklet in tracklets if len(tracklet) > args.stop_tracking_threshold]
     
 
@@ -269,7 +269,7 @@ def main(args):
                     for detection in detections:
                         if len(detection):
                             detections_resized.append(
-                                np.array([1/ratio_x, 1/ratio_y])*detection)
+                                detection/args.downsampling_factor)
                         else:
                             detections_resized.append(detection)
                     detections = detections_resized
@@ -324,6 +324,5 @@ if __name__ == '__main__':
         args.output_shape = (args.output_w, args.output_h)
     else: 
         args.output_shape = None
-
 
     main(args)

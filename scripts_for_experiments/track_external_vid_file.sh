@@ -1,8 +1,8 @@
 . scripts_for_experiments/shell_variables.sh 
 
-experiment_name='external_mine_544_960_half_fps_threshold_04'
+experiment_name='T1_augmentations'
 output_dir='experiments/tracking/'${experiment_name}
-external_detections_dir='data/detector_results/real_val/mine/threshold_04'
+external_detections_dir='data/detector_results/real_val/mine/threshold_04_augmentations'
 create_clean_directory $output_dir 
 
 python track.py \
