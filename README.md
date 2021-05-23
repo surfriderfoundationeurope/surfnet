@@ -44,7 +44,7 @@ The newly created file allows you to modify the filepaths to your convenience.
 
 # Experiments
 
-All experiment scripts are found in ```scripts/``` under explicit names.
+All experiment scripts are found in [scripts/](scripts/)  under explicit names.
 
 ## Base network
 
