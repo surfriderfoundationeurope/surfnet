@@ -18,7 +18,6 @@ class VideoOpenCV(object):
 
         return frame
 
-
 def main(args):
     video_folder = args.input_dir
     video_names = [video_name for video_name in sorted(

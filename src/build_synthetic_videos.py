@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from synthetic_videos import taco_tools, cv2_io, flow_tools, utils
+from src.synthetic_videos import taco_tools, cv2_io, flow_tools, utils
 import json
 
 verbose = False

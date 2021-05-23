@@ -14,7 +14,7 @@ class VideoReader:
         else:
             for _ in range(self.skip_frames):
                 self.video.read()
-            ret ,frame = self.video.read()
+            ret, frame = self.video.read()
         self.frame_nb+=1
         return ret, frame, self.frame_nb-1
 

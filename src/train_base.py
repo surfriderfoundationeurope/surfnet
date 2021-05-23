@@ -8,7 +8,6 @@ from torch import nn
 from torchvision import datasets
 
 from base.utils.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
-from base.deeplab.models import get_model as get_model_deeplab
 from base.utils import presets
 from torch.utils.tensorboard import SummaryWriter
 from base.centernet.models import create_model as get_model_centernet

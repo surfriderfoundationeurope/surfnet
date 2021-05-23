@@ -22,7 +22,6 @@ class ResizeForCenterNet(object):
         image = F.resize(image, (new_h, new_w))
         return image
 
-
 def gaussian_radius(det_size, min_overlap=0.7):
     height, width = det_size
 
@@ -44,7 +43,6 @@ def gaussian_radius(det_size, min_overlap=0.7):
     sq3 = np.sqrt(b3 ** 2 - 4 * a3 * c3)
     r3  = (b3 + sq3) / 2
     return min(r1, r2, r3)
-
 
 def gaussian2D(shape, sigma=1):
     m, n = [(ss - 1.) / 2. for ss in shape]
@@ -69,10 +67,8 @@ def draw_umich_gaussian(heatmap, center, radius, k=1):
     masked_gaussian = gaussian[radius - top:radius + bottom, radius - left:radius + right]
     if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0: # TODO debug
         np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
-    else:
-        test = 0
-    return heatmap
 
+    return heatmap
 
 def blob_for_bbox(bbox, heatmap, downsampling_factor=None):
     if downsampling_factor is not None:
@@ -89,7 +85,6 @@ def blob_for_bbox(bbox, heatmap, downsampling_factor=None):
         ct_int = ct.astype(np.int32)
         heatmap = draw_umich_gaussian(heatmap, ct_int, radius)
     return heatmap, ct_int
-
 
 def pre_process_centernet(image, meta=None, fix_res=True):
     scale = 1.0
@@ -123,8 +118,6 @@ def pre_process_centernet(image, meta=None, fix_res=True):
     #         'out_height': inp_height // self.opt.down_ratio, 
     #         'out_width': inp_width // self.opt.down_ratio}
     return images.squeeze() #, meta
-
-
 
 def get_affine_transform(center,
                          scale,
@@ -160,7 +153,6 @@ def get_affine_transform(center,
         trans = cv2.getAffineTransform(np.float32(src), np.float32(dst))
 
     return trans
-
 
 def get_dir(src_point, rot_rad):
     sn, cs = np.sin(rot_rad), np.cos(rot_rad)

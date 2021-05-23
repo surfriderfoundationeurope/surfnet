@@ -1,7 +1,7 @@
-from common.datasets.datasets import SurfnetDataset
+from src.common.datasets.datasets import SurfnetDataset
 import torch
 from torch.utils.data import DataLoader
-from extension.models import SurfNet
+from src.extension.models import SurfNet
 from torch.utils.tensorboard import SummaryWriter
 from torch import sigmoid, logit
 from torchvision.transforms.functional import center_crop
