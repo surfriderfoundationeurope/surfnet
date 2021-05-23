@@ -30,7 +30,7 @@ You can download some data using the following scripts:
 ```shell
 cd data
 sh download_surfrider_images.sh
-sh download_synthetic_videos.sh
+sh download_validation_videos.sh
 sh download_synthetic_objects.sh
 ```
 
