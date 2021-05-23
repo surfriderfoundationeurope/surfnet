@@ -6,4 +6,4 @@ __pycache__/
 *.pickle
 *.mp4
 *.pyc
-scripts_for_experiments/shell_variables.sh
+scripts/shell_variables.sh
