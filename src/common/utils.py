@@ -6,6 +6,9 @@ import torch
 import torchvision.transforms as T 
 import torchvision.transforms.functional as F
 from torch.nn.functional import grid_sample
+from base.centernet.models import create_model as create_base
+from extension.models import SurfNet
+
 
 class ResizeForCenterNet(object):
     def __init__(self, fix_res=False):
@@ -172,6 +175,23 @@ def load_my_model(model, trained_model_weights_filename):
     model.load_state_dict(checkpoint['model'])
     return model
 
+def load_extension(extension_weights, intermediate_layer_size=32):
+    extension_model = SurfNet(intermediate_layer_size)
+    extension_model.load_state_dict(torch.load(extension_weights))
+    for param in extension_model.parameters():
+        param.requires_grad = False
+    extension_model.to('cuda')
+    extension_model.eval()
+    return extension_model
+
+def load_base(base_weights):
+    base_model = create_base('dla_34', heads={'hm': 1, 'wh': 2}, head_conv=256)
+    base_model = load_my_model(base_model, base_weights)
+    for param in base_model.parameters():
+        param.requires_grad = False
+    base_model.to('cuda')
+    base_model.eval()
+    return base_model
 
 def transform_test_CenterNet():
 
@@ -237,3 +257,19 @@ def warp_flow(inputs, flows, device):
     #     ax1.imshow(torch.sigmoid(warped_output).cpu().detach().permute(1,2,0), cmap='gray',vmin=0, vmax=1)
     #     plt.show()
     return warped_outputs
+
+def compute_flow(frame0, frame1, downsampling_factor):
+    h, w = frame0.shape[:-1]
+
+    new_h = h // downsampling_factor
+    new_w = w // downsampling_factor
+
+    frame0 = cv2.resize(frame0, (new_w, new_h))
+    frame1 = cv2.resize(frame1, (new_w, new_h))
+
+    flow01 = flow_opencv_dense(frame0, frame1)
+    # if verbose:
+    #     flow01 = np.ones_like(flow01)
+    #     flow01[:,:,0] = 5
+    #     flow01[:,:,1] = 100
+    return flow01

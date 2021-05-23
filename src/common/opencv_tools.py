@@ -1,6 +1,6 @@
 import cv2
 
-class FrameReader():
+class AdvancedFrameReader():
     def __init__(self, video_name, read_every, rescale_factor, init_time_min, init_time_s):
 
         self.cap = cv2.VideoCapture(video_name)
@@ -76,3 +76,53 @@ class FrameReader():
 
     def reset_init_rescale_factor(self):
         self.set_rescale_factor(self.init_rescale_factor)
+
+class IterableFrameReader:
+
+    def __init__(self, video_filename, skip_frames=0, output_shape=None):
+        self.video = cv2.VideoCapture(video_filename)
+        self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.skip_frames = skip_frames
+        self.first_frame_read = False
+        if output_shape is None: 
+            w, h = self.input_shape
+            new_h = (h | 31) + 1
+            new_w = (w | 31) + 1
+            self.output_shape = (new_w, new_h)
+        else:
+            self.output_shape = output_shape
+            
+    def __next__(self):
+        if not self.first_frame_read:
+            self.first_frame_read = True
+        else:
+            for _ in range(self.skip_frames): 
+                self.video.read()
+        ret, frame = self.video.read()
+        if ret: 
+            return cv2.resize(frame, self.output_shape)
+        raise StopIteration
+
+    def __iter__(self):
+        return self
+    
+    def init(self):
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.first_frame_read = False
+
+class SimpleVideoReader:
+    def __init__(self, video_filename, skip_frames):
+        self.skip_frames = skip_frames 
+        self.video = cv2.VideoCapture(video_filename)
+        self.shape = (int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        self.fps = self.video.get(cv2.CAP_PROP_FPS) / (skip_frames+1)
+        self.frame_nb = 0
+
+    def read(self):
+        if self.frame_nb == 0: ret ,frame = self.video.read()
+        else:
+            for _ in range(self.skip_frames):
+                self.video.read()
+            ret, frame = self.video.read()
+        self.frame_nb+=1
+        return ret, frame, self.frame_nb-1

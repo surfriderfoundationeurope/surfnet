@@ -2,7 +2,6 @@ from math import log
 # from numba.np.ufunc import parallel
 # from numba.np.ufunc.decorators import vectorize
 from torchvision import datasets
-from base.utils.presets import HeatmapExtractPreset
 from torch.utils import data
 from extension.models import SurfNet
 from common.datasets.datasets import SurfnetDataset

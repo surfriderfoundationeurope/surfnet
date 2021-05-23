@@ -3,7 +3,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from src.synthetic_videos import taco_tools, cv2_io, flow_tools, utils
+from src.synthetic_videos import taco_tools, utils
+from common import flow_tools, opencv_tools
 import json
 
 verbose = False
@@ -254,7 +255,7 @@ def main(args):
             split='val'
             output_dir = output_dir_val
 
-        frame_reader = cv2_io.FrameReader(
+        frame_reader = opencv_tools.AdvancedFrameReader(
             os.path.join(vid_dir,video_filename), read_every=read_every, rescale_factor=rescale_factor, init_time_min=0, init_time_s=10)
         fps = frame_reader.fps
         shape = (int(frame_reader.original_width),

@@ -32,11 +32,11 @@ def draw_bbox(anns):
     p = PatchCollection(polygons, facecolor='none', edgecolors=color, linewidths=2)
     ax.add_collection(p)
 
-dir = 'data/surfrider_images'
+dir = 'data/images'
 
 ann_dir = os.path.join(dir,'annotations')
-data_dir = os.path.join(dir,'images')
-ann_file = os.path.join(ann_dir, 'annotations.json')
+data_dir = os.path.join(dir,'Images_md5')
+ann_file = os.path.join(ann_dir, 'instances_train.json')
 coco = COCO(ann_file)
 
 imgIds = np.array(coco.getImgIds())

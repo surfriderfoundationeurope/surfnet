@@ -18,16 +18,15 @@ create_clean_directory(){
     fi 
 }
 
-eval "\$(conda shell.bash hook)"
-conda activate surfnet_DLA
-
-export CUDA_VISIBLE_DEVICES=
-export IMAGES='./data/surfrider_images/'
-export BASE_NETWORK_HEATMAPS='./data/extracted_heatmaps/'
+export CUDA_VISIBLE_DEVICES=0
+export IMAGES='./data/images'
+export BASE_NETWORK_HEATMAPS='./data/extracted_heatmaps'
 export BASE_PRETRAINED_WEIGHTS='./external_pretrained_networks/centernet_pretrained.pth'
-export SYNTHETIC_VIDEOS='./data/generated_videos/'
+export SYNTHETIC_VIDEOS='./data/generated_videos'
 export DOWNSAMPLING_FACTOR='4'
-export SYNTHETIC_OBJECTS='./data/synthetic_objects/'
-export ORIGINAL_VIDEOS=''
+export SYNTHETIC_OBJECTS='./data/synthetic_objects'
+export VALIDATION_VIDEOS='./data/validation_videos'
+export EXTERNAL_DETECTIONS='./data/detector_results'
 EOF
+
 

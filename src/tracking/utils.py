@@ -1,8 +1,6 @@
-from base.centernet.models import create_model as create_base
 from common.utils import load_my_model
 from extension.models import SurfNet
 from scipy.stats import multivariate_normal
-from synthetic_videos.flow_tools import flow_opencv_dense
 import numpy as np 
 import cv2
 import os
@@ -56,26 +54,6 @@ def in_frame(position, shape):
     y = position[1]
 
     return x > 0 and x < shape_x-1 and y > 0 and y < shape_y-1
-
-def load_extension(extension_weights, intermediate_layer_size=32):
-    extension_model = SurfNet(intermediate_layer_size)
-    extension_model.load_state_dict(torch.load(extension_weights))
-    for param in extension_model.parameters():
-        param.requires_grad = False
-    extension_model.to('cuda')
-    extension_model.eval()
-    return extension_model
-
-def load_base(base_weights):
-    base_model = create_base('dla_34', heads={'hm': 1, 'wh': 2}, head_conv=256)
-    base_model = load_my_model(base_model, base_weights)
-    for param in base_model.parameters():
-        param.requires_grad = False
-    base_model.to('cuda')
-    base_model.eval()
-    return base_model
-
-
     
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
     images_for_video = [image for image in images
@@ -85,22 +63,6 @@ def gather_filenames_for_video_in_annotations(video, images, data_dir):
 
     return [os.path.join(data_dir, image['file_name'])
                  for image in images_for_video]
-
-def compute_flow(frame0, frame1, downsampling_factor):
-    h, w = frame0.shape[:-1]
-
-    new_h = h // downsampling_factor
-    new_w = w // downsampling_factor
-
-    frame0 = cv2.resize(frame0, (new_w, new_h))
-    frame1 = cv2.resize(frame1, (new_w, new_h))
-
-    flow01 = flow_opencv_dense(frame0, frame1)
-    # if verbose:
-    #     flow01 = np.ones_like(flow01)
-    #     flow01[:,:,0] = 5
-    #     flow01[:,:,1] = 100
-    return flow01
 
 def detect_base_extension(frame, threshold, base_model, extension_model):
 
@@ -170,37 +132,3 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
             detections = pickle.load(f)
 
     return detections 
-
-
-class VideoReader:
-
-    def __init__(self, video_filename, skip_frames=0, output_shape=None):
-        self.video = cv2.VideoCapture(video_filename)
-        self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.skip_frames = skip_frames
-        self.first_frame_read = False
-        if output_shape is None: 
-            w, h = self.input_shape
-            new_h = (h | 31) + 1
-            new_w = (w | 31) + 1
-            self.output_shape = (new_w, new_h)
-        else:
-            self.output_shape = output_shape
-            
-    def __next__(self):
-        if not self.first_frame_read:
-            self.first_frame_read = True
-        else:
-            for _ in range(self.skip_frames): 
-                self.video.read()
-        ret, frame = self.video.read()
-        if ret: 
-            return cv2.resize(frame, self.output_shape)
-        raise StopIteration
-
-    def __iter__(self):
-        return self
-    
-    def init(self):
-        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        self.first_frame_read = False

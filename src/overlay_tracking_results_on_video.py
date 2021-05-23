@@ -1,31 +1,16 @@
 import cv2 
 from collections import defaultdict
+from common.opencv_tools import SimpleVideoReader
 
-class VideoReader:
-    def __init__(self, video_filename, skip_frames):
-        self.skip_frames = skip_frames 
-        self.video = cv2.VideoCapture(video_filename)
-        self.shape = (int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        self.fps = self.video.get(cv2.CAP_PROP_FPS) / (skip_frames+1)
-        self.frame_nb = 0
-
-    def read(self):
-        if self.frame_nb == 0: ret ,frame = self.video.read()
-        else:
-            for _ in range(self.skip_frames):
-                self.video.read()
-            ret, frame = self.video.read()
-        self.frame_nb+=1
-        return ret, frame, self.frame_nb-1
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-write=True
-video_filename = '/home/mathis/Documents/datasets/surfrider/videos/gopro_video/true_validation/videos/T1/good_one/T1_1080_px_converted.mp4'
+write=False
+video_filename = '/home/mathis/Documents/datasets/surfrider/videos/gopro_video/true_validation/videos/T1/T1_1080_px_converted.mp4'
 results_filename = 'experiments/tracking/T1_epoch_139_threshold_04/T1_1080_px_converted.txt'
 # heatmaps_filename = 'data/detector_results/real_val/mine/no_early_stopping_threshold_05/T1_1080_px_converted_heatmaps.pickle'
 heatmaps = None
-video = VideoReader(video_filename, skip_frames=1)
+video = SimpleVideoReader(video_filename, skip_frames=1)
 if write: writer = cv2.VideoWriter(filename='test.mp4', apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=video.fps, frameSize=video.shape, params=None)
 
 with open(results_filename, 'r') as f: 

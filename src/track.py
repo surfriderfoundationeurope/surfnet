@@ -3,7 +3,10 @@ import json
 import numpy as np
 import os
 from tqdm import tqdm
-from tracking.utils import init_trackers, compute_flow, load_base, load_extension, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal, VideoReader
+from tracking.utils import init_trackers, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
+from common.opencv_tools import IterableFrameReader
+from common.flow_tools import compute_flow
+from common.utils import load_base, load_extension
 from tracking.trackers import trackers
 import matplotlib.pyplot as plt
 import pickle
@@ -243,7 +246,7 @@ def main(args):
 
         for video_filename in video_filenames: 
 
-            reader = VideoReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
+            reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
             output_filename = os.path.join(
                 args.output_dir, video_filename.split('.')[0] +'.txt')
