@@ -7,12 +7,12 @@ import torch.utils.data
 from torch import nn
 from torchvision import datasets
 
-from base.utils.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
-from base.utils import presets
+from base.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
+from base import presets
 from torch.utils.tensorboard import SummaryWriter
 from base.centernet.models import create_model as get_model_centernet
 from base.losses import Loss
-from base.utils import train_utils as utils
+from base import train_utils as utils
 
 
 def get_dataset(dir_path, name, image_set, args):
