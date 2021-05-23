@@ -19,7 +19,7 @@ trap "kill 0" EXIT
 
 tensorboard --logdir=${output_dir} & 
 
-python train_extension.py \
+python src/train_extension.py \
     --model ${model_name} \
     --batch-size 16 \
     --heatmaps_dir ${BASE_NETWORK_HEATMAPS} \

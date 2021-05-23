@@ -1,5 +1,7 @@
 from common.datasets.datasets import SurfnetDataset
 import numpy as np
+import matplotlib 
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import torch

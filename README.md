@@ -1,18 +1,31 @@
-# Surfnet
+# Installation 
 
-
-## Installation 
-### Conda environments
+## General requirements
 
 ```shell
-conda env create --name surfnet --file environment.yml
-conda activate surfnet 
+python3 -m venv <folder-for-your-clean-environment>
+source  <folder-for-your-environment>/bin/activate
+pip install -r requirements.txt
+
+git clone git@github.com:pykalman/pykalman.git <folder-for-pykalman>
+cd <folder-for-pykalman> 
+python setup.py install
 ```
 
-Remark: to operate via a CPU, remove the 'cudatoolkit' dependancy in the environment file and replace pytorch with pytorch-cpu. 
+## DCNv2 dependencies 
 
-### Data and paths 
-If you don't have data already, you can download some using the following scripts:
+```shell 
+cd src/base/centernet/networks
+rm -rf DCNv2
+git clone https://github.com/jinfagang/DCNv2_latest.git
+mv DCNv2_latest/ DCNv2/ 
+cd DCNv2
+./make.sh
+```
+
+
+## Data
+You can download some data using the following scripts:
 
 ```shell
 cd data
@@ -24,38 +37,24 @@ sh download_synthetic_objects.sh
 Then run the following scripts to initialize the correct paths: 
 
 ```shell
-cd scripts_for_experiments
+cd scripts
 sh init_shell_variables.sh
 ```
+The newly created file allows you to modify the filepaths to your convenience.
 
-Alternatively, if you have data stored somewhere else, modify the newly created shell_variables.sh script to point to the location of your convenience, or create symlinks to the folders of the repo. 
+# Experiments
 
-### Building DCN dependencies (if using CenterNet)
-
-You need to build CUDA compiled operators for the deformable convolutions module used in CenterNet models: 
-```shell 
-cd base/centernet/networks
-rm -rf DCNv2
-git clone https://github.com/jinfagang/DCNv2_latest.git
-mv DCNv2_latest/ DCNv2/ 
-cd DCNv2
-./make.sh
-```
-
+All experiment scripts are found in ```scripts/``` under explicit names.
 
 ## Base network
 
 ### Training 
 
-You can set a few hyperparameters in scripts_for_experiments/train_base.sh and run it 
 
 ```shell
-sh scripts_for_experiments/train_base.sh
+sh scripts/train_base.sh
 ```
-
 Then open Tensorboard in your browser to follow training. 
-
-For more control refer to the parse_args() function in train_base.py. 
 
 ## Extension network 
 
@@ -71,7 +70,7 @@ This will download one of our pretrained models.
 To extract heatmaps from the base network: 
 
 ```shell 
-sh scripts_for_experiments/extract_heatmaps.sh
+sh scripts/extract_heatmaps.sh
 ``` 
 
 You can modify the BASE_PRETRAINED variable in scripts_for_experiments/shell_variables.sh to point to the base networks weights that you obtained yourself through retraining, for example.
@@ -86,8 +85,3 @@ sh scripts_for_experiments/train_extension.sh
 ```
 
 Then open Tensorboard in your browser to follow training.
-
-
-## Results & Results
-
-A few plot / evaluation functions are available in tests.py. 

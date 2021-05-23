@@ -1,7 +1,7 @@
 . scripts_for_experiments/shell_variables.sh 
 
 rm -r ${SYNTHETIC_VIDEOS_PATH}*/
-python build_synthetic_videos.py \
+python src/build_synthetic_videos.py \
     --vid-dir ${ORIGINAL_VIDEOS} \
     --tractable-band 'center_left' \
     --output-dir ${SYNTHETIC_VIDEOS_PATH} \

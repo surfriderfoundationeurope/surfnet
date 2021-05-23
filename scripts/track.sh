@@ -1,10 +1,10 @@
-. scripts_for_experiments/shell_variables.sh 
+. scripts/shell_variables.sh 
 
 experiment_name='vid_file_internal_base_halffps_960_544'
 output_dir='experiments/tracking/'${experiment_name}
 create_clean_directory $output_dir 
 
-python track.py \
+python src/track.py \
     --data_dir '/home/infres/chagneux/datasets/surfrider_data/video_dataset/true_validation/T1' \
     --output_dir ${output_dir} \
     --confidence_threshold 0.2 \

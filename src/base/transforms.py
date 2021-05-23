@@ -89,6 +89,20 @@ class RandomHorizontalFlipBboxes(object):
                 target['bboxes'][bbox_nb] = new_bbox
         return image, target
 
+
+class RandomVerticalFlipBboxes(object):
+    def __init__(self, flip_prob):
+        self.flip_prob = flip_prob
+
+    def __call__(self, image, target):
+        if random.random() < self.flip_prob:
+            image = F.vflip(image)
+            for bbox_nb, bbox in enumerate(target['bboxes']):
+                new_bbox = bbox.copy()
+                new_bbox[1] = image.size[1]-(new_bbox[1]+new_bbox[3])
+                target['bboxes'][bbox_nb] = new_bbox
+        return image, target
+
 class RandomCrop(object):
     def __init__(self, size):
         self.size = size
@@ -283,11 +297,11 @@ class RandomResizeImageOnly(object):
 
 
 class ColorJitter:
-    def __init__(self):
-        self.image_transformer = T.ColorJitter()
+    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+        self.image_transformer = T.ColorJitter(brightness, contrast, saturation, hue)
 
-    def forward(self, image, target):
-        image = self.image_transformer.forward(image)
+    def __call__(self, image, target):
+        image = self.image_transformer(image)
         return image, target
 
 # class RandomRotation(T.RandomRotation):
