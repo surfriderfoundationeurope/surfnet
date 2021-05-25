@@ -21,8 +21,7 @@ def get_dataset(dir_path, name, image_set, args):
         "voc": (dir_path, datasets.VOCSegmentation, 21),
         "voc_aug": (dir_path, sbd, 21),
         "coco": (dir_path, get_coco, 21),
-        "surfrider_old": (dir_path, get_surfrider_old, 4),
-        "surfrider": (dir_path, get_surfrider, 1),
+        "surfrider_old": (dir_path, get_surfrider_old, 1),
         "surfrider_video_frames": (dir_path, get_surfrider_video_frames, 1)
     }
     p, ds_fn, num_classes = paths[name]
@@ -33,7 +32,7 @@ def get_dataset(dir_path, name, image_set, args):
 
     return ds, num_classes
 
-def get_transform(train, num_classes, args):
+def get_transform(train):
     base_size = 520
     crop_size = 512
     return presets.SegmentationPresetTrain(base_size, crop_size) if train else presets.SegmentationPresetEval(base_size)
