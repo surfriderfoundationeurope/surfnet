@@ -4,19 +4,17 @@ import time
 
 import torch
 import torch.utils.data
-from torch.utils.tensorboard import SummaryWriter
 from torch import nn
 from torchvision import datasets
-
 from base.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
+from base.deeplab.models import get_model as get_model_deeplab
 from base import presets
-from base.centernet.models import create_model as get_model_centernet
-from base.losses import FocalLoss
+from torch.utils.tensorboard import SummaryWriter
+from base.losses import cross_entropy
 from base import train_utils as utils
 
 
 def get_dataset(dir_path, name, image_set, args):
-    
     def sbd(*args, **kwargs):
         return datasets.SBDataset(*args, mode='segmentation', **kwargs)
     paths = {
@@ -35,28 +33,31 @@ def get_dataset(dir_path, name, image_set, args):
 
     return ds, num_classes
 
-
 def get_transform(train, num_classes, args):
+    base_size = 520
+    crop_size = 512
+    return presets.SegmentationPresetTrain(base_size, crop_size) if train else presets.SegmentationPresetEval(base_size)
 
-    base_size = 544
-    crop_size = (544, 960)
-    return presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, crop_size, num_classes, args.downsampling_factor)
-
-def evaluate(model, focal_loss, data_loader, device, num_classes):
+def evaluate(model, data_loader, device, num_classes):
     model.eval()
-
+    confmat = utils.ConfusionMatrix(num_classes)
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
-    class_wise_loss = torch.zeros(size=(num_classes,))
-    batch_nb = 0
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 100, header):
             image, target = image.to(device), target.to(device)
             output = model(image)
-            class_wise_loss += focal_loss(output, target)
-            batch_nb += 1
+            output = output['out']
 
-    return class_wise_loss / batch_nb
+            confmat.update(target.flatten(), output.argmax(1).flatten())
+
+        # Z = 1 - torch.nn.functional.softmax(output.squeeze(), dim=0)[0]
+        # image = np.transpose(image.squeeze().cpu().numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
+        # writer.add_images('Test image', torch.from_numpy(image).unsqueeze(0), global_step=epoch)
+        # writer.add_images('Test heatmap', Z.unsqueeze(0).unsqueeze(0), global_step=epoch)
+        confmat.reduce_from_all_processes()
+
+    return confmat
 
 def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, device, epoch, print_freq, writer):
     model.train()
@@ -123,26 +124,36 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn)
 
-    model = get_model_centernet(arch=args.model, heads={
-                                'hm': num_classes, 'wh': 2}, head_conv=256)
+    model = get_model_deeplab(
+        args.model, num_classes, freeze_backbone=args.freeze_backbone, downsampling_factor=args.downsampling_factor)
+
 
     model.to(device)
-
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     model_without_ddp = model
-
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(
             model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
-    optimizer = torch.optim.Adam(model.parameters(), args.lr)
+    params_to_optimize = [
+        {"params": [p for p in model_without_ddp.backbone.parameters() if p.requires_grad]},
+        {"params": [p for p in model_without_ddp.classifier.parameters() if p.requires_grad]},
+    ]
+    if args.aux_loss:
+        params = [p for p in model_without_ddp.aux_classifier.parameters() if p.requires_grad]
+        params_to_optimize.append({"params": params, "lr": args.lr * 10})
 
+    optimizer = torch.optim.SGD(
+        params_to_optimize,
+        lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=args.lr_step, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9)
+
 
     if args.resume:
         checkpoint = torch.load(args.resume, map_location='cpu')
@@ -162,29 +173,26 @@ def main(args):
 
     start_time = time.time()
 
-
-    criterion_train = FocalLoss(args.alpha, args.beta,
-                            train=True, centernet_output=True)
-    criterion_test = FocalLoss(args.alpha, args.beta,
-                            train=False, centernet_output=True)
-
-
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
-        train_one_epoch(model, criterion_train, optimizer, data_loader,
+        train_one_epoch(model, cross_entropy, optimizer, data_loader,
                         lr_scheduler, device, epoch, args.print_freq, writer)
-                        
-        class_wise_eval_focal_loss = evaluate(
-            model, criterion_test, data_loader_test, device=device, num_classes=num_classes)
+
+        confmat = evaluate(
+            model, data_loader_test, device=device, num_classes=num_classes)
+        global_correct, average_row_correct, IoU, mean_IoU = confmat.get()
+        writer.add_scalar('Global correct (epoch)', global_correct, epoch)
+        writer.add_scalars('Average row correct (epoch)', {str(
+            i): v for i, v in enumerate(average_row_correct)}, epoch)
         writer.add_scalars(
-            'Class-wise focal loss', {str(i): v for i, v in enumerate(class_wise_eval_focal_loss)}, epoch)
-        print('Class-wise evaluation loss:',
-                class_wise_eval_focal_loss.numpy())
+            'IoU (epoch)', {str(i): v for i, v in enumerate(IoU)}, epoch)
+        writer.add_scalar('Mean IoU (epoch)', mean_IoU, epoch)
         for name, param in model.named_parameters():
             writer.add_histogram(
                 name, param.clone().cpu().data.numpy(), epoch)
+        print(confmat)
 
         utils.save_on_master(
             {
@@ -222,8 +230,6 @@ def parse_args():
                         help='number of data loading workers (default: 16)')
     parser.add_argument('--lr', default=0.01, type=float,
                         help='initial learning rate')
-    parser.add_argument('--lr_step', default=140, type=int,
-        help='when to decrease lr')     
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                         help='momentum')
     parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
@@ -234,6 +240,9 @@ def parse_args():
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                         help='start epoch')
+    # parser.add_argument('--last-layer-only', dest='last_layer_only', default=True, action='store_true', help='Only retrain ultimate layer')
+    parser.add_argument('--freeze-backbone', dest='freeze_backbone',
+                        default=False, action='store_true', help='Freeze backbone weights')
     parser.add_argument(
         "--test-only",
         dest="test_only",
@@ -258,17 +267,12 @@ def parse_args():
     parser.add_argument('--downsampling-factor', default=4, type=int)
     parser.add_argument('--alpha', default=2, type=int)
     parser.add_argument('--beta', default=4, type=int)
+    parser.add_argument('--old_train', default=False, action='store_true')
 
     args = parser.parse_args()
-
     return args
 
 
 if __name__ == "__main__":
     args = parse_args()
-    args_dict = vars(args)
-
-    with open(os.path.join(args.output_dir,'info.txt'),'w') as f:
-        for k,v in args_dict.items():
-            f.write(str(k)+':'+str(v)+'\n')
     main(args)

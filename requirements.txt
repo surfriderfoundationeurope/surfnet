@@ -5,5 +5,4 @@ pycocotools
 debugpy
 scipy
 tqdm
-av 
 tensorboard

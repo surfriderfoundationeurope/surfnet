@@ -8,7 +8,7 @@ import torchvision.transforms.functional as F
 from torch.nn.functional import grid_sample
 from base.centernet.models import create_model as create_base
 from extension.models import SurfNet
-
+import pickle
 
 class ResizeForCenterNet(object):
     def __init__(self, fix_res=False):
@@ -258,18 +258,7 @@ def warp_flow(inputs, flows, device):
     #     plt.show()
     return warped_outputs
 
-def compute_flow(frame0, frame1, downsampling_factor):
-    h, w = frame0.shape[:-1]
 
-    new_h = h // downsampling_factor
-    new_w = w // downsampling_factor
-
-    frame0 = cv2.resize(frame0, (new_w, new_h))
-    frame1 = cv2.resize(frame1, (new_w, new_h))
-
-    flow01 = flow_opencv_dense(frame0, frame1)
-    # if verbose:
-    #     flow01 = np.ones_like(flow01)
-    #     flow01[:,:,0] = 5
-    #     flow01[:,:,1] = 100
-    return flow01
+def open_pickle(pickle_filename):
+    with open(pickle_filename, 'rb') as f: 
+        return pickle.load(f)

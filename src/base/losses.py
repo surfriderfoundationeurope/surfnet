@@ -2,9 +2,9 @@ import torch
 from torch.nn.functional import l1_loss as torch_l1_loss
 import torch.nn as nn
 
-class Loss(nn.Module):
+class FocalLoss(nn.Module):
     def __init__(self, alpha=2, beta=4, train=True, centernet_output=False):
-        super(Loss, self).__init__()
+        super(FocalLoss, self).__init__()
         self.alpha = int(alpha)
         self.beta = int(beta)
         self.focal_loss = self._focal_loss if train else self._focal_loss_class_wise
@@ -107,7 +107,18 @@ def _l1_loss(pred, gt, pos_inds):
     pos_inds = torch.sum(pos_inds, axis=1).ge(1).unsqueeze(1).expand_as(pred)
     return torch_l1_loss(pred[pos_inds], gt[pos_inds], size_average=False) / (pos_inds.float().sum() + 1e-4)
 
-
 def _sigmoid(x):
     y = torch.clamp(x.sigmoid_(), min=1e-4, max=1-1e-4)
     return y
+    
+def cross_entropy(inputs, target):
+    losses = {}
+    losses['hm'] = nn.functional.cross_entropy(
+        inputs['hm'], target, ignore_index=255)
+    losses['aux'] = nn.functional.cross_entropy(
+        inputs['aux'], target, ignore_index=255)
+    if len(losses) == 1:
+        return losses['hm']
+
+    return losses['hm'] + 0.5 * losses['aux']
+
