@@ -7,7 +7,7 @@ from tracking.utils import init_trackers, gather_filenames_for_video_in_annotati
 from common.opencv_tools import IterableFrameReader
 from common.flow_tools import compute_flow
 from common.utils import load_base, load_extension
-from tracking.trackers import trackers
+from tracking.trackers import trackers, DetectionFreeTracker
 import matplotlib.pyplot as plt
 import pickle
 
@@ -157,6 +157,18 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
  
     return results
 
+def track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance):
+
+    
+    tracker = DetectionFreeTracker(heatmaps[0], state_variance=state_variance, observation_variance=observation_variance)
+
+
+    for frame_nb, heatmap in enumerate(heatmaps):
+        pass
+
+
+    return 
+
 def main(args):
 
     
@@ -259,14 +271,21 @@ def main(args):
 
 
             if args.detector.split('_')[0] == 'internal':
-                detections = detect_internal(reader, detector)
+                detections, heatmaps = detect_internal(reader, detector)
                 detections_save_folder = os.path.join(args.output_dir,'detections')
+                heatmaps_save_folder = os.path.join(args.output_dir,'heatmaps')
                 os.mkdir(detections_save_folder)
+                os.mkdir(heatmaps_save_folder)
                 with open(os.path.join(detections_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:
                     pickle.dump(detections,f)
+                with open(os.path.join(heatmaps_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:
+                    pickle.dump(heatmaps,f)
             else:
-                detections_filename = os.path.join(args.external_detections_dir, video_filename.split('.')[0]+'.pickle')
-                detections = detect_external(detections_filename=detections_filename, file_type=args.detector.split('_')[1], nb_frames=None)
+                detections_filename = os.path.join(args.external_detections_dir, 'detections', video_filename.split('.')[0]+'.pickle')
+                heatmaps_filename = os.path.join(args.external_detections_dir, 'heatmaps', video_filename.split('.')[0]+'.pickle')
+
+                detections, heatmaps = detect_external(detections_filename=detections_filename, heatmaps_filename=heatmaps_filename, file_type=args.detector.split('_')[1], nb_frames=None)
+                
                 if not args.detector.split('_')[1] == 'simplepickle':
                     detections_resized = []
                     for detection in detections:
@@ -277,10 +296,12 @@ def main(args):
                             detections_resized.append(detection)
                     detections = detections_resized
 
+            if args.version == 'from_detections': 
+                results = track_video(reader, detections, args, engine, state_variance, observation_variance)
+            else: 
+                results = track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance)
 
                 
-            results = track_video(
-                reader, detections, args, engine, state_variance, observation_variance)
 
             for result in results:
                 output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
@@ -320,6 +341,7 @@ if __name__ == '__main__':
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_w',type=int,default=None)
     parser.add_argument('--output_h',type=int,default=None)
+    parser.add_argument('--version',type=str,default='from_detections')
 
     args = parser.parse_args()
 

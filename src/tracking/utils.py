@@ -79,22 +79,23 @@ def detect_base(frame, threshold, base_model):
     base_result = torch.sigmoid(base_model(frame)[-1]['hm'])
     detections = nms(base_result).gt(threshold).squeeze()
 
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
+    return torch.nonzero(detections).cpu().numpy()[:, ::-1], base_result.squeeze().cpu().numpy()
 
 def detect_internal(reader, detector):
 
     detections = []
-
+    heatmaps = []
     for frame in tqdm(reader):
 
-        detections_for_frame = detector(frame)
+        detections_for_frame, heatmap_for_frame = detector(frame)
+        heatmaps.append(heatmap_for_frame)
         if len(detections_for_frame): detections.append(detections_for_frame)
         else: detections.append(np.array([]))
 
     reader.init()
-    return detections
+    return detections, heatmaps
 
-def detect_external(detections_filename, file_type='mot', nb_frames=None):
+def detect_external(detections_filename, heatmaps_filename, file_type='mot', nb_frames=None):
 
     if file_type == 'mot':
         with open(detections_filename, 'r') as f:
@@ -130,5 +131,8 @@ def detect_external(detections_filename, file_type='mot', nb_frames=None):
     elif file_type == 'simplepickle':
         with open(detections_filename, 'rb') as f:
             detections = pickle.load(f)
+        with open(heatmaps_filename,'rb') as f:
+            heatmaps = pickle.load(f)
 
-    return detections 
+
+    return detections, heatmaps

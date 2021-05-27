@@ -196,5 +196,29 @@ class Kalman(Tracker):
         display.ax.contour(distribution.pdf(pos), colors=color)
 
 
+def _draw_samples_from_discrete_distribution(heatmap, num_samples):
+
+    weights = heatmap.ravel()/heatmap.sum()
+
+    samples = np.random.choice(len(weights), size = num_samples, p=weights)
+
+    return np.unravel_index(samples, heatmap.shape)
+
+
+class DetectionFreeTracker:
+
+    def __init__(self, heatmap0, state_variance, observation_variance, num_samples=100):
+        self.state_covariance = np.diag(state_variance)
+        self.observation_covariance = np.diag(observation_variance)
+
+        self.num_samples = num_samples
+        self.samples = []
+        self.samples.append(_draw_samples_from_discrete_distribution(heatmap0 ,num_samples=num_samples))
+
+
+
+
+
 trackers = {'Kalman':Kalman,
-           'SMC':SMC}
+           'SMC':SMC,
+           'DetectionFreeTracker':DetectionFreeTracker}
