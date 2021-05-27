@@ -163,8 +163,7 @@ class Kalman(Tracker):
 
     def update(self, observation, flow, frame_nb=None):
         if observation is not None: super().update(observation, frame_nb)
-        transition_offset = flow[max(0, int(self.filtered_state_mean[1])),
-                 max(0, int(self.filtered_state_mean[0])), :]
+        transition_offset = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
 
         self.filtered_state_mean, self.filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
                                                                                              self.filtered_state_covariance, 
@@ -201,20 +200,42 @@ def _draw_samples_from_discrete_distribution(heatmap, num_samples):
     weights = heatmap.ravel()/heatmap.sum()
 
     samples = np.random.choice(len(weights), size = num_samples, p=weights)
-
-    return np.unravel_index(samples, heatmap.shape)
+    samples = np.unravel_index(samples, heatmap.shape)
+    samples = np.stack(samples).T[:,::-1]
+    return samples
 
 
 class DetectionFreeTracker:
 
-    def __init__(self, heatmap0, state_variance, observation_variance, num_samples=100):
+    def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=100):
         self.state_covariance = np.diag(state_variance)
         self.observation_covariance = np.diag(observation_variance)
 
         self.num_samples = num_samples
         self.samples = []
-        self.samples.append(_draw_samples_from_discrete_distribution(heatmap0 ,num_samples=num_samples))
+        self.jump_probability = jump_probability
+        self.samples.append(_draw_samples_from_discrete_distribution(heatmap0, num_samples=num_samples))
 
+
+    def update(self, heatmap, flow):
+        new_samples = np.zeros_like(self.samples[-1])
+        draws = np.random.uniform(0,1,self.num_samples)
+
+        where_new = draws < self.jump_probability
+        samples_from_heatmap = _draw_samples_from_discrete_distribution(heatmap, num_samples = where_new.sum())
+        new_samples[where_new] = samples_from_heatmap
+
+        indices_from_transition = np.argwhere(~where_new).ravel()
+        for sample_id in indices_from_transition:
+            sample = self.samples[-1][sample_id]
+            if in_frame(sample, heatmap.shape):
+                mean = sample + flow[int(sample[1]),int(sample[0]), :]
+                new_samples[sample_id] = multivariate_normal(mean, cov=self.state_covariance).rvs(1).astype(int)
+
+        self.samples.append(new_samples)
+
+        
+        
 
 
 

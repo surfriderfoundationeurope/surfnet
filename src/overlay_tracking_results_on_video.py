@@ -7,7 +7,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
 write=False
 video_filename = 'data/validation_videos/T1/T1_1080_px_converted.mp4'
-results_filename = 'experiments/tracking/T1_epoch_139_threshold_04/T1_1080_px_converted.txt'
+results_filename = 'data/external_detections/CenterTrack/T1_1080_px_converted.txt'
 # heatmaps_filename = 'data/detector_results/real_val/mine/no_early_stopping_threshold_05/T1_1080_px_converted_heatmaps.pickle'
 heatmaps = None
 video = SimpleVideoReader(video_filename, skip_frames=1)

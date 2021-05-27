@@ -9,8 +9,9 @@ from common.flow_tools import compute_flow
 from common.utils import load_base, load_extension
 from tracking.trackers import trackers, DetectionFreeTracker
 import matplotlib.pyplot as plt
+import matplotlib 
+matplotlib.use('TkAgg')
 import pickle
-
 class Display:
 
     def __init__(self, on):
@@ -159,12 +160,29 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
 def track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance):
 
-    
-    tracker = DetectionFreeTracker(heatmaps[0], state_variance=state_variance, observation_variance=observation_variance)
+    heatmap = heatmaps[0]
+    tracker = DetectionFreeTracker(heatmap, jump_probability=0.9, state_variance=state_variance, observation_variance=observation_variance)
+    display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
 
+    frame0 = next(reader)
 
-    for frame_nb, heatmap in enumerate(heatmaps):
-        pass
+    for frame_nb in range(1,len(heatmaps)):
+        heatmap = heatmaps[frame_nb]
+
+        plt.imshow(cv2.cvtColor(cv2.resize(frame0, display_shape), cv2.COLOR_BGR2RGB))
+        plt.scatter(tracker.samples[-1][:,0],tracker.samples[-1][:,1])
+        plt.imshow(heatmap, cmap='gray',vmin=0, vmax=1, alpha=0.2)
+        plt.show()
+        while not plt.waitforbuttonpress():
+            continue
+        plt.cla()
+
+        frame1 = next(reader)
+        flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
+        tracker.update(heatmap, flow01)
+
+        frame0 = frame1.copy()
+        
 
 
     return 
