@@ -199,8 +199,8 @@ class DetectionFreeTracker:
 
     def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=500):
         self.state_covariance = np.diag(state_variance)
-        self.variance_x = 2
-        self.variance_y = 2
+        self.variance_x = 1
+        self.variance_y = 1
         self.observation_covariance = np.diag(observation_variance)
 
         self.num_samples = num_samples
@@ -249,6 +249,8 @@ class DetectionFreeTracker:
                         new_samples[sample_id] = candidate
                         break
         self.samples.append(new_samples)
+
+    
 
         
 

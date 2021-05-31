@@ -161,7 +161,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
 def track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance):
 
-    heatmaps = heatmaps[:100]
+    heatmaps = heatmaps[:200]
     heatmap = heatmaps[0]
     tracker = DetectionFreeTracker(heatmap, jump_probability=0.1, state_variance=state_variance, observation_variance=observation_variance, num_samples=500)
     display_shape = (reader.output_shape[0] , reader.output_shape[1])

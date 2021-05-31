@@ -50,6 +50,8 @@ class MultivariateDiscrete:
     def update_weights(self, unnormalized_weights):
         self.normalized_weights = exp_and_normalise(np.log(unnormalized_weights**self.tempering_coeff))
 
+# def Multivariate 
+
 
 def init_trackers(engine, detections, frame_nb, state_variance, observation_variance, stop_tracking_threshold):
     trackers = []
