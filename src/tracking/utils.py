@@ -1,3 +1,5 @@
+from numpy.lib import unravel_index
+from scipy.stats.stats import _shape_with_dropped_axis
 from common.utils import load_my_model
 from extension.models import SurfNet
 from scipy.stats import multivariate_normal
@@ -31,6 +33,22 @@ class GaussianMixture(object):
         for weight, component in zip(self.weights, self.components):
             result += weight*component.cdf(x)
         return result
+
+
+
+class MultivariateDiscrete:
+    def __init__(self, shape, unnormalized_weights):
+        self.shape = shape
+        self.tempering_coeff = 3
+        self.update_weights(unnormalized_weights)
+        self.indices = np.arange(shape[0]*shape[1])
+
+    def sample(self, num_samples):
+        samples = np.random.choice(self.indices, size = num_samples, p=self.normalized_weights)
+        return np.stack(np.unravel_index(samples, self.shape)).T[:,::-1]
+
+    def update_weights(self, unnormalized_weights):
+        self.normalized_weights = exp_and_normalise(np.log(unnormalized_weights**self.tempering_coeff))
 
 
 def init_trackers(engine, detections, frame_nb, state_variance, observation_variance, stop_tracking_threshold):
@@ -136,3 +154,5 @@ def detect_external(detections_filename, heatmaps_filename, file_type='mot', nb_
 
 
     return detections, heatmaps
+
+

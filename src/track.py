@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib 
 matplotlib.use('TkAgg')
 import pickle
+
 class Display:
 
     def __init__(self, on):
@@ -160,15 +161,15 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
 def track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance):
 
-    heatmaps = heatmaps[:200]
+    heatmaps = heatmaps[:100]
     heatmap = heatmaps[0]
-    tracker = DetectionFreeTracker(heatmap, jump_probability=0, state_variance=state_variance, observation_variance=observation_variance, num_samples=50)
+    tracker = DetectionFreeTracker(heatmap, jump_probability=0.1, state_variance=state_variance, observation_variance=observation_variance, num_samples=500)
     display_shape = (reader.output_shape[0] , reader.output_shape[1])
 
-    frame0 = next(reader)
+    frame0 = next(reader)   
 
-    for frame_nb in tqdm(range(1,len(heatmaps))):
-        heatmap = heatmaps[frame_nb]
+    for frame_nb in tqdm(range(1,len(heatmaps))): 
+        heatmap = heatmaps[frame_nb] 
 
         frame1 = next(reader)
         flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
@@ -181,11 +182,18 @@ def track_video_2(reader, heatmaps, args, engine, state_variance, observation_va
     for frame_nb in range(len(heatmaps)):
 
         frame_for_samples = np.zeros(display_shape[::-1])
+        # frame_for_mean = np.zeros(display_shape[::-1])
+        # mean_of_samples = args.downsampling_factor * np.mean(tracker.samples[frame_nb], axis=0)
+        # print((int(mean_of_samples[0]),int(mean_of_samples[1])))
+        # cv2.circle(frame_for_mean, (int(mean_of_samples[0]),int(mean_of_samples[1])), radius=5, color=(255,0,0))
 
         for sample in tracker.samples[frame_nb]:
             cv2.circle(frame_for_samples, (args.downsampling_factor*sample[0],args.downsampling_factor*sample[1]), radius=1, color=(255,0,0))
+
         cv2.imshow('frame',next(reader))
-        cv2.imshow('results',np.c_[cv2.resize(heatmaps[frame_nb], display_shape),frame_for_samples])
+        cv2.imshow('heatmap',cv2.resize(heatmaps[frame_nb], display_shape))
+        cv2.imshow('samples',frame_for_samples)
+        # cv2.imshow('mean_of_samples',frame_for_mean)
         cv2.waitKey(0)
 
 

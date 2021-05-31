@@ -1,8 +1,9 @@
 import numpy as np 
-from scipy.stats import multivariate_normal
-from tracking.utils import in_frame, exp_and_normalise, GaussianMixture
+from scipy.stats import multivariate_normal, norm
+from tracking.utils import in_frame, exp_and_normalise, GaussianMixture, MultivariateDiscrete
 from pykalman import KalmanFilter
 import matplotlib.patches as mpatches
+
 
 class Tracker:
 
@@ -194,51 +195,69 @@ class Kalman(Tracker):
         color = super().fill_display(display, tracker_nb)
         display.ax.contour(distribution.pdf(pos), colors=color)
 
-
-def _draw_samples_from_discrete_distribution(weights, shape, num_samples):
-
-    samples = np.random.choice(len(weights), size = num_samples, p=weights)
-    samples = np.unravel_index(samples, shape)
-    samples = np.stack(samples).T[:,::-1]
-    return samples
-
-
 class DetectionFreeTracker:
 
     def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=500):
         self.state_covariance = np.diag(state_variance)
+        self.variance_x = 2
+        self.variance_y = 2
         self.observation_covariance = np.diag(observation_variance)
 
         self.num_samples = num_samples
         self.samples = []
         self.jump_probability = jump_probability
-        self.samples.append(_draw_samples_from_discrete_distribution(exp_and_normalise(np.log(heatmap0.ravel())), heatmap0.shape, num_samples=num_samples))
+        self.discrete_distrib = MultivariateDiscrete(heatmap0.shape, heatmap0.ravel())
+        self.samples.append(self.discrete_distrib.sample(num_samples))
 
 
-    def update(self, heatmap, flow):
+    # def update(self, heatmap, flow):
+    #     self.discrete_distrib.update_weights(heatmap.ravel())
+    #     new_samples = np.zeros_like(self.samples[-1])
+    #     draws = np.random.uniform(0, 1, self.num_samples)
+
+    #     where_new = draws < self.jump_probability
+    #     samples_from_heatmap = self.discrete_distrib.sample(where_new.sum())
+    #     new_samples[where_new] = samples_from_heatmap
+
+    #     indices_from_transition = np.argwhere(~where_new).ravel()
+    #     for sample_id in indices_from_transition:
+    #         sample = self.samples[-1][sample_id]
+    #         mean = sample + flow[int(sample[1]),int(sample[0]), :]
+    #         new_sample = multivariate_normal(mean, cov=self.state_covariance).rvs(1).astype(int)
+    #         if in_frame(new_sample, heatmap.shape): new_samples[sample_id] = new_sample
+    #         else: new_samples[sample_id] = self.discrete_distrib.sample(1)
+
+    #     self.samples.append(new_samples)
+
+
+    def update(self, heatmap, flow): 
+        self.discrete_distrib.update_weights(heatmap.ravel())
         new_samples = np.zeros_like(self.samples[-1])
-        draws = np.random.uniform(0,1, self.num_samples)
-        weights = exp_and_normalise(np.log(heatmap.ravel()))
-
-        where_new = draws < self.jump_probability
-        samples_from_heatmap = _draw_samples_from_discrete_distribution(weights, heatmap.shape, num_samples = where_new.sum())
-        new_samples[where_new] = samples_from_heatmap
-
-        indices_from_transition = np.argwhere(~where_new).ravel()
-        for sample_id in indices_from_transition:
-            sample = self.samples[-1][sample_id]
-            mean = sample + flow[int(sample[1]),int(sample[0]), :]
-            new_sample = multivariate_normal(mean, cov=self.state_covariance).rvs(1).astype(int)
-            if in_frame(new_sample, heatmap.shape): new_samples[sample_id] = new_sample
-            else: new_samples[sample_id] = _draw_samples_from_discrete_distribution(weights, heatmap.shape, num_samples=1)
-
+        for sample_id in range(self.num_samples):
+            while True:
+                if np.random.uniform(0, 1, 1) < self.jump_probability:
+                    new_samples[sample_id] = self.discrete_distrib.sample(1)
+                    break
+                else: 
+                    sample = self.samples[-1][sample_id]
+                    mean = sample + flow[int(sample[1]),int(sample[0]), :]
+                    candidate = multivariate_normal.rvs(mean=mean, cov=self.state_covariance, size=1).astype(int)
+                    # candidate_x = norm.rvs(loc=mean[0], scale=self.variance_x, size=1)
+                    # candidate_y = norm.rvs(loc=mean[1], scale = self.variance_y, size=1)
+                    # candidate = np.array([candidate_x, candidate_y]).ravel()
+                    if in_frame(candidate, heatmap.shape): 
+                        new_samples[sample_id] = candidate
+                        break
         self.samples.append(new_samples)
 
         
+
+                    
+           
+
+
+
         
-
-
-
 
 trackers = {'Kalman':Kalman,
            'SMC':SMC,
