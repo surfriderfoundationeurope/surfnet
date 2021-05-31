@@ -160,22 +160,15 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
 def track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance):
 
+    heatmaps = heatmaps[:200]
     heatmap = heatmaps[0]
-    tracker = DetectionFreeTracker(heatmap, jump_probability=0.9, state_variance=state_variance, observation_variance=observation_variance)
-    display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
+    tracker = DetectionFreeTracker(heatmap, jump_probability=0, state_variance=state_variance, observation_variance=observation_variance, num_samples=50)
+    display_shape = (reader.output_shape[0] , reader.output_shape[1])
 
     frame0 = next(reader)
 
-    for frame_nb in range(1,len(heatmaps)):
+    for frame_nb in tqdm(range(1,len(heatmaps))):
         heatmap = heatmaps[frame_nb]
-
-        plt.imshow(cv2.cvtColor(cv2.resize(frame0, display_shape), cv2.COLOR_BGR2RGB))
-        plt.scatter(tracker.samples[-1][:,0],tracker.samples[-1][:,1])
-        plt.imshow(heatmap, cmap='gray',vmin=0, vmax=1, alpha=0.2)
-        plt.show()
-        while not plt.waitforbuttonpress():
-            continue
-        plt.cla()
 
         frame1 = next(reader)
         flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
@@ -184,8 +177,19 @@ def track_video_2(reader, heatmaps, args, engine, state_variance, observation_va
         frame0 = frame1.copy()
         
 
+    reader.init()
+    for frame_nb in range(len(heatmaps)):
 
-    return 
+        frame_for_samples = np.zeros(display_shape[::-1])
+
+        for sample in tracker.samples[frame_nb]:
+            cv2.circle(frame_for_samples, (args.downsampling_factor*sample[0],args.downsampling_factor*sample[1]), radius=1, color=(255,0,0))
+        cv2.imshow('frame',next(reader))
+        cv2.imshow('results',np.c_[cv2.resize(heatmaps[frame_nb], display_shape),frame_for_samples])
+        cv2.waitKey(0)
+
+
+    return tracker.samples
 
 def main(args):
 
@@ -316,26 +320,29 @@ def main(args):
 
             if args.version == 'from_detections': 
                 results = track_video(reader, detections, args, engine, state_variance, observation_variance)
+                for result in results:
+                    output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
+                                                                            result[1]+1,
+                                                                            ratio_x *
+                                                                            result[2],
+                                                                            ratio_y *
+                                                                            result[3],
+                                                                            -1,
+                                                                            -1,
+                                                                            1,
+                                                                            -1,
+                                                                            -1,
+                                                                            -1))
+
+                output_file.close()
+
             else: 
                 results = track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance)
+                with open('samples.pickle','wb') as f:
+                    pickle.dump(results,f)
 
                 
 
-            for result in results:
-                output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
-                                                                        result[1]+1,
-                                                                        ratio_x *
-                                                                        result[2],
-                                                                        ratio_y *
-                                                                        result[3],
-                                                                        -1,
-                                                                        -1,
-                                                                        1,
-                                                                        -1,
-                                                                        -1,
-                                                                        -1))
-
-            output_file.close()
 
 
 if __name__ == '__main__':

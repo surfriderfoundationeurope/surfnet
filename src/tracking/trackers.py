@@ -195,42 +195,42 @@ class Kalman(Tracker):
         display.ax.contour(distribution.pdf(pos), colors=color)
 
 
-def _draw_samples_from_discrete_distribution(heatmap, num_samples):
-
-    weights = heatmap.ravel()/heatmap.sum()
+def _draw_samples_from_discrete_distribution(weights, shape, num_samples):
 
     samples = np.random.choice(len(weights), size = num_samples, p=weights)
-    samples = np.unravel_index(samples, heatmap.shape)
+    samples = np.unravel_index(samples, shape)
     samples = np.stack(samples).T[:,::-1]
     return samples
 
 
 class DetectionFreeTracker:
 
-    def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=100):
+    def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=500):
         self.state_covariance = np.diag(state_variance)
         self.observation_covariance = np.diag(observation_variance)
 
         self.num_samples = num_samples
         self.samples = []
         self.jump_probability = jump_probability
-        self.samples.append(_draw_samples_from_discrete_distribution(heatmap0, num_samples=num_samples))
+        self.samples.append(_draw_samples_from_discrete_distribution(exp_and_normalise(np.log(heatmap0.ravel())), heatmap0.shape, num_samples=num_samples))
 
 
     def update(self, heatmap, flow):
         new_samples = np.zeros_like(self.samples[-1])
-        draws = np.random.uniform(0,1,self.num_samples)
+        draws = np.random.uniform(0,1, self.num_samples)
+        weights = exp_and_normalise(np.log(heatmap.ravel()))
 
         where_new = draws < self.jump_probability
-        samples_from_heatmap = _draw_samples_from_discrete_distribution(heatmap, num_samples = where_new.sum())
+        samples_from_heatmap = _draw_samples_from_discrete_distribution(weights, heatmap.shape, num_samples = where_new.sum())
         new_samples[where_new] = samples_from_heatmap
 
         indices_from_transition = np.argwhere(~where_new).ravel()
         for sample_id in indices_from_transition:
             sample = self.samples[-1][sample_id]
-            if in_frame(sample, heatmap.shape):
-                mean = sample + flow[int(sample[1]),int(sample[0]), :]
-                new_samples[sample_id] = multivariate_normal(mean, cov=self.state_covariance).rvs(1).astype(int)
+            mean = sample + flow[int(sample[1]),int(sample[0]), :]
+            new_sample = multivariate_normal(mean, cov=self.state_covariance).rvs(1).astype(int)
+            if in_frame(new_sample, heatmap.shape): new_samples[sample_id] = new_sample
+            else: new_samples[sample_id] = _draw_samples_from_discrete_distribution(weights, heatmap.shape, num_samples=1)
 
         self.samples.append(new_samples)
 

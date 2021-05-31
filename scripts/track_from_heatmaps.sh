@@ -4,7 +4,7 @@ experiment_name='tracking_heatmaps_T1_external'
 output_dir='experiments/tracking/'${experiment_name}
 create_clean_directory $output_dir 
 
-python src/track.py \
+python -m debugpy --listen 5678 --wait-for-client src/track.py \
     --data_dir 'data/validation_videos/T1' \
     --output_dir ${output_dir} \
     --confidence_threshold 0.2 \
