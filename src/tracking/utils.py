@@ -11,6 +11,7 @@ import torch
 from common.utils import transform_test_CenterNet, nms
 import pickle
 from collections import defaultdict
+from numpy.random import default_rng
 
 
 class GaussianMixture(object):
@@ -42,9 +43,10 @@ class MultivariateDiscrete:
         self.tempering_coeff = 3
         self.update_weights(unnormalized_weights)
         self.indices = np.arange(shape[0]*shape[1])
+        self.sampler = default_rng()
 
     def sample(self, num_samples):
-        samples = np.random.choice(self.indices, size = num_samples, p=self.normalized_weights)
+        samples = self.sampler.choice(a = self.indices, size = num_samples, p = self.normalized_weights)
         return np.stack(np.unravel_index(samples, self.shape)).T[:,::-1]
 
     def update_weights(self, unnormalized_weights):
