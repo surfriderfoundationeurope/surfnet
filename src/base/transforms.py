@@ -240,16 +240,18 @@ class ToTensorBboxes(object):
         self.num_classes = num_classes
         self.downsampling_factor = downsampling_factor
 
-    def __call__(self, image, target):
-        w,h = image.size
+    def __call__(self, image, bboxes):
+        h,w = image.shape[:-1]
         image = F.to_tensor(image)
         if self.downsampling_factor is not None: 
             blobs = np.zeros(shape=(self.num_classes + 2, h // self.downsampling_factor, w // self.downsampling_factor))
         else: 
             blobs = np.zeros(shape=(self.num_classes + 2, h, w))
 
-        for i, bbox in enumerate(target['bboxes']):
-            cat = target['cats'][i]-1
+        for bbox_imgaug in bboxes:
+            cat = bbox_imgaug.label-1
+            bbox = [bbox_imgaug.x1, bbox_imgaug.y1, bbox_imgaug.width, bbox_imgaug.height]
+
             new_blobs, ct_int = blob_for_bbox(bbox,  blobs[cat], self.downsampling_factor)
             blobs[cat] = new_blobs
             if ct_int is not None: 
