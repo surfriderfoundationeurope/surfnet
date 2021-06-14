@@ -5,13 +5,13 @@ from common.opencv_tools import SimpleVideoReader
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-write=False
-video_filename = 'data/validation_videos/T1/T1_1080_px_converted.mp4'
-results_filename = 'data/external_detections/CenterTrack/T1_1080_px_converted.txt'
+write=True
+video_filename = '/media/mmip/EXTERNAL SSD/part2.mp4'
+results_filename = 'gt.txt'
 # heatmaps_filename = 'data/detector_results/real_val/mine/no_early_stopping_threshold_05/T1_1080_px_converted_heatmaps.pickle'
 heatmaps = None
 video = SimpleVideoReader(video_filename, skip_frames=1)
-if write: writer = cv2.VideoWriter(filename='test.mp4', apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=video.fps, frameSize=video.shape, params=None)
+if write: writer = cv2.VideoWriter(filename='gt_T1_part2.mp4', apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=video.fps, frameSize=video.shape, params=None)
 
 with open(results_filename, 'r') as f: 
     results_raw = f.readlines()
@@ -30,11 +30,10 @@ with open(results_filename, 'r') as f:
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 ret, frame, frame_nb = video.read()
-
 while ret: 
     detections_for_frame = results[frame_nb]
     for detection in detections_for_frame:
-        # frame = cv2.circle(frame, (int(detection[1]),int(detection[2])), 5, (255, 0, 0), -1)
+        frame = cv2.circle(frame, (int(detection[1]), int(detection[2])), 5, (255, 0, 0), -1)
         cv2.putText(frame, '{}'.format(detection[0]), (int(detection[1]), int(detection[2])), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
     if write: writer.write(frame)
     else: 
@@ -43,7 +42,6 @@ while ret:
         # cv2.imshow('heatmap', cv2.resize(heatmaps[frame_nb].cpu().numpy(),frame.shape[:-1][::-1]))
         cv2.waitKey(0)
     ret, frame, frame_nb = video.read()
-
 if write: writer.release()
 
 
