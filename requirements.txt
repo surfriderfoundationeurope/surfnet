@@ -6,3 +6,4 @@ debugpy
 scipy
 tqdm
 tensorboard
+imgaug
