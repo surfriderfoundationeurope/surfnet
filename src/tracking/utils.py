@@ -2,7 +2,7 @@ from numpy.lib import unravel_index
 from scipy.stats.stats import _shape_with_dropped_axis
 from common.utils import load_my_model
 from extension.models import SurfNet
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, norm
 import numpy as np 
 import cv2
 import os
@@ -158,5 +158,26 @@ def detect_external(detections_filename, heatmaps_filename, file_type='mot', nb_
 
 
     return detections, heatmaps
+
+
+def discretized_gaussian(mean, var, shape):
+    continuous_gaussian = multivariate_normal(mean=mean, cov=np.diag(var))
+    discrete_gaussian = np.zeros(shape)
+    delta = 0.5
+    for y in range(shape[0]):
+        for x in range(shape[1]):
+            right_top = np.array([x+delta, y+delta])
+            left_low = np.array([x-delta, y-delta])
+            right_low = np.array([x+delta, y-delta])
+            left_top = np.array([x-delta, y+delta])
+            discrete_gaussian[y,x] = continuous_gaussian.cdf(right_top) \
+                - continuous_gaussian.cdf(right_low) \
+                - continuous_gaussian.cdf(left_top) \
+                + continuous_gaussian.cdf(left_low)
+    return discrete_gaussian/discrete_gaussian.sum()
+
+
+
+
 
 
