@@ -35,7 +35,7 @@ dir = 'data/images'
 
 ann_dir = os.path.join(dir,'annotations')
 data_dir = os.path.join(dir,'images')
-ann_file = os.path.join(ann_dir, 'merged_dataset.json')
+ann_file = os.path.join(ann_dir, 'instances_train_new.json')
 coco = COCO(ann_file)
 
 imgIds = np.array(coco.getImgIds())

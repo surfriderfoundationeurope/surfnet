@@ -1,7 +1,7 @@
 import json 
 
-annotation_filename_1 = 'data/images/annotations/instances_train.json'
-annotation_filename_2 = 'data/images/annotations/annotations_from_db.json'
+annotation_filename_1 = 'data/images/annotations/instances_train_old.json'
+annotation_filename_2 = 'data/images/annotations/instances_train_new.json'
 
 with open(annotation_filename_1,'r') as f: 
     annotations_1 = json.load(f)
@@ -45,6 +45,6 @@ for annotation in annotations_2['annotations']:
 
 annotations = {'annotations':new_annotations,'images':new_images,'categories':annotations_1['categories']}
 
-with open('merged_dataset.json','w') as f:
+with open('data/images/annotations/instances_train.json','w') as f:
 
     json.dump(annotations, f)

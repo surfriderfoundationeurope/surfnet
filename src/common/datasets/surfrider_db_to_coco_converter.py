@@ -1,16 +1,60 @@
 import json
-import os
-annotation_filename = 'data/images/bounding_boxes_202106141037.json'
+import psycopg2
 
-with open(annotation_filename, 'r') as f:
-    annotations = json.load(f)['bounding_boxes']
-    # annotations = [annotation for annotation in annotations if annotation['createdon'].startswith('2021-06-08')]
+# Update connection string information
+host = "pgdb-plastico-prod.postgres.database.azure.com"
+dbname = "plastico-prod"
+user = "reader_user@pgdb-plastico-prod"
+password = input('Enter password:')
+sslmode = "require"
 
-image_name_conversion_filename = 'data/images/images_for_labelling_202106141037.json'
+# Construct connection string
+conn_string = "host={0} user={1} dbname={2} password={3} sslmode={4}".format(host, user, dbname, password, sslmode)
+conn = psycopg2.connect(conn_string)
+print("Connection established")
 
-with open(image_name_conversion_filename, 'r') as f: 
-    image_name_conversion_table = json.load(f)['images_for_labelling']
-    
+# Fetch all rows from table
+cursor = conn.cursor()
+
+cursor.execute('SELECT * FROM "label".bounding_boxes')
+raw_annotations = cursor.fetchall()
+
+cursor.execute('SELECT * FROM "label".images_for_labelling')
+raw_images_info = cursor.fetchall()
+
+conn.close()
+
+annotations = []
+image_name_conversion_table = []
+
+for raw_annotation in raw_annotations:
+	# date = raw_annotation[2]
+	# if date.day == 14 and date.month == 6:
+	annotations.append({
+		"id" : raw_annotation[0],
+		"id_creator_fk" : raw_annotation[1],
+		"createdon" : raw_annotation[2],
+		"id_ref_trash_type_fk" : raw_annotation[3],
+		"id_ref_images_for_labelling" : raw_annotation[4],
+		"location_x" : raw_annotation[5],
+		"location_y" : raw_annotation[6],
+		"width" : raw_annotation[7],
+		"height" : raw_annotation[8]
+	})
+
+for raw_image_info in raw_images_info:
+    image_name_conversion_table.append({
+		"id" : raw_image_info[0],
+		"id_creator_fk" : raw_image_info[1],
+		"createdon" : raw_image_info[2],
+		"filename" : raw_image_info[3],
+		"view" : raw_image_info[4],
+		"image_quality" : raw_image_info[5],
+		"context" : raw_image_info[6],
+		"container_url" : raw_image_info[7],
+		"blob_name" : raw_image_info[8]
+	})
+
 images_id_refs = list(set([annotation['id_ref_images_for_labelling'] for annotation in annotations]))
 image_dbid_to_cocoid = {image_dbid:image_cocoid for image_cocoid, image_dbid in enumerate(images_id_refs)}
 
@@ -34,8 +78,7 @@ for annotation_id, annotation in enumerate(annotations):
 
 coco = {'images':coco_images,'annotations':coco_annotations,'categories':coco_categories}
 
-with open('annotations_from_db.json','w') as f:
+with open('data/images/annotations/instances_train_new.json','w') as f:
     json.dump(coco, f)
-
 
 
