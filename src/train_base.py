@@ -40,7 +40,7 @@ def get_transform(train, num_classes, args):
 
     base_size = 544
     crop_size = (544, 960)
-    return presets.SegmentationPresetTrainBboxes(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, crop_size, num_classes, args.downsampling_factor)
+    return presets.ImgAugPresetTrain(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.SegmentationPresetEvalBboxes(base_size, crop_size, num_classes, args.downsampling_factor)
 
 def evaluate(model, focal_loss, data_loader, device, num_classes):
     model.eval()

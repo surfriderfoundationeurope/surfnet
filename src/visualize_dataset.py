@@ -1,6 +1,5 @@
 from common.datasets.datasets import SurfnetDataset
 import numpy as np
-import matplotlib 
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
@@ -17,13 +16,15 @@ class Args(object):
         self.data_path = data_path
 
 
-args = Args('./data/images/','surfrider', downsampling_factor=1, old_train=False)
+args = Args('./data/images/new','surfrider', downsampling_factor=4, old_train=False)
 
 from train_base import get_dataset
 
 dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)
 
 for image, target in dataset: 
+    # while not plt.waitforbuttonpress(): continue 
+    # plt.close()
     image = np.transpose(image.numpy(), axes=[1, 2, 0]) * (0.229, 0.224, 0.225) +  (0.498, 0.470, 0.415)
     target = target[0]
     ax0.imshow(image)

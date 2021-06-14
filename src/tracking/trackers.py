@@ -198,8 +198,8 @@ class Kalman(Tracker):
 class DetectionFreeTracker:
 
     def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=500):
-        # self.state_covariance = np.diag(state_variance)
-        self.state_covariance = np.diag([0.1,0.1])
+        self.state_covariance = np.diag(state_variance)/2
+        # self.state_covariance = np.diag([1,1])
         self.observation_covariance = np.diag(observation_variance)
 
         self.num_samples = num_samples

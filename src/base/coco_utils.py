@@ -2,13 +2,14 @@ import copy
 import torch
 import torch.utils.data
 import torchvision
-from PIL import Image
+from PIL import Image, ExifTags
+from typing import Callable, Optional, Tuple, Any
 
 import os
 
 from pycocotools import mask as coco_mask
 from .transforms import Compose
-
+import imageio 
 class FilterAndRemapCocoCategories(object):
     def __init__(self, categories, remap=True):
         self.categories = categories
@@ -186,7 +187,7 @@ def get_surfrider(root, image_set, transforms):
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = torchvision.datasets.CocoDetection(img_folder, ann_file, transforms=transforms)
+    dataset = CocoDetectionWithExif(img_folder, ann_file, transforms=transforms)
 
     # if image_set == "train":
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
@@ -218,3 +219,55 @@ def get_surfrider_video_frames(root, image_set, transforms):
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
 
     return dataset
+
+
+class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
+
+    def __init__(
+            self,
+            root: str,
+            annFile: str,
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            transforms: Optional[Callable] = None,
+    ):
+        super(CocoDetectionWithExif, self).__init__(root, annFile, transform, target_transform, transforms)
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
+        coco = self.coco
+        img_id = self.ids[index]
+        ann_ids = coco.getAnnIds(imgIds=img_id)
+        target = coco.loadAnns(ann_ids)
+
+        path = coco.loadImgs(img_id)[0]['file_name']
+        img = imageio.imread(os.path.join(self.root, path))
+
+        # try:
+        #     img = Image.open(os.path.join(self.root, path)).convert('RGB')
+        #     for orientation in ExifTags.TAGS.keys():
+        #         if ExifTags.TAGS[orientation]=='Orientation':
+        #             break
+            
+        #     exif = img._getexif()
+        #     if exif is not None:
+        #         if exif[orientation] == 3:
+        #             img=img.rotate(180, expand=True)
+        #         elif exif[orientation] == 6:
+        #             img=img.rotate(270, expand=True)
+        #         elif exif[orientation] == 8:
+        #             img=img.rotate(90, expand=True)
+
+        # except (AttributeError, KeyError, IndexError):
+        #     # cases: image don't have getexif
+        #     pass
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+
+        return img, target
