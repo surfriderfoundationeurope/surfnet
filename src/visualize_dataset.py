@@ -16,7 +16,7 @@ class Args(object):
         self.data_path = data_path
 
 
-args = Args('./data/images/new','surfrider', downsampling_factor=4, old_train=False)
+args = Args('./data/images','surfrider', downsampling_factor=4, old_train=False)
 
 from train_base import get_dataset
 

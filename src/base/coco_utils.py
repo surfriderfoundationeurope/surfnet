@@ -170,8 +170,8 @@ def get_surfrider_old(root, image_set, transforms):
 
 def get_surfrider(root, image_set, transforms):
     PATHS = {
-        "train": ("Images_md5", os.path.join("annotations", "instances_train.json")),
-        "val": ("Images_md5", os.path.join("annotations", "instances_val.json")),
+        "train": ("images", os.path.join("annotations", "instances_train.json")),
+        "val": ("images", os.path.join("annotations", "instances_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     # CAT_LIST = [0, 1, 2, 3]
