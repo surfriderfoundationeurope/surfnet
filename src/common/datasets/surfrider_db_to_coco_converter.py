@@ -1,12 +1,12 @@
 import json
 import os
-annotation_filename = '/home/mathis/bounding_boxes_202106040930.json'
+annotation_filename = 'data/images/bounding_boxes.json'
 
 with open(annotation_filename, 'r') as f:
     annotations = json.load(f)['bounding_boxes']
-    annotations = [annotation for annotation in annotations if annotation['createdon'].startswith('2021-06-03')]
+    # annotations = [annotation for annotation in annotations if annotation['createdon'].startswith('2021-06-08')]
 
-image_name_conversion_filename = '/home/mathis/images_for_labelling_202106040929.json'
+image_name_conversion_filename = 'data/images/images_for_labelling.json'
 
 with open(image_name_conversion_filename, 'r') as f: 
     image_name_conversion_table = json.load(f)['images_for_labelling']

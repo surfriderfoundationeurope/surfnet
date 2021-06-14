@@ -219,6 +219,12 @@ def main(args):
 
     engine = trackers[args.algorithm]
 
+
+    detections_save_folder = os.path.join(args.output_dir,'detections')
+    heatmaps_save_folder = os.path.join(args.output_dir,'heatmaps')
+    os.mkdir(detections_save_folder)
+    os.mkdir(heatmaps_save_folder)
+
     if args.read_from == 'annotations':
 
         with open(args.annotation_file, 'rb') as f:
@@ -226,11 +232,11 @@ def main(args):
 
         for video in annotations['videos']:
 
-            video = [video_annotation for video_annotation in annotations['videos']
-                     if video_annotation['file_name'] == 'leloing__5'][0]  # debug
+            # video = [video_annotation for video_annotation in annotations['videos']
+            #          if video_annotation['file_name'] == 'leloing__5'][0]  # debug
             filenames_for_video = gather_filenames_for_video_in_annotations(video, annotations['images'], args.data_dir)
 
-            input_shape = cv2.imread(filenames_for_video[0]).shape[::-1]
+            input_shape = cv2.imread(filenames_for_video[0]).shape[:-1][::-1]
             if args.output_shape is None:
                 h, w = input_shape
                 new_h = (h | 31) + 1
@@ -248,7 +254,12 @@ def main(args):
             output_file = open(output_filename, 'w')
 
             if args.detector.split('_')[0] == 'internal':
-                detections = detect_internal(reader, detector)
+                detections, heatmaps = detect_internal(reader, detector)
+
+                with open(os.path.join(detections_save_folder, video['file_name']+'.pickle'),'wb') as f:
+                    pickle.dump(detections,f)
+                with open(os.path.join(heatmaps_save_folder, video['file_name']+'.pickle'),'wb') as f:
+                    pickle.dump(heatmaps,f)
             else:
                 detections_filename = os.path.join(args.external_detections_dir, video['file_name']+'.txt')
                 detections = detect_external(detections_filename=detections_filename, file_type=args.detector.split('_')[1], nb_frames=len(filenames_for_video))
@@ -261,11 +272,9 @@ def main(args):
                         detections_resized.append(detection)
                 detections = detections_resized
 
-            with open(output_filename.split('.')[0]+'.pickle','wb') as f:
-                pickle.dump(detections, f)
+            reader = (cv2.resize(cv2.imread(filename), output_shape) for filename in filenames_for_video)
+            results = track_video(reader, detections, args, engine, state_variance, observation_variance)
 
-            results = track_video(
-                reader, detections, args, engine, state_variance, observation_variance)
 
             for result in results:
                 output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
@@ -302,10 +311,8 @@ def main(args):
 
             if args.detector.split('_')[0] == 'internal':
                 detections, heatmaps = detect_internal(reader, detector)
-                detections_save_folder = os.path.join(args.output_dir,'detections')
-                heatmaps_save_folder = os.path.join(args.output_dir,'heatmaps')
-                os.mkdir(detections_save_folder)
-                os.mkdir(heatmaps_save_folder)
+                reader.init()
+
                 with open(os.path.join(detections_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:
                     pickle.dump(detections,f)
                 with open(os.path.join(heatmaps_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:

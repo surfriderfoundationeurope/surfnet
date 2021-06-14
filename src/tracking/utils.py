@@ -114,7 +114,6 @@ def detect_internal(reader, detector):
         if len(detections_for_frame): detections.append(detections_for_frame)
         else: detections.append(np.array([]))
 
-    reader.init()
     return detections, heatmaps
 
 def detect_external(detections_filename, heatmaps_filename, file_type='mot', nb_frames=None):
