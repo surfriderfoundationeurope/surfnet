@@ -7,4 +7,4 @@ scipy
 tqdm
 tensorboard
 imgaug
-pycopg2-binary
+psycopg2-binary
