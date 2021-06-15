@@ -5,13 +5,13 @@ from common.opencv_tools import SimpleVideoReader
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-write=True
-video_filename = '/media/mathis/EXTERNAL SSD/part1.mp4'
-results_filename = 'gt.txt'
+write=False
+video_filename = 'data/validation_videos/segments_T1/part_2_segment_4.mp4'
+results_filename = 'data/validation_videos/segments_T1/segments-T1/part_2_segment_4/gt/gt.txt'
 # heatmaps_filename = 'data/detector_results/real_val/mine/no_early_stopping_threshold_05/T1_1080_px_converted_heatmaps.pickle'
 heatmaps = None
-video = SimpleVideoReader(video_filename, skip_frames=1)
-if write: writer = cv2.VideoWriter(filename='gt_T1_part1.mp4', apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=video.fps, frameSize=video.shape, params=None)
+video = SimpleVideoReader(video_filename, skip_frames=0)
+if write: writer = cv2.VideoWriter(filename='gt_T1_part_2_segment_0_overlay.mp4', apiPreference=cv2.CAP_FFMPEG, fourcc=fourcc, fps=video.fps, frameSize=video.shape, params=None)
 
 with open(results_filename, 'r') as f: 
     results_raw = f.readlines()
