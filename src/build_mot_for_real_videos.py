@@ -4,7 +4,7 @@ import cv2
 import os 
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-output_dir = 'data/validation_videos/segments_T1'
+output_dir = 'data/validation_videos/T1_segments'
 
 # mot_results2  = np.loadtxt('gt2.txt', delimiter=',')
 
@@ -22,12 +22,12 @@ seqmaps.write('name\n')
 sequences_dir = os.path.join(output_dir,'segments-T1')
 os.mkdir(sequences_dir)
 
-segments_ends = [853,1303,1984,2818,3509,4008,4685,5355,np.inf]
 mot_results1  = np.loadtxt('gt1.txt', delimiter=',')
 segments_ends = [853,1303,1984,2818,3509,4008,4685,5355,np.inf]
-video = SimpleVideoReader('/media/mmip/EXTERNAL SSD/part1.mp4', skip_frames=0)
+video = SimpleVideoReader('part1.mp4', skip_frames=0)
 largest_index = 0
 for segment_nb, segment_end in enumerate(segments_ends):
+    sequence_len = 0
     sequence_name = 'part_1_segment_{}'.format(segment_nb)
     sequence_dir = os.path.join(sequences_dir,sequence_name)
     os.mkdir(sequence_dir)
@@ -44,6 +44,7 @@ for segment_nb, segment_end in enumerate(segments_ends):
             if frame_read_nb % 2 == 0: 
                 if first_frame_added is None: first_frame_added = frame_read_nb
                 writer.write(frame)
+                sequence_len+=1
         else: 
             break
         
@@ -70,16 +71,17 @@ for segment_nb, segment_end in enumerate(segments_ends):
         largest_index = max(mot_result[1] for mot_result in mot_results_for_segment)
 
 
-    seqmap_file.write('[Sequence]\nname={}\nimDir=img1\nframeRate={}\nseqLength={}\nimWidth=1920\nimHeight=1080\nimExt=.png'.format(sequence_name,video.fps/2,frame_id_to_write))
+    seqmap_file.write('[Sequence]\nname={}\nimDir=img1\nframeRate={}\nseqLength={}\nimWidth=1920\nimHeight=1080\nimExt=.png'.format(sequence_name,video.fps/2,sequence_len))
     seqmap_file.close()
     seqmaps.write(sequence_name)
 
 
 mot_results2  = np.loadtxt('gt2.txt', delimiter=',')
 segments_ends = [844,2021,2692,3544,3999,4744,5171,6127,6889,np.inf]
-video = SimpleVideoReader('/media/mmip/EXTERNAL SSD/part2.mp4', skip_frames=0)
+video = SimpleVideoReader('part2.mp4', skip_frames=0)
 largest_index = 0
 for segment_nb, segment_end in enumerate(segments_ends):
+    sequence_len = 0
     sequence_name = 'part_2_segment_{}'.format(segment_nb)
     sequence_dir = os.path.join(sequences_dir,sequence_name)
     os.mkdir(sequence_dir)
@@ -96,6 +98,7 @@ for segment_nb, segment_end in enumerate(segments_ends):
             if frame_read_nb % 2 == 0: 
                 if first_frame_added is None: first_frame_added = frame_read_nb
                 writer.write(frame)
+                sequence_len+=1
         else: 
             break
         
@@ -122,9 +125,9 @@ for segment_nb, segment_end in enumerate(segments_ends):
         largest_index = max(mot_result[1] for mot_result in mot_results_for_segment)
 
 
-    seqmap_file.write('[Sequence]\nname={}\nimDir=img1\nframeRate={}\nseqLength={}\nimWidth=1920\nimHeight=1080\nimExt=.png'.format(sequence_name,video.fps/2,frame_id_to_write))
+    seqmap_file.write('[Sequence]\nname={}\nimDir=img1\nframeRate={}\nseqLength={}\nimWidth=1920\nimHeight=1080\nimExt=.png'.format(sequence_name,video.fps/2,sequence_len))
     seqmap_file.close()
-    seqmaps.write(sequence_name)
+    seqmaps.write(sequence_name+'\n')
 
 seqmaps.close()
 
