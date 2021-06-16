@@ -4,7 +4,7 @@ import cv2
 import os 
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-output_dir = 'data/validation_videos/T1_segments'
+output_dir = 'data/validation_videos/T1/long_segments'
 
 # mot_results2  = np.loadtxt('gt2.txt', delimiter=',')
 
@@ -17,14 +17,15 @@ output_dir = 'data/validation_videos/T1_segments'
 
 seqmaps_dir = os.path.join(output_dir,'seqmaps')
 os.mkdir(seqmaps_dir)
-seqmaps = open(os.path.join(seqmaps_dir,'segments-T1.txt'),'w')
+seqmaps = open(os.path.join(seqmaps_dir,'surfrider-test.txt'),'w')
 seqmaps.write('name\n')
-sequences_dir = os.path.join(output_dir,'segments-T1')
+sequences_dir = os.path.join(output_dir,'surfrider-test')
 os.mkdir(sequences_dir)
 
-mot_results1  = np.loadtxt('gt1.txt', delimiter=',')
-segments_ends = [853,1303,1984,2818,3509,4008,4685,5355,np.inf]
-video = SimpleVideoReader('part1.mp4', skip_frames=0)
+mot_results1  = np.loadtxt('data/validation_videos/T1/CVAT/gt1.txt', delimiter=',')
+# segments_ends = [853,1303,1984,2818,3509,4008,4685,5355,np.inf]
+segments_ends = [np.inf]
+video = SimpleVideoReader('data/validation_videos/T1/CVAT/part1.mp4', skip_frames=0)
 largest_index = 0
 for segment_nb, segment_end in enumerate(segments_ends):
     sequence_len = 0
@@ -76,9 +77,10 @@ for segment_nb, segment_end in enumerate(segments_ends):
     seqmaps.write(sequence_name)
 
 
-mot_results2  = np.loadtxt('gt2.txt', delimiter=',')
-segments_ends = [844,2021,2692,3544,3999,4744,5171,6127,6889,np.inf]
-video = SimpleVideoReader('part2.mp4', skip_frames=0)
+mot_results2  = np.loadtxt('data/validation_videos/T1/CVAT/gt2.txt', delimiter=',')
+# segments_ends = [844,2021,2692,3544,3999,4744,5171,6127,6889,np.inf]
+segments_ends = [np.inf]
+video = SimpleVideoReader('data/validation_videos/T1/CVAT/part2.mp4', skip_frames=0)
 largest_index = 0
 for segment_nb, segment_end in enumerate(segments_ends):
     sequence_len = 0

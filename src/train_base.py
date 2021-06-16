@@ -35,7 +35,6 @@ def get_dataset(dir_path, name, image_set, args):
 
     return ds, num_classes
 
-
 def get_transform(train, num_classes, args):
 
     base_size = 544

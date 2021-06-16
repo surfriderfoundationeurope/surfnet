@@ -1,11 +1,11 @@
 . scripts/shell_variables.sh 
 
-experiment_name='tracking_real_segments'
+experiment_name='long_real_segments'
 output_dir='experiments/tracking/'${experiment_name}
 create_clean_directory $output_dir
 
 python src/track.py \
-    --data_dir 'data/validation_videos/T1/segments/videos' \
+    --data_dir 'data/validation_videos/T1/long_segments/videos' \
     --output_dir ${output_dir} \
     --confidence_threshold 0.2 \
     --detection_threshold 0.4 \

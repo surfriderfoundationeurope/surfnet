@@ -1,6 +1,6 @@
-mot_seq_dir=/home/infres/chagneux/repos/surfnet/data/validation_videos/T1/segments/mot_gt_files/segments-T1
-vid_dir=/home/infres/chagneux/repos/surfnet/data/validation_videos/T1/segments/videos
-ourput_dir=/home/infres/chagneux/repos/surfnet/data/validation_videos/T1/segments/videos_gt_overlay
+mot_seq_dir=data/validation_videos/T1/long_segments/mot_gt_files/surfrider-test
+vid_dir=data/validation_videos/T1/long_segments/videos
+ourput_dir=data/validation_videos/T1/long_segments/videos_gt_overlay
 cd $mot_seq_dir
 
 for f in *; do 
