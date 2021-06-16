@@ -28,19 +28,19 @@ annotations = []
 image_name_conversion_table = []
 
 for raw_annotation in raw_annotations:
-	# date = raw_annotation[2]
-	# if date.day == 14 and date.month == 6:
-	annotations.append({
-		"id" : raw_annotation[0],
-		"id_creator_fk" : raw_annotation[1],
-		"createdon" : raw_annotation[2],
-		"id_ref_trash_type_fk" : raw_annotation[3],
-		"id_ref_images_for_labelling" : raw_annotation[4],
-		"location_x" : raw_annotation[5],
-		"location_y" : raw_annotation[6],
-		"width" : raw_annotation[7],
-		"height" : raw_annotation[8]
-	})
+	date = raw_annotation[2]
+	if date.month >= 6 and date.day >= 4:
+		annotations.append({
+			"id" : raw_annotation[0],
+			"id_creator_fk" : raw_annotation[1],
+			"createdon" : raw_annotation[2],
+			"id_ref_trash_type_fk" : raw_annotation[3],
+			"id_ref_images_for_labelling" : raw_annotation[4],
+			"location_x" : raw_annotation[5],
+			"location_y" : raw_annotation[6],
+			"width" : raw_annotation[7],
+			"height" : raw_annotation[8]
+		})
 
 for raw_image_info in raw_images_info:
     image_name_conversion_table.append({

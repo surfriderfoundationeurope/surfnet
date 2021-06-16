@@ -35,11 +35,12 @@ dir = 'data/images'
 
 ann_dir = os.path.join(dir,'annotations')
 data_dir = os.path.join(dir,'images')
-ann_file = os.path.join(ann_dir, 'instances_train_new.json')
+ann_file = os.path.join(ann_dir, 'instances_train.json')
 coco = COCO(ann_file)
 
 imgIds = np.array(coco.getImgIds())
-# permutation = np.random.permutation(imgIds.shape[0])
+print('{} images loaded'.format(len(imgIds)))
+permutation = np.random.permutation(imgIds.shape[0])
 
 plt.ion()
 permutation = np.random.permutation(imgIds)

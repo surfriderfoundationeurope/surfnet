@@ -97,10 +97,35 @@ class ImgAugPresetTrain:
         self.seq = iaa.Sequential([
             iaa.Resize({"height": self.random_size_range, "width": "keep-aspect-ratio"}),
             iaa.Fliplr(p=self.hflip_prob),
-            iaa.Flipud(p=self.hflip_prob),
-            # iaa.Rotate((-45,45)),
             iaa.PadToFixedSize(width=self.crop_width, height=self.crop_height),
             iaa.CropToFixedSize(width=self.crop_width, height=self.crop_height)
+        ])
+        self.last_transforms = T.Compose([T.ToTensorBboxes(num_classes, downsampling_factor),
+                                        T.Normalize(mean=mean,std=std)])
+
+
+        
+    def __call__(self, img, target):
+        
+        bboxes_imgaug = [BoundingBox(x1=bbox[0], y1=bbox[1], x2=bbox[0]+bbox[2], y2=bbox[1]+bbox[3], label=cat) \
+            for bbox, cat in zip(target['bboxes'],target['cats'])]
+        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=img.shape)
+
+        img, bboxes_imgaug = self.seq(image=img, bounding_boxes=bboxes)
+        # ia.imshow(bbs_aug.draw_on_image(image_aug, size=2))
+        return self.last_transforms(img, bboxes_imgaug)
+
+class ImgAugPresetVal:
+    def __init__(self, base_size, crop_size, num_classes, downsampling_factor, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+        self.num_classes = num_classes
+        self.downsampling_factor = downsampling_factor
+        self.base_size = base_size
+        self.crop_height, self.crop_width = crop_size
+        self.seq = iaa.Sequential([
+            iaa.Resize({"height": int(self.base_size), "width": "keep-aspect-ratio"}),
+            # iaa.Rotate((-45,45)),
+            iaa.CenterPadToFixedSize(width=self.crop_width, height=self.crop_height),
+            iaa.CenterCropToFixedSize(width=self.crop_width, height=self.crop_height)
         ])
         self.last_transforms = T.Compose([T.ToTensorBboxes(num_classes, downsampling_factor),
                                         T.Normalize(mean=mean,std=std)])
