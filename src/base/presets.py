@@ -93,7 +93,7 @@ class ImgAugPresetTrain:
         self.base_size = base_size
         self.crop_height, self.crop_width = crop_size
         self.hflip_prob = hflip_prob
-        self.random_size_range = (int(0.5*self.base_size),int(2.0*self.base_size))
+        self.random_size_range = (int(self.base_size),int(2.0*self.base_size))
         self.seq = iaa.Sequential([
             iaa.Resize({"height": self.random_size_range, "width": "keep-aspect-ratio"}),
             iaa.Fliplr(p=self.hflip_prob),

@@ -7,8 +7,8 @@ lr=1.25e-4
 lr_step=140
 model_name='dla_34'
 dataset='surfrider'
-batch_size=32
-experiment_name='new_dataset_290_epochs'
+batch_size=16
+experiment_name='new_dataset_290_epochs_3'
 
 output_dir='experiments/base/'${experiment_name}
 create_clean_directory $output_dir 

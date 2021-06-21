@@ -20,7 +20,7 @@ args = Args('./data/images','surfrider', downsampling_factor=4, old_train=False)
 
 from train_base import get_dataset
 
-dataset, num_classes = get_dataset(args.data_path, args.dataset, "val", args)
+dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)
 
 for image, target in dataset: 
     # while not plt.waitforbuttonpress(): continue 

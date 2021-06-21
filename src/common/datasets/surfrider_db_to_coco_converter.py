@@ -1,11 +1,13 @@
 import json
+from collections import defaultdict
 import psycopg2
 
 # Update connection string information
 host = "pgdb-plastico-prod.postgres.database.azure.com"
 dbname = "plastico-prod"
 user = "reader_user@pgdb-plastico-prod"
-password = input('Enter password:')
+# password = input('Enter password:')
+password = 'SurfReader!'
 sslmode = "require"
 
 # Construct connection string
@@ -25,7 +27,7 @@ raw_images_info = cursor.fetchall()
 conn.close()
 
 annotations = []
-image_name_conversion_table = []
+images_db_infos = dict()
 
 for raw_annotation in raw_annotations:
 	date = raw_annotation[2]
@@ -43,8 +45,7 @@ for raw_annotation in raw_annotations:
 		})
 
 for raw_image_info in raw_images_info:
-    image_name_conversion_table.append({
-		"id" : raw_image_info[0],
+    images_db_infos[raw_image_info[0]] = {
 		"id_creator_fk" : raw_image_info[1],
 		"createdon" : raw_image_info[2],
 		"filename" : raw_image_info[3],
@@ -52,15 +53,15 @@ for raw_image_info in raw_images_info:
 		"image_quality" : raw_image_info[5],
 		"context" : raw_image_info[6],
 		"container_url" : raw_image_info[7],
-		"blob_name" : raw_image_info[8]
-	})
+		"blob_name" : raw_image_info[8]}
 
-images_id_refs = list(set([annotation['id_ref_images_for_labelling'] for annotation in annotations]))
-image_dbid_to_cocoid = {image_dbid:image_cocoid for image_cocoid, image_dbid in enumerate(images_id_refs)}
+image_db_id_to_image_filename = {k:v['filename'] for k,v in images_db_infos.items()}
 
-image_idref_to_image_filename = {image['id']:image['filename'] for image in image_name_conversion_table}
-
-coco_images = [{'id':image_cocoid, 'file_name':image_idref_to_image_filename[image_dbid]} for image_dbid, image_cocoid in image_dbid_to_cocoid.items()]
+images_db_ids = list(set([annotation['id_ref_images_for_labelling'] for annotation in annotations]))
+image_filenames = list(set([image_db_id_to_image_filename[image_db_id] for image_db_id in images_db_ids]))
+image_filename_to_image_coco_id = {image_filename:image_coco_id for image_coco_id, image_filename in enumerate(image_filenames)}
+coco_images = [{'id':image_coco_id, 'file_name':image_filename} \
+	for image_filename, image_coco_id in image_filename_to_image_coco_id.items()]
 
 coco_categories = [{'id':0,'name':'__background__','supercategory':'unknown'},
                    {'id':1,'name':'trash','supercategory':'unknown'}]
@@ -68,17 +69,17 @@ coco_categories = [{'id':0,'name':'__background__','supercategory':'unknown'},
 coco_annotations = list()
 
 for annotation_id, annotation in enumerate(annotations):
-    image_dbid = annotation['id_ref_images_for_labelling']
+    image_db_id = annotation['id_ref_images_for_labelling']
     bbox = [annotation['location_x'], annotation['location_y'], annotation['width'], annotation['height']]
 
     coco_annotations.append({'id':annotation_id,
-                             'image_id':image_dbid_to_cocoid[image_dbid],
+                             'image_id':image_filename_to_image_coco_id[image_db_id_to_image_filename[image_db_id]],
                              'bbox':bbox,
                              'category_id':1})
 
 coco = {'images':coco_images,'annotations':coco_annotations,'categories':coco_categories}
 
-with open('data/images/annotations/instances_train_new.json','w') as f:
+with open('data/images/annotations/instances_1107.json','w') as f:
     json.dump(coco, f)
 
 

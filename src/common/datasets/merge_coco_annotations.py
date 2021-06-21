@@ -1,6 +1,6 @@
 import json 
 
-annotation_filename_1 = 'data/images/annotations/instances.json'
+annotation_filename_1 = 'data/images/annotations/instances_1107.json'
 annotation_filename_2 = 'data/images/annotations/instances_val_old.json'
 
 with open(annotation_filename_1,'r') as f: 
@@ -45,6 +45,6 @@ for annotation in annotations_2['annotations']:
 
 annotations = {'annotations':new_annotations,'images':new_images,'categories':annotations_1['categories']}
 
-with open('data/images/annotations/instances.json','w') as f:
+with open('data/images/annotations/instances_1107.json','w') as f:
 
     json.dump(annotations, f)

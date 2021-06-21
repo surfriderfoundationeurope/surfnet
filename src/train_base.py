@@ -37,7 +37,7 @@ def get_dataset(dir_path, name, image_set, args):
 
 def get_transform(train, num_classes, args):
 
-    base_size = 544
+    base_size = 540
     crop_size = (544, 960)
     return presets.ImgAugPresetTrain(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.ImgAugPresetVal(base_size, crop_size, num_classes, args.downsampling_factor)
 
