@@ -39,7 +39,7 @@ from math import ceil
 
 parallel = False
 # if parallel: 
-#     ray.init()
+#     ray.init()  
 
 class Args(object):
     def __init__(self, data_path, dataset, downsampling_factor, old_train):
@@ -412,7 +412,6 @@ def fast_prec_recall(gt, pred, thresholds):
     return precision_list, recall_list
 
 # @jit(nopython=True, fastmath=True, parallel=True)
-
 # @ray.remote
 def prec_recall_for_thres(thres, thres_nb, gt, pred, max_allowed_cost):
     detections = (pred >= thres)
@@ -485,7 +484,7 @@ def prec_recall_for_thres_v2(thres, thres_nb, gt, pred, radius, fairmot=False, i
         else:
             position_positives = np.argwhere(gt_frame)
             position_detections = np.argwhere(detection_frame)
-            max_allowed_cost = radius*math.sqrt(240**2+136**2)
+            max_allowed_cost = radius*math.sqrt(272**2+152**2)
 
         
         if len(position_positives): 
@@ -729,17 +728,22 @@ if __name__ == '__main__':
     # compute_precision_recall_hungarian_fairmot_detection('saved_labels_fairmot.pickle', 'saved_detections_fairmot.pickle', output_filename='Evaluation base')
 
 
-    eval_dir = 'experiments/evaluations/new_dataset_real_images_test_split'
+    eval_dir = 'data/external_detections/fairmot/evaluation_test_split'
 
-    with open(os.path.join(eval_dir,'ground_truth.pickle'),'rb') as f: 
+    with open(os.path.join(eval_dir,'saved_gt_heatmaps.pickle'),'rb') as f: 
         gt = pickle.load(f)
     # # with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
     # #     predictions_extension = pickle.load(f)
-    with open(os.path.join(eval_dir,'base_predictions.pickle'),'rb') as f: 
+    with open(os.path.join(eval_dir,'saved_heatmaps.pickle'),'rb') as f: 
         predictions_base = pickle.load(f)
+
+    gt = torch.stack([torch.from_numpy(single_gt) for single_gt in gt])
+
+    predictions_base = torch.stack([torch.from_numpy(single_prediction) for single_prediction in predictions_base])
+
+
+
     permutation = np.random.permutation(gt.shape[0])
-
-
 
     # # # # # gt = gt[permutation]
     # # # # # predictions_base = predictions_base[permutation]
@@ -760,6 +764,8 @@ if __name__ == '__main__':
 
     # plot_pickle_file('Evaluation extension nms_axes.pickle')
 
+    # plt.plot([1,2,3],[1,2,3])
+    # plt.show()
     
 
 
