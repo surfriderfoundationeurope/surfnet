@@ -120,7 +120,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
         if not init:
             if len(detections_for_frame):
-                trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, args.stop_tracking_threshold)
+                trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance)
                 init = True
 
         else:
@@ -266,8 +266,7 @@ def main(args):
             args.downsampling_factor = 1
             results = track_video(reader, detections, args, engine, state_variance, observation_variance)
 
-            output_filename = os.path.join(
-                args.output_dir, sequence_name+'_clean_{}.txt'.format(int(args.stop_tracking_threshold)))
+            output_filename = os.path.join(args.output_dir, sequence_name)
             output_file = open(output_filename, 'w')
             ratio_x, ratio_y = 4, 4
 

@@ -1,8 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-tracker_names = ['Our_tracker_FairMOT_detections_clean_0','FairMOT_clean_0','Our_tracker_FairMOT_detections_clean_1','FairMOT_clean_1','Our_detections_our_tracker']
-results = [pd.read_csv('/home/infres/chagneux/repos/TrackEval/data/trackers/surfrider_segments_T1/surfrider-test/{}/pedestrian_detailed.csv'.format(tracker_name),',') \
+tracker_names = ['fairmot_detections_our_tracker']
+results = [pd.read_csv('/home/infres/chagneux/repos/TrackEval/data/trackers/surfrider_T1/surfrider-test/{}/pedestrian_detailed.csv'.format(tracker_name),',') \
     for tracker_name in tracker_names]
 
 
@@ -16,8 +16,6 @@ count_errors_relative.boxplot()
 plt.suptitle('Box plot on 19 consecutive short sequences from T1')
 plt.ylabel(r'$\frac{\hat{N}-N}{N}$')
 plt.show()
-
-
 
 
 

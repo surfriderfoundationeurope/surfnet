@@ -112,12 +112,13 @@ class IterableFrameReader:
         self.first_frame_read = False
 
 class SimpleVideoReader:
-    def __init__(self, video_filename, skip_frames):
+    def __init__(self, video_filename, skip_frames=0):
         self.skip_frames = skip_frames 
         self.video = cv2.VideoCapture(video_filename)
         self.shape = (int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (skip_frames+1)
         self.frame_nb = 0
+        self.num_frames = self.video.get(cv2.CAP_PROP_FRAME_COUNT)
 
     def read(self):
         ret, frame = self.video.read()
@@ -127,6 +128,7 @@ class SimpleVideoReader:
 
     def set_frame(self, frame_nb_to_set):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_nb_to_set)
+        self.frame_nb = frame_nb_to_set
 
     def _skip_frames(self):
         for _ in range(self.skip_frames):
