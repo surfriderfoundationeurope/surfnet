@@ -190,10 +190,11 @@ class Kalman(Tracker):
     def fill_display(self, display, tracker_nb):
         yy, xx = np.mgrid[0:display.display_shape[1]:1, 0:display.display_shape[0]:1]
         pos = np.dstack((xx, yy))    
-        distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
+        # distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
 
         color = super().fill_display(display, tracker_nb)
-        display.ax.contour(distribution.pdf(pos), colors=color)
+        # display.ax.contour(distribution.pdf(pos), colors=color, levels=1)
+        display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
 
 class DetectionFreeTracker:
 

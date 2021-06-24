@@ -5,15 +5,15 @@ import cv2
 import os 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-def generate_mot_from_cvat(cvat_results_filename, split_list, video_filename, clean_ids_list, skip_frames=0):
+def generate_mot_from_cvat(cvat_results_filename, video_filename, clean_ids_list, skip_frames=0):
     mot_results  = np.loadtxt(cvat_results_filename, delimiter=',')
-    if len(clean_ids_list):
-        mot_results = clean_cvat_annotation(mot_results,clean_ids_list)
-    # segments_ends = [853,1303,1984,2818,3509,4008,4685,5355,np.inf]
+    mot_results_split = preprocess_cvat_annotations(mot_results, split_list, clean_ids_list)
+
     video = SimpleVideoReader(video_filename, skip_frames=0)
     largest_index = 0
     frame_interval = skip_frames+1
     for segment_nb, segment_end in enumerate(split_list):
+
         sequence_len = 0
         sequence_name = '{}_segment_{}'.format(video_filename.split('/')[-1].split('.')[0],segment_nb)
         sequence_dir = os.path.join(sequences_dir,sequence_name)
@@ -63,16 +63,48 @@ def generate_mot_from_cvat(cvat_results_filename, split_list, video_filename, cl
         seqmaps.write(sequence_name)
 
 
-def clean_cvat_annotation(mot_results, list_of_ids_to_remove):
+def remap_ids(mot_results, list_ids_to_remove):
 
-
-    indices_to_keep = [i for i in range(len(mot_results)) if mot_results[i,1] not in list_of_ids_to_remove]
-
+    indices_to_keep = [i for i in range(len(mot_results)) if mot_results[i,1] not in list_ids_to_remove]
     mot_results = mot_results[indices_to_keep]
     original_ids = sorted(list(set(mot_results[:,1])))
     new_ids_map =  {v:k+1 for k,v in enumerate(original_ids)}
     for result_nb in range(len(mot_results)):
         mot_results[result_nb,1] = new_ids_map[mot_results[result_nb,1]]
+    
+    return mot_results
+
+def segments_from_cvat_annotations(mot_results, list_ids_to_remove):
+
+    proportions_nb_objects = {2:0.1,
+                              4:0.3,
+                              6:0.2,
+                              10:0.4}
+
+    if len(list_ids_to_remove):
+        mot_results = remap_ids(mot_results, list_ids_to_remove)
+
+    
+    new_ids = sorted(list(set(mot_results[:,1])))
+    nb_objects_in_video = len(new_ids)
+    sequences = dict()
+    for nb_objects, proportion in proportions_nb_objects.items():
+        nb_sequences = int(proportion*nb_objects_in_video/nb_objects)
+        for sequence_nb in range(nb_sequences):
+            indices_for_sequence = []
+            max_index_for_sequence = len(mot_results[mot_results[:,1] == nb_objects])
+
+            sequences['{}_objects_{}'.format(nb_objects, sequence_nb)] = mot_results[mot_results[:,1] <= nb_objects]
+            
+
+
+
+
+
+
+    
+
+
 
 
     return mot_results
@@ -81,27 +113,28 @@ def clean_cvat_annotation(mot_results, list_of_ids_to_remove):
 
 if __name__ == '__main__':
 
-    output_dir = 'data/validation_videos/T1/long_segments_24fps'
-    seqmaps_dir = os.path.join(output_dir,'seqmaps')
-    os.mkdir(seqmaps_dir)
-    seqmaps = open(os.path.join(seqmaps_dir,'surfrider-test.txt'),'w')
-    seqmaps.write('name\n')
-    sequences_dir = os.path.join(output_dir,'surfrider-test')
-    os.mkdir(sequences_dir)
+    # output_dir = 'data/validation_videos/T1/long_segments_24fps'
+    # seqmaps_dir = os.path.join(output_dir,'seqmaps')
+    # os.mkdir(seqmaps_dir)
+    # seqmaps = open(os.path.join(seqmaps_dir,'surfrider-test.txt'),'w')
+    # seqmaps.write('name\n')
+    # sequences_dir = os.path.join(output_dir,'surfrider-test')
+    # os.mkdir(sequences_dir)
 
     clean_ids_lists = [[5,6,9,12,21,22,24,25,27,28,29,30,31,32,34,35,37,39,47,48,49,56,58]]#,[7,17,19,25,37,44]]
     cvat_results_filenames = ['data/validation_videos/T1/CVAT/gt_part_1.txt'] #,'data/validation_videos/T1/CVAT/gt_part_2.txt']
     video_filenames = ['data/validation_videos/T1/CVAT/part_1.mp4'] #,'data/validation_videos/T1/CVAT/part_2.mp4']
-    split_lists = [[np.inf]] #[[853,1303,1984,2818,3509,4008,4685,5355,np.inf],[844,2021,2692,3544,3999,4744,5171,6127,6889,np.inf]]
+    # split_lists = [[np.inf]] #[[853,1303,1984,2818,3509,4008,4685,5355,np.inf],[844,2021,2692,3544,3999,4744,5171,6127,6889,np.inf]]
 
 
-    for cvat_results_filename, video_filename, split_list, clean_ids_list in zip(cvat_results_filenames, video_filenames, split_lists, clean_ids_lists):
-        generate_mot_from_cvat(cvat_results_filename=cvat_results_filename, 
-                               split_list=split_list, 
-                               video_filename=video_filename, 
-                               clean_ids_list=clean_ids_list,
-                               skip_frames=1)
+    for cvat_results_filename, video_filename, clean_ids_list in zip(cvat_results_filenames, video_filenames, clean_ids_lists):
 
-    seqmaps.close()
+        segments_from_cvat_annotations(mot_results=np.loadtxt(cvat_results_filename, delimiter=','), list_ids_to_remove=clean_ids_list)
+        # generate_mot_from_cvat(cvat_results_filename=cvat_results_filename, 
+        #                        video_filename=video_filename, 
+        #                        clean_ids_list=clean_ids_list,
+        #                        skip_frames=1)
+
+    # seqmaps.close()
 
 

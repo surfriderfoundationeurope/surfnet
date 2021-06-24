@@ -13,6 +13,24 @@ import matplotlib
 # matplotlib.use('TkAgg')
 import pickle
 
+
+class FramesWithInfo:
+    def __init__(self, frames, output_shape):
+        self.frames = frames
+        self.output_shape = output_shape
+        self.end = len(frames)
+        self.read_head = 0 
+    
+    def __next__(self):
+        if self.read_head <= self.end:
+            self.read_head+=1
+            return self.frames[self.read_head]
+        else: 
+            raise StopIteration
+    
+    def __iter__(self):
+        return self
+
 class Display:
 
     def __init__(self, on):
@@ -50,7 +68,7 @@ class Display:
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=False)
+display = Display(on=True)
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
@@ -164,7 +182,7 @@ def track_video_2(reader, heatmaps, args, engine, state_variance, observation_va
     heatmaps = heatmaps[:200]
     heatmap = heatmaps[0]
     tracker = DetectionFreeTracker(heatmap, jump_probability=0.5, state_variance=state_variance, observation_variance=observation_variance, num_samples=500)
-    display_shape = (reader.output_shape[0] , reader.output_shape[1])
+    display_shape = (reader.output_shape[0], reader.output_shape[1])
 
     frame0 = next(reader)   
 
@@ -208,14 +226,11 @@ def main(args):
             print(sequence_name)
             with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
                 detections = pickle.load(f)
-
-            # with open(os.path.join(path,'saved_heatmaps.pickle'),'rb') as f: 
-            #     heatmaps = pickle.load(f)
-
             with open(os.path.join(args.data_dir,sequence_name,'saved_frames.pickle'),'rb') as f: 
                 frames = pickle.load(f)
 
-            reader = (frame for frame in frames)
+            reader = FramesWithInfo(frames, output_shape=frames[0].shape[:-1][::-1])
+
 
             for detection_nb in range(len(detections)):
                 detection = detections[detection_nb]

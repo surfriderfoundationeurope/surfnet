@@ -120,10 +120,15 @@ class SimpleVideoReader:
         self.frame_nb = 0
 
     def read(self):
-        if self.frame_nb == 0: ret ,frame = self.video.read()
-        else:
-            for _ in range(self.skip_frames):
-                self.video.read()
-            ret, frame = self.video.read()
+        ret, frame = self.video.read()
         self.frame_nb+=1
+        self._skip_frames()
         return ret, frame, self.frame_nb-1
+
+    def set_frame(self, frame_nb_to_set):
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_nb_to_set)
+
+    def _skip_frames(self):
+        for _ in range(self.skip_frames):
+            self.video.read()
+
