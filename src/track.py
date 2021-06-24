@@ -3,28 +3,39 @@ import json
 import numpy as np
 import os
 from tqdm import tqdm
-from tracking.utils import init_trackers, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
+from tracking.utils import in_frame, init_trackers, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
 from common.opencv_tools import IterableFrameReader
 from common.flow_tools import compute_flow
 from common.utils import load_base, load_extension
 from tracking.trackers import trackers, DetectionFreeTracker
 import matplotlib.pyplot as plt
-import matplotlib 
+# import matplotlib 
 # matplotlib.use('TkAgg')
 import pickle
+from scipy.spatial.distance import euclidean
 
+def _calculate_euclidean_similarity(distances, zero_distance):
+    """ Calculates the euclidean distance between two sets of detections, and then converts this into a similarity
+    measure with values between 0 and 1 using the following formula: sim = max(0, 1 - dist/zero_distance).
+    The default zero_distance of 2.0, corresponds to the default used in MOT15_3D, such that a 0.5 similarity
+    threshold corresponds to a 1m distance threshold for TPs.
+    """
+    sim = np.maximum(0, 1 - distances/zero_distance)
+    return sim
 
 class FramesWithInfo:
     def __init__(self, frames, output_shape):
         self.frames = frames
         self.output_shape = output_shape
         self.end = len(frames)
-        self.read_head = 0 
+        self.read_head = 0
     
     def __next__(self):
-        if self.read_head <= self.end:
+        if self.read_head < self.end:
+            frame = self.frames[self.read_head]
             self.read_head+=1
-            return self.frames[self.read_head]
+            return frame
+
         else: 
             raise StopIteration
     
@@ -39,7 +50,7 @@ class Display:
         plt.ion()
         self.colors =  plt.rcParams['axes.prop_cycle'].by_key()['color']
         self.legends = []
-
+        
     def display(self, trackers):
 
         something_to_show = False
@@ -57,7 +68,7 @@ class Display:
             self.ax.xaxis.tick_top()
             plt.legend(handles=self.legends)
             self.fig.canvas.draw()
-            plt.title('Raw count: {}'.format(len(trackers)))
+            plt.title('Raw count: {}'.format(sum([len(tracker.tracklet) > self.count_threshold for tracker in trackers])))
             plt.show()
             while not plt.waitforbuttonpress():
                 continue
@@ -68,7 +79,7 @@ class Display:
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=True)
+display = Display(on=False)
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
@@ -87,12 +98,16 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     frame0 = next(reader)
     detections_for_frame = detections[frame_nb]
 
+    _similarity = lambda x: _calculate_euclidean_similarity(x,zero_distance=euclidean(reader.output_shape, np.array([0,0])))
+
     if display.on: 
+    
         display.display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
+        display.count_threshold = args.stop_tracking_threshold
         display.update_detections_and_frame(detections_for_frame, frame0)
 
     if len(detections_for_frame):
-        trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, args.stop_tracking_threshold)
+        trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance)
         init = True
 
     if display.on: display.display(trackers)
@@ -121,7 +136,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                 if len(confidence_functions_for_trackers):
                     for detection_nb in range(len(detections_for_frame)):
 
-                        tracker_scores = {tracker_nb: confidence_for_tracker(detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
+                        tracker_scores = {tracker_nb: _similarity(confidence_for_tracker(detections_for_frame[detection_nb])) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
 
                         tracker_ids = list(tracker_scores.keys())
                         candidate_tracker_id = tracker_ids[int(
@@ -146,12 +161,13 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                 for detection_nb in range(len(detections_for_frame)):
                     detection = detections_for_frame[detection_nb]
                     assigned_tracker = assigned_trackers[detection_nb]
-                    if assigned_tracker == -1:
-                        new_trackers.append(
-                            engine(frame_nb, detection, state_variance, observation_variance, stop_tracking_threshold=args.stop_tracking_threshold))
-                    else:
-                        trackers[assigned_tracker].update(
-                            detection, flow01, frame_nb)
+                    if in_frame(detection, flow01.shape[:-1]):
+                        if assigned_tracker == -1 :
+                            new_trackers.append(
+                                engine(frame_nb, detection, state_variance, observation_variance))
+                        else:
+                            trackers[assigned_tracker].update(
+                                detection, flow01, frame_nb)
 
             for tracker in trackers:
                 tracker.update_status(flow01)
@@ -164,7 +180,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
 
     results = []
-    tracklets = [tracker.tracklet for tracker in trackers if not tracker.unstable]
+    tracklets = [tracker.tracklet for tracker in trackers]
     tracklets = [tracklet for tracklet in tracklets if len(tracklet) > args.stop_tracking_threshold]
     
 
@@ -245,6 +261,8 @@ def main(args):
 
             state_variance = np.load(os.path.join(args.tracker_parameters_dir, 'state_variance.npy'))
             observation_variance = np.load(os.path.join(args.tracker_parameters_dir, 'observation_variance.npy'))
+            # state_variance = np.array([1,1])
+            # observation_variance = np.array([1,1])
             args.downsampling_factor = 1
             results = track_video(reader, detections, args, engine, state_variance, observation_variance)
 
@@ -423,7 +441,10 @@ def main(args):
                     with open('samples.pickle','wb') as f:
                         pickle.dump(results,f)
 
-                
+
+
+
+
 
 
 

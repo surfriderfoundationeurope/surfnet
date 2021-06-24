@@ -55,11 +55,11 @@ class MultivariateDiscrete:
 # def Multivariate 
 
 
-def init_trackers(engine, detections, frame_nb, state_variance, observation_variance, stop_tracking_threshold):
+def init_trackers(engine, detections, frame_nb, state_variance, observation_variance):
     trackers = []
 
     for detection in detections:
-        tracker_for_detection = engine(frame_nb, detection, state_variance, observation_variance, stop_tracking_threshold=stop_tracking_threshold)
+        tracker_for_detection = engine(frame_nb, detection, state_variance, observation_variance)
         trackers.append(tracker_for_detection)
 
     return trackers
@@ -68,14 +68,15 @@ def exp_and_normalise(lw):
     w = np.exp(lw - lw.max())
     return w / w.sum()
 
-def in_frame(position, shape):
+def in_frame(position, shape, border=0.02):
+
 
     shape_x = shape[1]
     shape_y = shape[0]
     x = position[0]
     y = position[1]
 
-    return x > 0 and x < shape_x-1 and y > 0 and y < shape_y-1
+    return x > border*shape_x and x < (1-border)*shape_x and y > border*shape_y and y < (1-border)*shape_y
     
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
     images_for_video = [image for image in images

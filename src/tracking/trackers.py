@@ -1,4 +1,5 @@
-import numpy as np 
+import numpy as np
+from scipy.spatial.distance import euclidean 
 from scipy.stats import multivariate_normal, norm
 from tracking.utils import in_frame, exp_and_normalise, GaussianMixture, MultivariateDiscrete
 from pykalman import KalmanFilter
@@ -7,17 +8,14 @@ import matplotlib.patches as mpatches
 
 class Tracker:
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold=5):
+    def __init__(self, frame_nb, X0, state_variance, observation_variance):
 
         self.state_covariance = np.diag(state_variance)
         self.observation_covariance = np.diag(observation_variance)
         self.updated = False
-        self.countdown = 0
+        self.steps_since_last_observation = 0
         self.enabled = True
-        self.stop_tracking_threshold = stop_tracking_threshold
         self.tracklet = [(frame_nb, X0)]
-        self.summed_countdown = 0
-        self.unstable = False
 
     def update(self, observation, frame_nb):
         self.tracklet.append((frame_nb, observation))
@@ -25,17 +23,11 @@ class Tracker:
 
     def update_status(self, flow):
         if self.enabled and not self.updated:
-            self.countdown += 1
-            self.summed_countdown+=1
+            self.steps_since_last_observation += 1
             self.enabled = self.update(None, flow)
         else:
-            self.countdown = 0
+            self.steps_since_last_observation = 0
         self.updated = False
-
-        # if self.summed_countdown > 2*self.stop_tracking_threshold:
-        #     self.unstable = True
-        #     self.enabled = False
-
 
     def build_confidence_function(self, flow):
 
@@ -56,17 +48,18 @@ class Tracker:
 
         distribution = self.predictive_distribution(flow)
         
-        return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
+        # return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
+        return lambda coord: euclidean(coord, distribution.mean)
     
     def fill_display(self, display, tracker_nb):
         colors = display.colors
         color = colors[tracker_nb % len(colors)]
-        display.legends.append(mpatches.Patch(color=color, label=self.countdown))
+        display.legends.append(mpatches.Patch(color=color, label=len(self.tracklet)))
         return colors[tracker_nb % len(colors)]
 
 class SMC(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold, n_particles=20):
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, n_particles=20):
         super().__init__(frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold=stop_tracking_threshold)
 
         self.particles = multivariate_normal(
@@ -151,13 +144,14 @@ class SMC(Tracker):
 
 class Kalman(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold):
-            super().__init__(frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold)
+    def __init__(self, frame_nb, X0, state_variance, observation_variance):
+            super().__init__(frame_nb, X0, state_variance, observation_variance)
             self.filter = KalmanFilter(initial_state_mean=X0, 
-                                                initial_state_covariance=self.observation_covariance, 
-                                                transition_matrices=np.eye(2), 
-                                                transition_covariance=self.state_covariance,
-                                                observation_matrices=np.eye(2))
+                                       initial_state_covariance=self.observation_covariance, 
+                                       transition_matrices=np.eye(2), 
+                                       transition_covariance=self.state_covariance,
+                                       observation_matrices=np.eye(2),
+                                       observation_covariance=self.observation_covariance)
 
             self.filtered_state_mean = X0
             self.filtered_state_covariance = self.observation_covariance
