@@ -1,6 +1,6 @@
 . scripts/shell_variables.sh 
 
-experiment_name='fairmot_dets_T1_long_segments_conf_045_epoch_290_count_thres_8'
+experiment_name='test'
 output_dir='experiments/tracking/'${experiment_name}
 create_clean_directory $output_dir
 

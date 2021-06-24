@@ -79,7 +79,7 @@ class Display:
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=False)
+display = Display(on=True)
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
@@ -135,8 +135,8 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                 
                 if len(confidence_functions_for_trackers):
                     for detection_nb in range(len(detections_for_frame)):
-
                         tracker_scores = {tracker_nb: _similarity(confidence_for_tracker(detections_for_frame[detection_nb])) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
+                        # tracker_scores = {tracker_nb: confidence_for_tracker(detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
 
                         tracker_ids = list(tracker_scores.keys())
                         candidate_tracker_id = tracker_ids[int(

@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 tracker_names = ['fairmot_detections_our_tracker']
-results = [pd.read_csv('/home/infres/chagneux/repos/TrackEval/data/trackers/surfrider_T1/surfrider-test/{}/pedestrian_detailed.csv'.format(tracker_name),',') \
+results = [pd.read_csv('/home/infres/chagneux/repos/TrackEval/data/trackers/surfrider_T1_segmented/surfrider-test/{}/pedestrian_detailed.csv'.format(tracker_name),',') \
     for tracker_name in tracker_names]
 
 
