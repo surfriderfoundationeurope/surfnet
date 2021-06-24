@@ -34,7 +34,7 @@ def main(args):
                 center_y = float(line[3])
                 gt_results[frame_nb].append((object_nb, center_x, center_y))
 
-    video = SimpleVideoReader(video_filename, skip_frames=0)
+    video = SimpleVideoReader(video_filename, skip_frames=args.skip_frames)
     if write: 
         writer = cv2.VideoWriter(filename=args.output_name+'.mp4', 
                                     apiPreference=cv2.CAP_FFMPEG, 
@@ -80,5 +80,6 @@ if __name__ == '__main__':
     parser.add_argument('--input_gt_mot_file',type=str)
     parser.add_argument('--write',type=bool)
     parser.add_argument('--output_name',type=str,default='overlay')
+    parser.add_argument('--skip_frames',type=int,default=0)
     args = parser.parse_args()
     main(args)
