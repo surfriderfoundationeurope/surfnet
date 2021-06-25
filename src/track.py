@@ -6,22 +6,11 @@ from tqdm import tqdm
 from tracking.utils import in_frame, init_trackers, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
 from common.opencv_tools import IterableFrameReader
 from common.flow_tools import compute_flow
-from common.utils import load_base, load_extension
+from common.utils import load_base, load_extension, _calculate_euclidean_similarity
 from tracking.trackers import trackers, DetectionFreeTracker
 import matplotlib.pyplot as plt
-# import matplotlib 
-# matplotlib.use('TkAgg')
 import pickle
 from scipy.spatial.distance import euclidean
-
-def _calculate_euclidean_similarity(distances, zero_distance):
-    """ Calculates the euclidean distance between two sets of detections, and then converts this into a similarity
-    measure with values between 0 and 1 using the following formula: sim = max(0, 1 - dist/zero_distance).
-    The default zero_distance of 2.0, corresponds to the default used in MOT15_3D, such that a 0.5 similarity
-    threshold corresponds to a 1m distance threshold for TPs.
-    """
-    sim = np.maximum(0, 1 - distances/zero_distance)
-    return sim
 
 class FramesWithInfo:
     def __init__(self, frames, output_shape):

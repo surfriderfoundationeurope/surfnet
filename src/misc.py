@@ -22,7 +22,7 @@ from common.utils import load_my_model, transform_test_CenterNet, nms
 from train_extension import spatial_transformer, get_loaders
 from train_base import get_dataset
 import cv2
-from common.utils import pre_process_centernet
+from common.utils import pre_process_centernet, _calculate_euclidean_similarity
 from tqdm import tqdm
 # from sklearn.metrics import roc_curve
 # from numba import jit
@@ -619,15 +619,6 @@ def compute_precision_recall_nonlocal(gt, predictions, output_filename='evaluati
 
     if plot: 
         plot_pr_curve(precision_list, recall_list, thresholds)
-
-def _calculate_euclidean_similarity(distances, zero_distance=50):
-    """ Calculates the euclidean distance between two sets of detections, and then converts this into a similarity
-    measure with values between 0 and 1 using the following formula: sim = max(0, 1 - dist/zero_distance).
-    The default zero_distance of 2.0, corresponds to the default used in MOT15_3D, such that a 0.5 similarity
-    threshold corresponds to a 1m distance threshold for TPs.
-    """
-    sim = np.maximum(0, 1 - distances/zero_distance)
-    return sim
 
 def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluation', enable_nms=False, plot=False):
 
