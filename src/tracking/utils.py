@@ -55,11 +55,11 @@ class MultivariateDiscrete:
 # def Multivariate 
 
 
-def init_trackers(engine, detections, frame_nb, state_variance, observation_variance):
+def init_trackers(engine, detections, frame_nb, state_variance, observation_variance, delta):
     trackers = []
 
     for detection in detections:
-        tracker_for_detection = engine(frame_nb, detection, state_variance, observation_variance)
+        tracker_for_detection = engine(frame_nb, detection, state_variance, observation_variance, delta)
         trackers.append(tracker_for_detection)
 
     return trackers

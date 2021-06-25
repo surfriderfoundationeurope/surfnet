@@ -11,7 +11,7 @@ python src/track.py \
     --confidence_threshold 0.2 \
     --detection_threshold 0.33 \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
-    --stop_tracking_threshold 5 \
+    --count_threshold 5 \
     --external_detections_dir ${EXTERNAL_DETECTIONS}/real_val/mine/threshold_04_augmentations \
     --algorithm Kalman \
     --read_from folder \

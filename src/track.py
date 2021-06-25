@@ -79,7 +79,7 @@ class Display:
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=True)
+display = Display(on=False)
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
@@ -98,16 +98,18 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     frame0 = next(reader)
     detections_for_frame = detections[frame_nb]
 
-    _similarity = lambda x: _calculate_euclidean_similarity(x,zero_distance=euclidean(reader.output_shape, np.array([0,0])))
+    max_distance = euclidean(reader.output_shape, np.array([0,0]))
+    _similarity = lambda x: _calculate_euclidean_similarity(x, zero_distance=max_distance)
+    delta = 0.05*max_distance
 
     if display.on: 
     
         display.display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
-        display.count_threshold = args.stop_tracking_threshold
+        display.count_threshold = args.count_threshold
         display.update_detections_and_frame(detections_for_frame, frame0)
 
     if len(detections_for_frame):
-        trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance)
+        trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, delta)
         init = True
 
     if display.on: display.display(trackers)
@@ -120,7 +122,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
         if not init:
             if len(detections_for_frame):
-                trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance)
+                trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, delta)
                 init = True
 
         else:
@@ -135,8 +137,8 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                 
                 if len(confidence_functions_for_trackers):
                     for detection_nb in range(len(detections_for_frame)):
-                        tracker_scores = {tracker_nb: _similarity(confidence_for_tracker(detections_for_frame[detection_nb])) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
-                        # tracker_scores = {tracker_nb: confidence_for_tracker(detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
+                        # tracker_scores = {tracker_nb: _similarity(confidence_for_tracker(detections_for_frame[detection_nb])) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
+                        tracker_scores = {tracker_nb: confidence_for_tracker(detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
 
                         tracker_ids = list(tracker_scores.keys())
                         candidate_tracker_id = tracker_ids[int(
@@ -158,13 +160,11 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                                 assigned_trackers[detection_nb] = candidate_tracker_id
                                 assignment_confidences[detection_nb] = score_for_candidate_cloud
 
-                for detection_nb in range(len(detections_for_frame)):
-                    detection = detections_for_frame[detection_nb]
-                    assigned_tracker = assigned_trackers[detection_nb]
+                for detection, assigned_tracker in zip(detections_for_frame, assigned_trackers):
                     if in_frame(detection, flow01.shape[:-1]):
                         if assigned_tracker == -1 :
                             new_trackers.append(
-                                engine(frame_nb, detection, state_variance, observation_variance))
+                                engine(frame_nb, detection, state_variance, observation_variance, delta))
                         else:
                             trackers[assigned_tracker].update(
                                 detection, flow01, frame_nb)
@@ -181,7 +181,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
     results = []
     tracklets = [tracker.tracklet for tracker in trackers]
-    tracklets = [tracklet for tracklet in tracklets if len(tracklet) > args.stop_tracking_threshold]
+    tracklets = [tracklet for tracklet in tracklets if len(tracklet) > args.count_threshold]
     
 
     for tracker_nb, associated_detections in enumerate(tracklets):
@@ -267,7 +267,7 @@ def main(args):
             results = track_video(reader, detections, args, engine, state_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, sequence_name)
-            output_file = open(output_filename, 'w')
+            output_file = open(output_filename+'.txt', 'w')
             ratio_x, ratio_y = 4, 4
 
             for result in results:
@@ -453,7 +453,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Tracking')
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--annotation_file', type=str)
-    parser.add_argument('--stop_tracking_threshold', type=float, default=5)
+    parser.add_argument('--count_threshold', type=float, default=5)
     parser.add_argument('--detection_threshold', type=float, default=0.33)
     parser.add_argument('--confidence_threshold', type=float, default=0.2)
     parser.add_argument('--base_weights', type=str)

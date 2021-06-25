@@ -10,7 +10,7 @@ python src/track.py \
     --confidence_threshold 0.2 \
     --detection_threshold 0.28 \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
-    --stop_tracking_threshold 1 \
+    --count_threshold 1 \
     --algorithm 'Kalman' \
     --read_from 'folder' \
     --annotation_file 'data/synthetic_videos/annotations/annotations_val.json' \

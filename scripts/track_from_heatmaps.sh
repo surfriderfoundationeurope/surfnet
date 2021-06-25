@@ -10,7 +10,7 @@ python src/track.py \
     --confidence_threshold 0.2 \
     --detection_threshold 0.4 \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
-    --stop_tracking_threshold 5 \
+    --count_threshold 5 \
     --algorithm 'Kalman' \
     --read_from 'folder' \
     --detector 'external_simplepickle' \

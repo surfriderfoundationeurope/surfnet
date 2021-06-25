@@ -8,7 +8,9 @@ import matplotlib.patches as mpatches
 
 class Tracker:
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance):
+    delta = None
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta):
+
 
         self.state_covariance = np.diag(state_variance)
         self.observation_covariance = np.diag(observation_variance)
@@ -16,6 +18,7 @@ class Tracker:
         self.steps_since_last_observation = 0
         self.enabled = True
         self.tracklet = [(frame_nb, X0)]
+        self.delta = delta
 
     def update(self, observation, frame_nb):
         self.tracklet.append((frame_nb, observation))
@@ -32,8 +35,7 @@ class Tracker:
     def build_confidence_function(self, flow):
 
         def confidence_from_multivariate_distribution(coord, distribution):
-
-            delta = 3
+            delta = self.delta
             x = coord[0]
             y = coord[1]
             right_top = np.array([x+delta, y+delta])
@@ -48,8 +50,8 @@ class Tracker:
 
         distribution = self.predictive_distribution(flow)
         
-        # return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
-        return lambda coord: euclidean(coord, distribution.mean)
+        return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
+        # return lambda coord: euclidean(coord, distribution.mean)
     
     def fill_display(self, display, tracker_nb):
         colors = display.colors
@@ -60,7 +62,7 @@ class Tracker:
 class SMC(Tracker): 
 
     def __init__(self, frame_nb, X0, state_variance, observation_variance, n_particles=20):
-        super().__init__(frame_nb, X0, state_variance, observation_variance, stop_tracking_threshold=stop_tracking_threshold)
+        super().__init__(frame_nb, X0, state_variance, observation_variance, count_threshold=count_threshold)
 
         self.particles = multivariate_normal(
             X0, cov=self.observation_covariance).rvs(n_particles)
@@ -144,8 +146,8 @@ class SMC(Tracker):
 
 class Kalman(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance):
-            super().__init__(frame_nb, X0, state_variance, observation_variance)
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta):
+            super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
             self.filter = KalmanFilter(initial_state_mean=X0, 
                                        initial_state_covariance=self.observation_covariance, 
                                        transition_matrices=np.eye(2), 
@@ -187,8 +189,8 @@ class Kalman(Tracker):
         distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
 
         color = super().fill_display(display, tracker_nb)
-        cs = display.ax.contour(distribution.pdf(pos), colors=color, levels=1)
-        display.ax.clabel(cs, inline=True, fontsize=10)
+        cs = display.ax.contour(distribution.pdf(pos), colors=color)
+        display.ax.clabel(cs, inline=True, fontsize='large')
         display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
 
 class DetectionFreeTracker:
