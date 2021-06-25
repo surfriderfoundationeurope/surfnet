@@ -44,12 +44,15 @@ class FramesWithInfo:
 
 class Display:
 
-    def __init__(self, on):
+    def __init__(self, on, interactive=True):
         self.on = on
         self.fig, self.ax = plt.subplots()
-        plt.ion()
+        self.interactive = interactive
+        if interactive:
+            plt.ion()
         self.colors =  plt.rcParams['axes.prop_cycle'].by_key()['color']
         self.legends = []
+        self.plot_count = 0
         
     def display(self, trackers):
 
@@ -69,17 +72,21 @@ class Display:
             plt.legend(handles=self.legends)
             self.fig.canvas.draw()
             plt.title('Raw count: {}'.format(sum([len(tracker.tracklet) > self.count_threshold for tracker in trackers])))
-            plt.show()
-            while not plt.waitforbuttonpress():
-                continue
+            if self.interactive: 
+                plt.show()
+                while not plt.waitforbuttonpress():
+                    continue
+            else:
+                plt.savefig(os.path.join('plots',str(self.plot_count)))
             self.ax.cla()
             self.legends = []
+            self.plot_count+=1
 
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=False)
+display = Display(on=False, interactive=False)
 
 def build_confidence_function_for_trackers(trackers, flow01):
 
