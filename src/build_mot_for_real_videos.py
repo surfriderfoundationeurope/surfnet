@@ -102,7 +102,7 @@ def remap_ids(mot_results, list_ids_to_remove=[]):
 
 if __name__ == '__main__':
 
-    output_dir = 'data/validation_videos/T1/long_segments'
+    output_dir = 'data/validation_videos/T2/long_segments'
     seqmaps_dir = os.path.join(output_dir,'seqmaps')
     os.mkdir(seqmaps_dir)
     seqmaps = open(os.path.join(seqmaps_dir,'surfrider-test.txt'),'w')
@@ -110,9 +110,10 @@ if __name__ == '__main__':
     sequences_dir = os.path.join(output_dir,'surfrider-test')
     os.mkdir(sequences_dir)
 
-    clean_ids_lists = [[5,6,7,8,9,12,21,22,24,25,27,28,30,31,32,34,35,37,39,47,48,49,56,58],[7,17,19,25,37,44]]
-    cvat_results_filenames = ['data/validation_videos/T1/CVAT/gt_part_1.txt','data/validation_videos/T1/CVAT/gt_part_2.txt']
-    video_filenames = ['data/validation_videos/T1/CVAT/part_1.mp4','data/validation_videos/T1/CVAT/part_2.mp4']
+    # clean_ids_lists = [[5,6,7,8,9,12,21,22,24,25,27,28,30,31,32,34,35,37,39,47,48,49,56,58],[7,17,19,25,37,44]]
+    clean_ids_lists = [[]]
+    cvat_results_filenames = ['data/validation_videos/T2/CVAT/gt.txt']#,'data/validation_videos/T1/CVAT/gt_part_2.txt']
+    video_filenames = ['data/validation_videos/T2/full/T2_1080_px_converted.mp4']#,'data/validation_videos/T1/CVAT/part_2.mp4']
     # split_lists = [[np.inf]] #[[853,1303,1984,2818,3509,4008,4685,5355,np.inf],[844,2021,2692,3544,3999,4744,5171,6127,6889,np.inf]]
 
 

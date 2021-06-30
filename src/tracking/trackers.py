@@ -179,7 +179,7 @@ class Kalman(Tracker):
                                                                                              observation=None,
                                                                                              transition_offset=transition_offset)
 
-        # distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance)
+        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance)
 
         return distribution
     

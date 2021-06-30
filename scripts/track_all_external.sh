@@ -6,7 +6,7 @@ create_clean_directory $output_dir
 
 python src/track.py \
     --all_external \
-    --data_dir /home/infres/chagneux/repos/FairMOT/surfrider_T1_epoch_290_long_segments \
+    --data_dir data/external_detections/surfrider_T1_epoch_290_long_segments \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --downsampling_factor ${DOWNSAMPLING_FACTOR} \
