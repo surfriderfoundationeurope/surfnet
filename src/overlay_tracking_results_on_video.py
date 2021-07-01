@@ -53,7 +53,7 @@ def main(args):
 
         detections_for_frame = results[frame_nb]
         for detection in detections_for_frame:
-            # frame = cv2.circle(frame, (int(detection[1]), int(detection[2])), 5, (0, 0, 255), -1)
+            frame = cv2.circle(frame, (int(detection[1]), int(detection[2])), 5, (0, 0, 255), -1)
             cv2.putText(frame, '{}'.format(detection[0]), (int(detection[1]), int(detection[2])+20), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
 
         if gt_filename is not None: 
