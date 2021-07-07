@@ -93,7 +93,7 @@ def remap_ids(mot_results, list_ids_to_remove=[]):
 
 
 
-def preprocess_cvat_results(video_filenames, cvat_results_filenames, clean_ids_lists, write=False):
+def preprocess_cvat_results(video_filenames, cvat_results_filenames, clean_ids_lists):
 
     num_frames = [int(SimpleVideoReader(video_filename).num_frames) for video_filename in video_filenames]
     original_mot_results = [remap_ids(np.loadtxt(cvat_results_filename, delimiter=','), clean_ids_list) for cvat_results_filename, clean_ids_list in zip(cvat_results_filenames, clean_ids_lists)]
@@ -124,7 +124,7 @@ def preprocess_cvat_results(video_filenames, cvat_results_filenames, clean_ids_l
 
 if __name__ == '__main__':
 
-    output_dir = 'data/validation_videos/T3/short_segments'
+    output_dir = 'data/validation_videos/all/long_segments'
     # os.rmdir()
     seqmaps_dir = os.path.join(output_dir,'seqmaps')
     os.mkdir(seqmaps_dir)
@@ -143,10 +143,10 @@ if __name__ == '__main__':
     video_filename_1 = 'data/validation_videos/T1/full/T1_1080_px_converted.mp4'
     
     video_filename_2 ='data/validation_videos/T2/full/T2_1080_px_converted.mp4'
-    mot_results_2 = preprocess_cvat_results(video_filenames = [video_filename_2], cvat_results_filenames='data/validation_videos/T2/CVAT/gt.txt', clean_ids_lists=[[]])
+    mot_results_2 = preprocess_cvat_results(video_filenames = [video_filename_2], cvat_results_filenames=['data/validation_videos/T2/CVAT/gt.txt'], clean_ids_lists=[[]])
 
     cvat_results_filenames = ['data/validation_videos/T3/CVAT/gt_part_1.txt',
-                              'data/validation_videos/T3/CVAT/gt_part_2.txt'] #,'data/validation_videos/T1/CVAT/gt_part_2.txt']
+                              'data/validation_videos/T3/CVAT/gt_part_2.txt'] 
     video_filenames = ['data/validation_videos/T3/CVAT/part_1.mp4',
                        'data/validation_videos/T3/CVAT/part_2.mp4']
 
@@ -154,9 +154,9 @@ if __name__ == '__main__':
     video_filename_3 = 'data/validation_videos/T3/full/T3_1080_px_converted.mp4'
 
 
-    mot_results = [mot_results_1,mot_results_2,mot_results_3]
-    video_filenames = [video_filename_1,video_filename_2,video_filename_3]
-    base_names = ['part_1','part_2','part_3']
+    mot_results = [mot_results_2,mot_results_3]
+    video_filenames = [video_filename_2,video_filename_3]
+    base_names = ['part_2','part_3']
 
     for mot_result, video_filename, base_name in zip(mot_results, video_filenames, base_names):
 

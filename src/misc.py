@@ -480,7 +480,7 @@ def prec_recall_for_thres_v2(thres, thres_nb, gt, pred, radius, fairmot=False, i
             position_positives = gt_frame
             position_detections = detection_frame
             width, height = image_dims[frame_nb]
-            max_allowed_cost = radius*math.sqrt(width**2 + height**2)
+            max_allowed_cost = math.sqrt(width**2 + height**2)
         else:
             position_positives = np.argwhere(gt_frame)
             position_detections = np.argwhere(detection_frame)
@@ -498,9 +498,9 @@ def prec_recall_for_thres_v2(thres, thres_nb, gt, pred, radius, fairmot=False, i
                     if np.isscalar(distances_to_detections): 
                         distances_to_detections = np.array([distances_to_detections])
 
-                    similarities = 1 - _calculate_euclidean_similarity(distances_to_detections, zero_distance=max_allowed_cost)
+                    similarities = _calculate_euclidean_similarity(distances_to_detections, zero_distance=max_allowed_cost)
                     closest_detection = np.argmin(similarities)
-                    if similarities[closest_detection] < radius:
+                    if similarities[closest_detection] > 0.9:
                         true_positives_frame+=1
                         false_positives_frame+=len(assigned_detections)-1
                         distances_true_positives.append(similarities[closest_detection])
@@ -566,7 +566,7 @@ def plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list
 
 
     # max_dist = euclidean(u=np.array([0,0]),v=np.array([272,488]))
-    bins=np.arange(0,1,step=0.01)
+    bins=np.arange(1,0,step=0.01)
     best_thres = thresholds[best_position]
     best_f1 = f1[best_position]
     best_recall = recall_list[best_position]
@@ -574,7 +574,7 @@ def plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list
 
     ax3.hist([distances_true_positives_list_best_position, distances_false_positives_list_best_position], bins=bins, histtype='barstacked')
     ax3.set_title('Distribution of distances')
-    ax3.set_xlabel('Distance to closest ground truth object')
+    ax3.set_xlabel('Similarity to closest ground truth object')
     ax3.set_ylabel('Quantity')
 
 
@@ -705,6 +705,60 @@ def compute_precision_recall_hungarian_fairmot_detection(saved_labels_filename, 
     if plot: 
         plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
 
+def compute_precision_recall_hungarian_pickle_detections_mot_gt(mot_gt_filename, saved_detections_filename, output_filename='evaluation', plot=False):
+
+    with open(saved_detections_filename,'rb') as f: 
+        detections = pickle.load(f)
+    predictions = []
+    for detection in detections: 
+
+        if len(detection):
+            associated_prediction = np.zeros(shape=(len(detection),3))
+            associated_prediction[:,0] = (detection[:,0] + detection[:,2])/2
+            associated_prediction[:,1] = (detection[:,1] + detection[:,3])/2
+            associated_prediction[:,2] = detection[:,4]
+        else: 
+            associated_prediction = np.zeros(shape=(0,3))
+        
+        predictions.append(associated_prediction)
+
+    mot_results = np.loadtxt(mot_gt_filename, delimiter=',')
+    gt = []
+
+    for frame_nb in range(len(predictions)):
+        mot_results_for_frame = mot_results[mot_results[:,0] == frame_nb+1]
+        if len(mot_results_for_frame):
+            associated_gt = np.zeros(shape=(len(mot_results_for_frame),2))
+            associated_gt[:,0] = mot_results_for_frame[:,2]
+            associated_gt[:,1] = mot_results_for_frame[:,3]
+        else:
+            associated_gt = np.zeros(shape=(0,2))
+
+        gt.append(associated_gt)
+
+
+    image_dims = [(1920,1080)]*len(gt)
+
+
+    thresholds = np.linspace(0,1,100)
+    precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = prec_recall_with_hungarian(gt, predictions, thresholds, fairmot=True, image_dims=image_dims)
+    
+    precision_list, recall_list = np.array(precision_list), np.array(recall_list)
+    f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
+    best_position = np.argmax(f1)
+
+    distances_true_positives_list_best_position = distances_true_positives_list[best_position]
+    distances_false_positives_list_best_position = distances_false_positives_list[best_position]
+
+    with open(output_filename+'.pickle','wb') as f: 
+        data = (precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
+        pickle.dump(data,f)
+    if plot: 
+        plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
+
+
+
+
 if __name__ == '__main__':
 
     # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_single_class_video_frames/model_72.pth'
@@ -719,36 +773,36 @@ if __name__ == '__main__':
     # compute_precision_recall_hungarian_fairmot_detection('saved_labels_fairmot.pickle', 'saved_detections_fairmot.pickle', output_filename='Evaluation base')
 
 
-    eval_dir = 'data/external_detections/fairmot/evaluation_test_split'
+    compute_precision_recall_hungarian_pickle_detections_mot_gt(mot_gt_filename='data/validation_videos/all/long_segments/mot_gt_files/surfrider-test/part_1_1/gt/gt.txt',
+                                                                saved_detections_filename='/home/infres/chagneux/repos/FairMOT/surfrider_long_segments/part_1_1/saved_detections.pickle')
+    # eval_dir = 'data/external_detections/fairmot/evaluation_test_split'
 
-    with open(os.path.join(eval_dir,'saved_gt_heatmaps.pickle'),'rb') as f: 
-        gt = pickle.load(f)
-    # # with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
-    # #     predictions_extension = pickle.load(f)
-    with open(os.path.join(eval_dir,'saved_heatmaps.pickle'),'rb') as f: 
-        predictions_base = pickle.load(f)
+    # with open(os.path.join(eval_dir,'saved_gt_heatmaps.pickle'),'rb') as f: 
+    #     gt = pickle.load(f)
+    # # # with open(os.path.join(eval_dir,'extension_predictions.pickle'),'rb') as f: 
+    # # #     predictions_extension = pickle.load(f)
+    # with open(os.path.join(eval_dir,'saved_heatmaps.pickle'),'rb') as f: 
+    #     predictions_base = pickle.load(f)
 
-    gt = torch.stack([torch.from_numpy(single_gt) for single_gt in gt])
+    # gt = torch.stack([torch.from_numpy(single_gt) for single_gt in gt])
 
-    predictions_base = torch.stack([torch.from_numpy(single_prediction) for single_prediction in predictions_base])
+    # predictions_base = torch.stack([torch.from_numpy(single_prediction) for single_prediction in predictions_base])
 
+    # permutation = np.random.permutation(gt.shape[0])
 
-
-    permutation = np.random.permutation(gt.shape[0])
-
-    # # # # # gt = gt[permutation]
-    # # # # # predictions_base = predictions_base[permutation]
-    # # # # # # # predictions_extension = predictions_extension[permutation]
+    # # # # # # gt = gt[permutation]
+    # # # # # # predictions_base = predictions_base[permutation]
+    # # # # # # # # predictions_extension = predictions_extension[permutation]
     
 
 
-    # # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
-    compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation_base', enable_nms=True)
-    # # # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
-    # # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation_extension_nms_retrained_video_frames', enable_nms=True)
+    # # # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation base')
+    # compute_precision_recall_hungarian(gt, predictions_base, output_filename='Evaluation_base', enable_nms=True)
+    # # # # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation extension')
+    # # # compute_precision_recall_hungarian(gt, predictions_extension, output_filename='Evaluation_extension_nms_retrained_video_frames', enable_nms=True)
 
 
-    pr_curve_from_file('Evaluation_base.pickle')
+    pr_curve_from_file('evaluation.pickle')
     # pr_curve_from_file(os.path.join(eval_dir,'Evaluation_base_nms.pickle'))
     # pr_curve_from_file('Evaluation extension.pickle')
     # pr_curve_from_file('Evaluation_extension_nms_retrained_video_frames.pickle', show=True)
