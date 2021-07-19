@@ -4,8 +4,8 @@ import argparse
 
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
+    if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
     tracklets = defaultdict(list) 
-
     for result in raw_results:
         track_id = int(result[1])
         frame_id = int(result[0])

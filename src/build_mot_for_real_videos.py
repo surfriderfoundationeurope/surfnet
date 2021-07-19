@@ -90,9 +90,6 @@ def remap_ids(mot_results, list_ids_to_remove=[]):
     
     return mot_results
 
-
-
-
 def preprocess_cvat_results(video_filenames, cvat_results_filenames, clean_ids_lists):
 
     num_frames = [int(SimpleVideoReader(video_filename).num_frames) for video_filename in video_filenames]
@@ -117,14 +114,12 @@ def preprocess_cvat_results(video_filenames, cvat_results_filenames, clean_ids_l
 
 
 
-    
-
-
+# def short_sequence_with_given_ids(video_filename, cvat_results_filename, keep_ids_list):
 
 
 if __name__ == '__main__':
 
-    output_dir = 'data/validation_videos/all/long_segments'
+    output_dir = 'data/validation_videos/all/short_segments_6fps'
     # os.rmdir()
     seqmaps_dir = os.path.join(output_dir,'seqmaps')
     os.mkdir(seqmaps_dir)
@@ -133,14 +128,17 @@ if __name__ == '__main__':
     sequences_dir = os.path.join(output_dir,'surfrider-test')
     os.mkdir(sequences_dir)
 
-    video_filenames = ['data/validation_videos/T1/CVAT/part_1.mp4',
-                       'data/validation_videos/T1/CVAT/part_2.mp4']
-    cvat_results_filenames = ['data/validation_videos/T1/CVAT/gt_part_1.txt',
-                              'data/validation_videos/T1/CVAT/gt_part_2.txt'] 
-    clean_ids_lists = [[5,6,7,8,9,12,21,22,24,25,27,28,30,31,32,34,35,37,39,47,48,49,56,58],[7,17,19,25,37,44]]
+    # video_filename_1_1 = 'data/validation_videos/T1/CVAT/parts_old/part_1.mp4'
+    # video_filename_1_2 = 'data/validation_videos/T1/CVAT/parts_old/part_2.mp4'
 
-    mot_results_1 = preprocess_cvat_results(video_filenames = video_filenames, cvat_results_filenames=cvat_results_filenames, clean_ids_lists=clean_ids_lists)
-    video_filename_1 = 'data/validation_videos/T1/full/T1_1080_px_converted.mp4'
+    # cvat_results_filename_1_1 = 'data/validation_videos/T1/CVAT/gt_part_1.txt'
+    # cvat_results_filename_1_2 = 'data/validation_videos/T1/CVAT/gt_part_2.txt'
+
+    # clean_ids_list_1_1 = [5,6,7,8,9,12,21,22,24,25,27,28,30,31,32,34,35,37,39,47,48,49,56,58]
+    # clean_ids_list_1_2 = [7,17,19,25,37,44]
+
+    # mot_results_1_1 = preprocess_cvat_results(video_filenames=[video_filename_1_1], cvat_results_filenames=[cvat_results_filename_1_1], clean_ids_lists=[clean_ids_list_1_1])
+    # mot_results_1_2 = preprocess_cvat_results(video_filenames=[video_filename_1_2], cvat_results_filenames=[cvat_results_filename_1_2], clean_ids_lists=[clean_ids_list_1_2])
     
     video_filename_2 ='data/validation_videos/T2/full/T2_1080_px_converted.mp4'
     mot_results_2 = preprocess_cvat_results(video_filenames = [video_filename_2], cvat_results_filenames=['data/validation_videos/T2/CVAT/gt.txt'], clean_ids_lists=[[]])
@@ -154,15 +152,14 @@ if __name__ == '__main__':
     video_filename_3 = 'data/validation_videos/T3/full/T3_1080_px_converted.mp4'
 
 
-    mot_results = [mot_results_2,mot_results_3]
-    video_filenames = [video_filename_2,video_filename_3]
-    base_names = ['part_2','part_3']
+    mot_results = [mot_results_2,mot_results_3] #[mot_results_1_1, mot_results_1_2] 
+    video_filenames = [video_filename_2,video_filename_3] #[video_filename_1_1, video_filename_1_2] 
+    base_names = ['part_2','part_3'] # ['part_1_1','part_1_2'] 
 
     for mot_result, video_filename, base_name in zip(mot_results, video_filenames, base_names):
 
-
         generate_mot_from_cvat(mot_results=mot_result, 
                             video_filename=video_filename, 
-                            skip_frames=1, 
-                            no_segment=True,
+                            skip_frames=2, 
+                            no_segment=False,
                             base_name=base_name)

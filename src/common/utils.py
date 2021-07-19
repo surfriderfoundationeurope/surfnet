@@ -271,3 +271,4 @@ def _calculate_euclidean_similarity(distances, zero_distance):
     """
     sim = np.maximum(0, 1 - distances/zero_distance)
     return sim
+
