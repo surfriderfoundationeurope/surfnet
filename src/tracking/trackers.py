@@ -5,12 +5,9 @@ from tracking.utils import in_frame, exp_and_normalise, GaussianMixture, Multiva
 from pykalman import KalmanFilter
 import matplotlib.patches as mpatches
 
-
 class Tracker:
 
-    delta = None
     def __init__(self, frame_nb, X0, state_variance, observation_variance, delta):
-
 
         self.state_covariance = np.diag(state_variance)
         self.observation_covariance = np.diag(observation_variance)
@@ -20,7 +17,7 @@ class Tracker:
         self.tracklet = [(frame_nb, X0)]
         self.delta = delta
 
-    def update(self, observation, frame_nb):
+    def store_observation(self, observation, frame_nb):
         self.tracklet.append((frame_nb, observation))
         self.updated = True
 
@@ -51,9 +48,8 @@ class Tracker:
         distribution = self.predictive_distribution(flow)
         
         return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
-        # return lambda coord: euclidean(coord, distribution.mean)
     
-    def fill_display(self, display, tracker_nb):
+    def get_display_colors(self, display, tracker_nb):
         colors = display.colors
         color = colors[tracker_nb % len(colors)]
         display.legends.append(mpatches.Patch(color=color, label=len(self.tracklet)))
@@ -69,7 +65,7 @@ class SMC(Tracker):
         self.normalized_weights = np.ones(n_particles)/n_particles
 
     def update(self, observation, flow, frame_nb=None):
-        if observation is not None: super().update(observation, frame_nb)
+        if observation is not None: self.store_observation(observation, frame_nb)
         self.resample()
         enabled = self.move_particles(flow)
         if observation is not None: 
@@ -141,12 +137,12 @@ class SMC(Tracker):
         return GaussianMixture(new_particles, self.observation_covariance, new_weights)
 
     def fill_display(self, display, tracker_nb):
-        color = super().fill_display(display, tracker_nb)
+        color = self.get_display_colors(display, tracker_nb)
         display.ax.scatter(self.particles[:,0], self.particles[:,1], s=5, c=color)
 
-class Kalman(Tracker): 
+class EKF(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta):
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, order=0):
             super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
             self.filter = KalmanFilter(initial_state_mean=X0, 
                                        initial_state_covariance=self.observation_covariance, 
@@ -157,10 +153,22 @@ class Kalman(Tracker):
 
             self.filtered_state_mean = X0
             self.filtered_state_covariance = self.observation_covariance
+            self.order = order
 
-    def update(self, observation, flow, frame_nb=None):
-        if observation is not None: super().update(observation, frame_nb)
-        transition_offset = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
+    def get_transition_offset(self, flow, gradient_flow):
+        if self.order == 0: 
+            transition_offset = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
+        elif self.order == 1: 
+            transition_offset = (flow + gradient_flow)[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
+        else: 
+            raise NotImplementedError
+        return transition_offset
+        
+    def update(self, observation, flow, gradient_flow=None, frame_nb=None):
+        if observation is not None: self.store_observation(observation, frame_nb)
+
+        transition_offset = self.get_transition_offset(flow, gradient_flow)
+
 
         self.filtered_state_mean, self.filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
                                                                                              self.filtered_state_covariance, 
@@ -170,9 +178,9 @@ class Kalman(Tracker):
 
         return enabled
 
-    def predictive_distribution(self, flow):
-        global legends
-        transition_offset = flow[max(0, int(self.filtered_state_mean[1])), max(0, int(self.filtered_state_mean[0])), :]
+    def predictive_distribution(self, flow, gradient_flow=None):
+
+        transition_offset = self.get_transition_offset(flow, gradient_flow)
 
         filtered_state_mean, filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
                                                                                              self.filtered_state_covariance, 
@@ -188,7 +196,7 @@ class Kalman(Tracker):
         pos = np.dstack((xx, yy))    
         distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
 
-        color = super().fill_display(display, tracker_nb)
+        color = self.get_display_colors(display, tracker_nb)
         cs = display.ax.contour(distribution.pdf(pos), colors=color)
         display.ax.clabel(cs, inline=True, fontsize='large')
         display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
@@ -247,17 +255,6 @@ class DetectionFreeTracker:
                         break
         self.samples.append(new_samples)
 
-    
-
-        
-
-                    
-           
-
-
-
-        
-
-trackers = {'Kalman':Kalman,
-           'SMC':SMC,
-           'DetectionFreeTracker':DetectionFreeTracker}
+trackers = {'EKF': EKF,
+           'SMC': SMC,
+           'DetectionFreeTracker': DetectionFreeTracker}

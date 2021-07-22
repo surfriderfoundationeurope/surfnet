@@ -95,7 +95,6 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
     detections_for_frame = detections[frame_nb]
 
     max_distance = euclidean(reader.output_shape, np.array([0,0]))
-    _similarity = lambda x: _calculate_euclidean_similarity(x, zero_distance=max_distance)
     delta = 0.05*max_distance
 
     if display.on: 
