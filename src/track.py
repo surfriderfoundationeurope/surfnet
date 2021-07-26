@@ -134,10 +134,13 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                     for detection_nb, detection in enumerate(detections_for_frame):
                         for tracker_id, confidence_function in enumerate(confidence_functions):
                             score = confidence_function(detection)
-                            cost_matrix[detection_nb, tracker_id] = score if score > args.confidence_threshold else 0
+                            if score > args.confidence_threshold:
+                                cost_matrix[detection_nb,tracker_id] = score
+                            else:
+                                cost_matrix[detection_nb,tracker_id] = 0
                     row_inds, col_inds = linear_sum_assignment(cost_matrix,maximize=True)
                     for row_ind, col_ind in zip(row_inds, col_inds):
-                        assigned_trackers[row_ind] = tracker_nbs[col_ind]
+                        if cost_matrix[row_ind,col_ind] > args.confidence_threshold: assigned_trackers[row_ind] = tracker_nbs[col_ind]
 
                 for detection, assigned_tracker in zip(detections_for_frame, assigned_trackers):
                     if in_frame(detection, flow01.shape[:-1]):

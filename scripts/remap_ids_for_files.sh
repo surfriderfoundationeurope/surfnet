@@ -1,6 +1,6 @@
 fps=12
 segments=long
-algorithm='UKF'
+algorithm='EKF_order_1_hungarian'
 
 for tau in 6; do 
     files_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_tau_0
