@@ -6,7 +6,7 @@ from tqdm import tqdm
 from tracking.utils import in_frame, init_trackers, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
 from common.opencv_tools import IterableFrameReader
 from common.flow_tools import compute_flow
-from common.utils import load_base, load_extension, _calculate_euclidean_similarity
+from common.utils import load_base, load_extension
 from tracking.trackers import trackers, DetectionFreeTracker
 import matplotlib.pyplot as plt
 import pickle
@@ -75,7 +75,7 @@ class Display:
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=False, interactive=True)
+display = Display(on=False, interactive=False)
 
 def build_confidence_function_for_trackers(trackers, flow01):
 

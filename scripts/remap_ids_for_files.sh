@@ -1,9 +1,10 @@
-fps=6
+fps=12
 segments=long
+algorithm='UKF'
 
-for tau in 1 2 3 4 5; do 
-    files_dir=experiments/tracking/${segments}_segments/${fps}fps_tau_0
-    output_dir=experiments/tracking/${segments}_segments/${fps}fps_tau_${tau}
+for tau in 6; do 
+    files_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_tau_0
+    output_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_tau_${tau}
     mkdir ${output_dir}
 
     cd ${files_dir}

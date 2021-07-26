@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import euclidean 
 from scipy.stats import multivariate_normal, norm
 from tracking.utils import in_frame, exp_and_normalise, GaussianMixture, MultivariateDiscrete
-from pykalman import KalmanFilter
+from pykalman import KalmanFilter, AdditiveUnscentedKalmanFilter
 import matplotlib.patches as mpatches
 
 class Tracker:
@@ -57,8 +57,8 @@ class Tracker:
 
 class SMC(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, n_particles=20):
-        super().__init__(frame_nb, X0, state_variance, observation_variance, count_threshold=count_threshold)
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, n_particles=20):
+        super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
 
         self.particles = multivariate_normal(
             X0, cov=self.observation_covariance).rvs(n_particles)
@@ -142,11 +142,10 @@ class SMC(Tracker):
 
 class EKF(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, order=0):
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, order=1):
             super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
             self.filter = KalmanFilter(initial_state_mean=X0, 
                                        initial_state_covariance=self.observation_covariance, 
-                                       transition_matrices=np.eye(2), 
                                        transition_covariance=self.state_covariance,
                                        observation_matrices=np.eye(2),
                                        observation_covariance=self.observation_covariance)
@@ -155,37 +154,88 @@ class EKF(Tracker):
             self.filtered_state_covariance = self.observation_covariance
             self.order = order
 
-    def get_transition_offset(self, flow, gradient_flow):
-        if self.order == 0: 
-            transition_offset = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
+    def get_update_parameters(self, flow):
+
+        flow_value = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
+
+        if self.order == 0: return np.eye(2), flow_value
+
         elif self.order == 1: 
-            transition_offset = (flow + gradient_flow)[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
+            grad_flow_value = np.array([np.gradient(flow[:,:,0]),np.gradient(flow[:,:,1])])[:,:,int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0])]
+            return np.eye(2) + grad_flow_value, flow_value - grad_flow_value.dot(self.filtered_state_mean) 
+
         else: 
             raise NotImplementedError
-        return transition_offset
         
-    def update(self, observation, flow, gradient_flow=None, frame_nb=None):
+    def EKF_step(self, observation, flow):
+        transition_matrix, transition_offset = self.get_update_parameters(flow)
+
+        return self.filter.filter_update(self.filtered_state_mean, 
+                                        self.filtered_state_covariance, 
+                                        transition_matrix=transition_matrix,
+                                        transition_offset=transition_offset,
+                                        observation=observation)
+                                                                                             
+    def update(self, observation, flow, frame_nb=None):
         if observation is not None: self.store_observation(observation, frame_nb)
 
-        transition_offset = self.get_transition_offset(flow, gradient_flow)
+        self.filtered_state_mean, self.filtered_state_covariance = self.EKF_step(observation, flow)
 
-
-        self.filtered_state_mean, self.filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
-                                                                                             self.filtered_state_covariance, 
-                                                                                             observation=observation,
-                                                                                             transition_offset=transition_offset)
         enabled=False if not in_frame(self.filtered_state_mean,flow.shape[:-1]) else True
 
         return enabled
 
-    def predictive_distribution(self, flow, gradient_flow=None):
+    def predictive_distribution(self, flow):
 
-        transition_offset = self.get_transition_offset(flow, gradient_flow)
+        filtered_state_mean, filtered_state_covariance = self.EKF_step(None, flow)
 
-        filtered_state_mean, filtered_state_covariance = self.filter.filter_update(self.filtered_state_mean, 
-                                                                                             self.filtered_state_covariance, 
-                                                                                             observation=None,
-                                                                                             transition_offset=transition_offset)
+        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance)
+
+        return distribution
+    
+    def fill_display(self, display, tracker_nb):
+        yy, xx = np.mgrid[0:display.display_shape[1]:1, 0:display.display_shape[0]:1]
+        pos = np.dstack((xx, yy))    
+        distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
+
+        color = self.get_display_colors(display, tracker_nb)
+        cs = display.ax.contour(distribution.pdf(pos), colors=color)
+        display.ax.clabel(cs, inline=True, fontsize='large')
+        display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
+
+class UKF(Tracker):
+
+    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, order=1):
+            super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
+            self.filter = AdditiveUnscentedKalmanFilter(initial_state_mean=X0, 
+                                        initial_state_covariance=self.observation_covariance, 
+                                        observation_functions = lambda z: np.eye(2).dot(z),
+                                        transition_covariance=self.state_covariance,
+                                        observation_covariance=self.observation_covariance)
+
+            self.filtered_state_mean = X0
+            self.filtered_state_covariance = self.observation_covariance
+            self.order = order
+
+    def UKF_step(self, observation, flow):
+        return self.filter.filter_update(self.filtered_state_mean, 
+                                        self.filtered_state_covariance, 
+                                        transition_function=lambda x: x + flow[int(x[1]),int(x[0]),:],
+                                        observation=observation)
+
+                                                                                             
+    def update(self, observation, flow, frame_nb=None):
+        if observation is not None: self.store_observation(observation, frame_nb)
+
+        self.filtered_state_mean, self.filtered_state_covariance = self.UKF_step(observation, flow)
+
+        enabled=False if not in_frame(self.filtered_state_mean,flow.shape[:-1]) else True
+
+        return enabled
+
+    def predictive_distribution(self, flow):
+
+        filtered_state_mean, filtered_state_covariance = self.UKF_step(None, flow)
 
         distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance)
 
@@ -257,4 +307,5 @@ class DetectionFreeTracker:
 
 trackers = {'EKF': EKF,
            'SMC': SMC,
+           'UKF': UKF,
            'DetectionFreeTracker': DetectionFreeTracker}
