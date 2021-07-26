@@ -11,6 +11,7 @@ from tracking.trackers import trackers, DetectionFreeTracker
 import matplotlib.pyplot as plt
 import pickle
 from scipy.spatial.distance import euclidean
+from scipy.optimize import linear_sum_assignment
 
 class FramesWithInfo:
     def __init__(self, frames, output_shape):
@@ -78,13 +79,13 @@ class Display:
 display = Display(on=False, interactive=False)
 
 def build_confidence_function_for_trackers(trackers, flow01):
-
-    confidence_functions = dict()
+    tracker_nbs = []
+    confidence_functions = []
     for tracker_nb, tracker in enumerate(trackers):
         if tracker.enabled:
-            confidence_functions[tracker_nb] = tracker.build_confidence_function(flow01)
-
-    return confidence_functions
+            tracker_nbs.append(tracker_nb)
+            confidence_functions.append(tracker.build_confidence_function(flow01))
+    return tracker_nbs, confidence_functions
 
 def track_video(reader, detections, args, engine, state_variance, observation_variance):
 
@@ -126,43 +127,24 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
             flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
 
             if len(detections_for_frame):
-                confidence_functions_for_trackers = build_confidence_function_for_trackers(trackers, flow01)
-                assigned_trackers = -np.ones(len(detections_for_frame), dtype=int)
-                assignment_confidences = -np.ones(len(detections_for_frame))
-                
-                if len(confidence_functions_for_trackers):
-                    for detection_nb in range(len(detections_for_frame)):
-                        # tracker_scores = {tracker_nb: _similarity(confidence_for_tracker(detections_for_frame[detection_nb])) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
-                        tracker_scores = {tracker_nb: confidence_for_tracker(detections_for_frame[detection_nb]) for tracker_nb, confidence_for_tracker in confidence_functions_for_trackers.items()}
-
-                        tracker_ids = list(tracker_scores.keys())
-                        candidate_tracker_id = tracker_ids[int(
-                            np.argmax(list(tracker_scores.values())))]
-
-                        score_for_candidate_cloud = tracker_scores[candidate_tracker_id]
-
-                        if score_for_candidate_cloud > args.confidence_threshold:
-
-                            if candidate_tracker_id in assigned_trackers:
-                                detection_id_of_conflict = np.argwhere(
-                                    assigned_trackers == candidate_tracker_id)
-                                if score_for_candidate_cloud > assignment_confidences[detection_id_of_conflict]:
-                                    assigned_trackers[detection_id_of_conflict] = -1
-                                    assignment_confidences[detection_id_of_conflict] = -1
-                                    assigned_trackers[detection_nb] = candidate_tracker_id
-                                    assignment_confidences[detection_nb] = score_for_candidate_cloud
-                            else:
-                                assigned_trackers[detection_nb] = candidate_tracker_id
-                                assignment_confidences[detection_nb] = score_for_candidate_cloud
+                tracker_nbs, confidence_functions = build_confidence_function_for_trackers(trackers, flow01)
+                assigned_trackers = [None]*len(detections_for_frame)
+                if len(tracker_nbs):
+                    cost_matrix = np.zeros(shape=(len(detections_for_frame),len(tracker_nbs)))
+                    for detection_nb, detection in enumerate(detections_for_frame):
+                        for tracker_id, confidence_function in enumerate(confidence_functions):
+                            score = confidence_function(detection)
+                            cost_matrix[detection_nb, tracker_id] = score if score > args.confidence_threshold else 0
+                    row_inds, col_inds = linear_sum_assignment(cost_matrix,maximize=True)
+                    for row_ind, col_ind in zip(row_inds, col_inds):
+                        assigned_trackers[row_ind] = tracker_nbs[col_ind]
 
                 for detection, assigned_tracker in zip(detections_for_frame, assigned_trackers):
                     if in_frame(detection, flow01.shape[:-1]):
-                        if assigned_tracker == -1 :
-                            new_trackers.append(
-                                engine(frame_nb, detection, state_variance, observation_variance, delta))
+                        if assigned_tracker is None :
+                            new_trackers.append(engine(frame_nb, detection, state_variance, observation_variance, delta))
                         else:
-                            trackers[assigned_tracker].update(
-                                detection, flow01, frame_nb)
+                            trackers[assigned_tracker].update(detection, flow01, frame_nb)
 
             for tracker in trackers:
                 tracker.update_status(flow01)
