@@ -1,3 +1,4 @@
+from re import split
 import numpy as np
 from scipy.spatial.distance import euclidean 
 from scipy.stats import multivariate_normal, norm
@@ -7,9 +8,9 @@ import matplotlib.patches as mpatches
 
 class Tracker:
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta):
+    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
 
-        self.state_covariance = np.diag(state_variance)
+        self.transition_covariance = np.diag(transition_variance)
         self.observation_covariance = np.diag(observation_variance)
         self.updated = False
         self.steps_since_last_observation = 0
@@ -55,14 +56,16 @@ class Tracker:
         display.legends.append(mpatches.Patch(color=color, label=len(self.tracklet)))
         return colors[tracker_nb % len(colors)]
 
-class SMC(Tracker): 
+class SMC(Tracker):     
+    def set_param(param):
+        SMC.n_particles = int(param)
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, n_particles=20):
-        super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
+    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
+        super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
 
         self.particles = multivariate_normal(
-            X0, cov=self.observation_covariance).rvs(n_particles)
-        self.normalized_weights = np.ones(n_particles)/n_particles
+            X0, cov=self.observation_covariance).rvs(SMC.n_particles)
+        self.normalized_weights = np.ones(SMC.n_particles)/SMC.n_particles
 
     def update(self, observation, flow, frame_nb=None):
         if observation is not None: self.store_observation(observation, frame_nb)
@@ -81,7 +84,7 @@ class SMC(Tracker):
         mean = state + \
             flow[max(0, int(state[1])),
                  max(0, int(state[0])), :]
-        cov = np.diag(self.state_covariance)
+        cov = np.diag(self.transition_covariance)
         return multivariate_normal(mean, cov)
     
     def observation(self, state):
@@ -142,25 +145,28 @@ class SMC(Tracker):
 
 class EKF(Tracker): 
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, order=1):
-            super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
+
+    def set_param(param):
+        EKF.order = int(param)
+
+    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
+            super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
             self.filter = KalmanFilter(initial_state_mean=X0, 
                                        initial_state_covariance=self.observation_covariance, 
-                                       transition_covariance=self.state_covariance,
+                                       transition_covariance=self.transition_covariance,
                                        observation_matrices=np.eye(2),
                                        observation_covariance=self.observation_covariance)
 
             self.filtered_state_mean = X0
             self.filtered_state_covariance = self.observation_covariance
-            self.order = order
 
     def get_update_parameters(self, flow):
 
         flow_value = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
 
-        if self.order == 0: return np.eye(2), flow_value
+        if EKF.order == 0: return np.eye(2), flow_value
 
-        elif self.order == 1: 
+        elif EKF.order == 1: 
             grad_flow_value = np.array([np.gradient(flow[:,:,0]),np.gradient(flow[:,:,1])])[:,:,int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0])]
             return np.eye(2) + grad_flow_value, flow_value - grad_flow_value.dot(self.filtered_state_mean) 
 
@@ -205,17 +211,16 @@ class EKF(Tracker):
 
 class UKF(Tracker):
 
-    def __init__(self, frame_nb, X0, state_variance, observation_variance, delta, order=1):
-            super().__init__(frame_nb, X0, state_variance, observation_variance, delta)
+    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
+            super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
             self.filter = AdditiveUnscentedKalmanFilter(initial_state_mean=X0, 
                                         initial_state_covariance=self.observation_covariance, 
                                         observation_functions = lambda z: np.eye(2).dot(z),
-                                        transition_covariance=self.state_covariance,
+                                        transition_covariance=self.transition_covariance,
                                         observation_covariance=self.observation_covariance)
 
             self.filtered_state_mean = X0
             self.filtered_state_covariance = self.observation_covariance
-            self.order = order
 
     def UKF_step(self, observation, flow):
         return self.filter.filter_update(self.filtered_state_mean, 
@@ -253,9 +258,9 @@ class UKF(Tracker):
 
 class DetectionFreeTracker:
 
-    def __init__(self, heatmap0, jump_probability, state_variance, observation_variance, num_samples=500):
-        self.state_covariance = np.diag(state_variance)/2
-        # self.state_covariance = np.diag([1,1])
+    def __init__(self, heatmap0, jump_probability, transition_variance, observation_variance, num_samples=500):
+        self.transition_covariance = np.diag(transition_variance)/2
+        # self.transition_covariance = np.diag([1,1])
         self.observation_covariance = np.diag(observation_variance)
 
         self.num_samples = num_samples
@@ -278,7 +283,7 @@ class DetectionFreeTracker:
     #     for sample_id in indices_from_transition:
     #         sample = self.samples[-1][sample_id]
     #         mean = sample + flow[int(sample[1]),int(sample[0]), :]
-    #         new_sample = multivariate_normal(mean, cov=self.state_covariance).rvs(1).astype(int)
+    #         new_sample = multivariate_normal(mean, cov=self.transition_covariance).rvs(1).astype(int)
     #         if in_frame(new_sample, heatmap.shape): new_samples[sample_id] = new_sample
     #         else: new_samples[sample_id] = self.discrete_distrib.sample(1)
 
@@ -296,7 +301,7 @@ class DetectionFreeTracker:
                 else: 
                     sample = self.samples[-1][sample_id]
                     mean = sample + flow[int(sample[1]),int(sample[0]), :]
-                    candidate = multivariate_normal.rvs(mean=mean, cov=self.state_covariance, size=1).astype(int)
+                    candidate = multivariate_normal.rvs(mean=mean, cov=self.transition_covariance, size=1).astype(int)
                     # candidate_x = norm.rvs(loc=mean[0], scale=self.variance_x, size=1)
                     # candidate_y = norm.rvs(loc=mean[1], scale = self.variance_y, size=1)
                     # candidate = np.array([candidate_x, candidate_y]).ravel()
@@ -305,7 +310,24 @@ class DetectionFreeTracker:
                         break
         self.samples.append(new_samples)
 
+
 trackers = {'EKF': EKF,
            'SMC': SMC,
            'UKF': UKF,
            'DetectionFreeTracker': DetectionFreeTracker}
+
+def get_tracker(algorithm_and_params):
+    splitted_name = algorithm_and_params.split('_')
+    if len(splitted_name) > 1: 
+        algorithm_name, param = splitted_name
+        tracker = trackers[algorithm_name]
+        tracker.set_param(param)
+
+    else: 
+        algorithm_name = splitted_name[0]
+        tracker = trackers[algorithm_name]
+    
+    return tracker
+
+
+

@@ -7,7 +7,7 @@ from tracking.utils import in_frame, init_trackers, gather_filenames_for_video_i
 from common.opencv_tools import IterableFrameReader
 from common.flow_tools import compute_flow
 from common.utils import load_base, load_extension
-from tracking.trackers import trackers, DetectionFreeTracker
+from tracking.trackers import get_tracker, DetectionFreeTracker
 import matplotlib.pyplot as plt
 import pickle
 from scipy.spatial.distance import euclidean
@@ -87,7 +87,7 @@ def build_confidence_function_for_trackers(trackers, flow01):
             confidence_functions.append(tracker.build_confidence_function(flow01))
     return tracker_nbs, confidence_functions
 
-def track_video(reader, detections, args, engine, state_variance, observation_variance):
+def track_video(reader, detections, args, engine, transition_variance, observation_variance):
 
     init = False
     trackers = dict()
@@ -105,7 +105,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
         display.update_detections_and_frame(detections_for_frame, frame0)
 
     if len(detections_for_frame):
-        trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, delta)
+        trackers = init_trackers(engine, detections_for_frame, frame_nb, transition_variance, observation_variance, delta)
         init = True
 
     if display.on: display.display(trackers)
@@ -118,7 +118,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
 
         if not init:
             if len(detections_for_frame):
-                trackers = init_trackers(engine, detections_for_frame, frame_nb, state_variance, observation_variance, delta)
+                trackers = init_trackers(engine, detections_for_frame, frame_nb, transition_variance, observation_variance, delta)
                 init = True
 
         else:
@@ -145,7 +145,7 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
                 for detection, assigned_tracker in zip(detections_for_frame, assigned_trackers):
                     if in_frame(detection, flow01.shape[:-1]):
                         if assigned_tracker is None :
-                            new_trackers.append(engine(frame_nb, detection, state_variance, observation_variance, delta))
+                            new_trackers.append(engine(frame_nb, detection, transition_variance, observation_variance, delta))
                         else:
                             trackers[assigned_tracker].update(detection, flow01, frame_nb)
 
@@ -173,11 +173,11 @@ def track_video(reader, detections, args, engine, state_variance, observation_va
  
     return results
 
-def track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance):
+def track_video_2(reader, heatmaps, args, engine, transition_variance, observation_variance):
 
     heatmaps = heatmaps[:200]
     heatmap = heatmaps[0]
-    tracker = DetectionFreeTracker(heatmap, jump_probability=0.5, state_variance=state_variance, observation_variance=observation_variance, num_samples=500)
+    tracker = DetectionFreeTracker(heatmap, jump_probability=0.5, transition_variance=transition_variance, observation_variance=observation_variance, num_samples=500)
     display_shape = (reader.output_shape[0], reader.output_shape[1])
 
     frame0 = next(reader)   
@@ -237,14 +237,14 @@ def main(args):
                     detections[detection_nb] = detection[:,:2]/4
             
 
-            engine = trackers[args.algorithm]
+            engine = get_tracker(args.algorithm)
 
-            state_variance = np.load(os.path.join(args.tracker_parameters_dir, 'state_variance.npy'))
-            observation_variance = np.load(os.path.join(args.tracker_parameters_dir, 'observation_variance.npy'))
-            # state_variance = np.array([1,1])
+            transition_variance = np.load(os.path.join(args.noise_covariances_dir, 'transition_variance.npy'))
+            observation_variance = np.load(os.path.join(args.noise_covariances_dir, 'observation_variance.npy'))
+            # transition_variance = np.array([1,1])
             # observation_variance = np.array([1,1])
             args.downsampling_factor = 1
-            results = track_video(reader, detections, args, engine, state_variance, observation_variance)
+            results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, sequence_name)
             output_file = open(output_filename+'.txt', 'w')
@@ -278,11 +278,13 @@ def main(args):
                 def detector(frame): return detect_base(frame, threshold=args.detection_threshold,
                                                         base_model=base_model)
 
-        state_variance = np.load(os.path.join(args.tracker_parameters_dir, 'state_variance.npy'))
+        transition_variance = np.load(os.path.join(args.noise_covariances_dir, 'transition_variance.npy'))
         observation_variance = np.load(os.path.join(
-            args.tracker_parameters_dir, 'observation_variance.npy'))
+            args.noise_covariances_dir, 'observation_variance.npy'))
 
-        engine = trackers[args.algorithm]
+
+
+        engine = get_tracker(args.algorithm)
 
         detections_save_folder = os.path.join(args.output_dir,'detections')
         heatmaps_save_folder = os.path.join(args.output_dir,'heatmaps')
@@ -337,7 +339,7 @@ def main(args):
                     detections = detections_resized
 
                 reader = (cv2.resize(cv2.imread(filename), output_shape) for filename in filenames_for_video)
-                results = track_video(reader, detections, args, engine, state_variance, observation_variance)
+                results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
 
                 for result in results:
@@ -398,7 +400,7 @@ def main(args):
                         detections = detections_resized
 
                 if args.version == 'from_detections': 
-                    results = track_video(reader, detections, args, engine, state_variance, observation_variance)
+                    results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
                     for result in results:
                         output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
                                                                                 result[1]+1,
@@ -416,7 +418,7 @@ def main(args):
                     output_file.close()
 
                 else: 
-                    results = track_video_2(reader, heatmaps, args, engine, state_variance, observation_variance)
+                    results = track_video_2(reader, heatmaps, args, engine, transition_variance, observation_variance)
                     with open('samples.pickle','wb') as f:
                         pickle.dump(results,f)
 
@@ -444,7 +446,7 @@ if __name__ == '__main__':
     parser.add_argument('--detector', type=str ,default='internal_base')
     parser.add_argument('--algorithm', type=str, default='Kalman')
     parser.add_argument('--read_from',type=str)
-    parser.add_argument('--tracker_parameters_dir',type=str)
+    parser.add_argument('--noise_covariances_dir',type=str)
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_w',type=int,default=None)
     parser.add_argument('--output_h',type=int,default=None)
