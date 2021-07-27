@@ -1,8 +1,6 @@
-from re import split
 import numpy as np
-from scipy.spatial.distance import euclidean 
-from scipy.stats import multivariate_normal, norm
-from tracking.utils import in_frame, exp_and_normalise, GaussianMixture, MultivariateDiscrete
+from scipy.stats import multivariate_normal
+from tracking.utils import in_frame, exp_and_normalise, GaussianMixture
 from pykalman import KalmanFilter, AdditiveUnscentedKalmanFilter
 import matplotlib.patches as mpatches
 
@@ -256,65 +254,9 @@ class UKF(Tracker):
         display.ax.clabel(cs, inline=True, fontsize='large')
         display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
 
-class DetectionFreeTracker:
-
-    def __init__(self, heatmap0, jump_probability, transition_variance, observation_variance, num_samples=500):
-        self.transition_covariance = np.diag(transition_variance)/2
-        # self.transition_covariance = np.diag([1,1])
-        self.observation_covariance = np.diag(observation_variance)
-
-        self.num_samples = num_samples
-        self.samples = []
-        self.jump_probability = jump_probability
-        self.discrete_distrib = MultivariateDiscrete(heatmap0.shape, heatmap0.ravel())
-        self.samples.append(self.discrete_distrib.sample(num_samples))
-
-
-    # def update(self, heatmap, flow):
-    #     self.discrete_distrib.update_weights(heatmap.ravel())
-    #     new_samples = np.zeros_like(self.samples[-1])
-    #     draws = np.random.uniform(0, 1, self.num_samples)
-
-    #     where_new = draws < self.jump_probability
-    #     samples_from_heatmap = self.discrete_distrib.sample(where_new.sum())
-    #     new_samples[where_new] = samples_from_heatmap
-
-    #     indices_from_transition = np.argwhere(~where_new).ravel()
-    #     for sample_id in indices_from_transition:
-    #         sample = self.samples[-1][sample_id]
-    #         mean = sample + flow[int(sample[1]),int(sample[0]), :]
-    #         new_sample = multivariate_normal(mean, cov=self.transition_covariance).rvs(1).astype(int)
-    #         if in_frame(new_sample, heatmap.shape): new_samples[sample_id] = new_sample
-    #         else: new_samples[sample_id] = self.discrete_distrib.sample(1)
-
-    #     self.samples.append(new_samples)
-
-
-    def update(self, heatmap, flow): 
-        self.discrete_distrib.update_weights(heatmap.ravel())
-        new_samples = np.zeros_like(self.samples[-1])
-        for sample_id in range(self.num_samples):
-            while True:
-                if np.random.uniform(0, 1, 1) < self.jump_probability:
-                    new_samples[sample_id] = self.discrete_distrib.sample(1)
-                    break
-                else: 
-                    sample = self.samples[-1][sample_id]
-                    mean = sample + flow[int(sample[1]),int(sample[0]), :]
-                    candidate = multivariate_normal.rvs(mean=mean, cov=self.transition_covariance, size=1).astype(int)
-                    # candidate_x = norm.rvs(loc=mean[0], scale=self.variance_x, size=1)
-                    # candidate_y = norm.rvs(loc=mean[1], scale = self.variance_y, size=1)
-                    # candidate = np.array([candidate_x, candidate_y]).ravel()
-                    if in_frame(candidate, heatmap.shape): 
-                        new_samples[sample_id] = candidate
-                        break
-        self.samples.append(new_samples)
-
-
 trackers = {'EKF': EKF,
            'SMC': SMC,
-           'UKF': UKF,
-           'DetectionFreeTracker': DetectionFreeTracker}
+           'UKF': UKF} 
 
 def get_tracker(algorithm_and_params):
     splitted_name = algorithm_and_params.split('_')
