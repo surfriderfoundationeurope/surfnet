@@ -161,13 +161,10 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
     results = []
     tracklets = [tracker.tracklet for tracker in trackers]
-    tracklets = [tracklet for tracklet in tracklets if len(tracklet) > args.count_threshold]
     
-
     for tracker_nb, associated_detections in enumerate(tracklets):
         for associated_detection in associated_detections:
-            results.append(
-                (associated_detection[0], tracker_nb, associated_detection[1][0], associated_detection[1][1]))
+            results.append((associated_detection[0], tracker_nb, associated_detection[1][0], associated_detection[1][1]))
 
     results = sorted(results, key=lambda x: x[0])
  
