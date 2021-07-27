@@ -5,9 +5,7 @@ import cv2
 import torch
 import torchvision.transforms as T 
 import torchvision.transforms.functional as F
-from torch.nn.functional import grid_sample
-from base.centernet.models import create_model as create_base
-from extension.models import SurfNet
+from detection.centernet.models import create_model as create_base
 import pickle
 
 class ResizeForCenterNet(object):
@@ -175,14 +173,6 @@ def load_my_model(model, trained_model_weights_filename):
     model.load_state_dict(checkpoint['model'])
     return model
 
-def load_extension(extension_weights, intermediate_layer_size=32):
-    extension_model = SurfNet(intermediate_layer_size)
-    extension_model.load_state_dict(torch.load(extension_weights))
-    for param in extension_model.parameters():
-        param.requires_grad = False
-    extension_model.to('cuda')
-    extension_model.eval()
-    return extension_model
 
 def load_base(base_weights):
     base_model = create_base('dla_34', heads={'hm': 1, 'wh': 2}, head_conv=256)

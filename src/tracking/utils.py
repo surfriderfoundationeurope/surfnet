@@ -1,8 +1,5 @@
 from numpy.lib import unravel_index
-from scipy.stats.stats import _shape_with_dropped_axis
-from common.utils import load_my_model
-from extension.models import SurfNet
-from scipy.stats import multivariate_normal, norm
+from scipy.stats import multivariate_normal
 import numpy as np 
 import cv2
 import os

@@ -14,15 +14,22 @@ def main(args):
         center_y = top + height/2 
         tracklets[track_id].append((frame_id, center_x, center_y))
 
+    tracklets = list(tracklets.values())
+
+    if args.filter_type == 'v0':
+
+        tracks = filter_by_nb_obs(tracklets, args.min_len_tracklet)
+
+    elif args.filter_type == 'v1':
+        tracks = filter_by_mean_consecutive_length(tracklets, args.min_mean)
+
+    else: raise NotImplementedError
 
 
-    tracklets = [tracklet for tracklet in list(tracklets.values()) if len(tracklet) > args.min_len_tracklet]
     results = []
-
-    for tracker_nb, associated_detections in enumerate(tracklets):
+    for tracker_nb, associated_detections in enumerate(tracks):
         for associated_detection in associated_detections:
-            results.append(
-                (associated_detection[0], tracker_nb, associated_detection[1], associated_detection[2]))
+            results.append((associated_detection[0], tracker_nb, associated_detection[1], associated_detection[2]))
 
     results = sorted(results, key=lambda x: x[0])
 
@@ -41,12 +48,53 @@ def main(args):
                                                                     -1))
 
 
+def filter_by_nb_obs(tracklets, min_len_tracklet):
+
+    return [tracklet for tracklet in tracklets if len(tracklet) > min_len_tracklet]
+
+
+def filter_by_mean_consecutive_length(tracklets, min_mean):
+
+    tracks = []
+
+    for tracklet in tracklets: 
+
+        consecutive_parts = [[tracklet[0]]]
+
+        for obs in tracklet[1:]:
+
+            previous_frame_id = consecutive_parts[-1][-1][0]
+
+            if obs[0] == previous_frame_id + 1:
+                consecutive_parts[-1].append(obs)
+            else:
+                consecutive_parts.append([obs])
+
+        consecutive_parts_lengths = [len(consecutive_part) for consecutive_part in consecutive_parts]
+        consecutive_parts_lengths_mean = np.mean(consecutive_parts_lengths)
+
+        if consecutive_parts_lengths_mean > min_mean:
+            tracks.append(tracklet)
+            
+    return tracks
+        
+
+def smooth_tracklets():
+    return 
+
+    
+
+
+    
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_file',type=str)
     parser.add_argument('--min_len_tracklet',type=int)
     parser.add_argument('--output_name',type=str)
+    parser.add_argument('--filter_type',type=str)
+    parser.add_argument('--min_mean',type=float)
     args = parser.parse_args()
     main(args)
 

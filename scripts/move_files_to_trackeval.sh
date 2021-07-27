@@ -1,5 +1,5 @@
-segments=long
-algorithm=EKF_order_1_hungarian
+segments=short
+algorithm=EKF_1
 original_dir=experiments/tracking/${algorithm}/${segments}_segments
 fps=12
 target_dir=/home/infres/chagneux/repos/TrackEval/data/trackers/surfrider_${segments}_segments_${fps}fps/surfrider-test

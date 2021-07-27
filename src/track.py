@@ -1,12 +1,11 @@
 import cv2
-import json
 import numpy as np
 import os
 from tqdm import tqdm
-from tracking.utils import in_frame, init_trackers, gather_filenames_for_video_in_annotations, detect_base, detect_base_extension, detect_external, detect_internal
+from tracking.utils import in_frame, init_trackers, detect_base, detect_internal
 from common.opencv_tools import IterableFrameReader
 from common.flow_tools import compute_flow
-from common.utils import load_base, load_extension
+from common.utils import load_base
 from tracking.trackers import get_tracker
 import matplotlib.pyplot as plt
 import pickle
@@ -87,6 +86,24 @@ def build_confidence_function_for_trackers(trackers, flow01):
             confidence_functions.append(tracker.build_confidence_function(flow01))
     return tracker_nbs, confidence_functions
 
+def associate_detections_to_trackers(detections_for_frame, trackers, flow01):
+    tracker_nbs, confidence_functions = build_confidence_function_for_trackers(trackers, flow01)
+    assigned_trackers = [None]*len(detections_for_frame)
+    if len(tracker_nbs):
+        cost_matrix = np.zeros(shape=(len(detections_for_frame),len(tracker_nbs)))
+        for detection_nb, detection in enumerate(detections_for_frame):
+            for tracker_id, confidence_function in enumerate(confidence_functions):
+                score = confidence_function(detection)
+                if score > args.confidence_threshold:
+                    cost_matrix[detection_nb,tracker_id] = score
+                else:
+                    cost_matrix[detection_nb,tracker_id] = 0
+        row_inds, col_inds = linear_sum_assignment(cost_matrix,maximize=True)
+        for row_ind, col_ind in zip(row_inds, col_inds):
+            if cost_matrix[row_ind,col_ind] > args.confidence_threshold: assigned_trackers[row_ind] = tracker_nbs[col_ind]
+
+    return assigned_trackers
+    
 def track_video(reader, detections, args, engine, transition_variance, observation_variance):
 
     init = False
@@ -127,20 +144,8 @@ def track_video(reader, detections, args, engine, transition_variance, observati
             flow01 = compute_flow(frame0, frame1, args.downsampling_factor)
 
             if len(detections_for_frame):
-                tracker_nbs, confidence_functions = build_confidence_function_for_trackers(trackers, flow01)
-                assigned_trackers = [None]*len(detections_for_frame)
-                if len(tracker_nbs):
-                    cost_matrix = np.zeros(shape=(len(detections_for_frame),len(tracker_nbs)))
-                    for detection_nb, detection in enumerate(detections_for_frame):
-                        for tracker_id, confidence_function in enumerate(confidence_functions):
-                            score = confidence_function(detection)
-                            if score > args.confidence_threshold:
-                                cost_matrix[detection_nb,tracker_id] = score
-                            else:
-                                cost_matrix[detection_nb,tracker_id] = 0
-                    row_inds, col_inds = linear_sum_assignment(cost_matrix,maximize=True)
-                    for row_ind, col_ind in zip(row_inds, col_inds):
-                        if cost_matrix[row_ind,col_ind] > args.confidence_threshold: assigned_trackers[row_ind] = tracker_nbs[col_ind]
+
+                assigned_trackers = associate_detections_to_trackers(detections_for_frame, trackers, flow01)
 
                 for detection, assigned_tracker in zip(detections_for_frame, assigned_trackers):
                     if in_frame(detection, flow01.shape[:-1]):
