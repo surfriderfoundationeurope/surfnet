@@ -1,6 +1,3 @@
 [submodule "TrackEval"]
-	path = external_tools/TrackEval
+	path = TrackEval
 	url = git@github.com:mchagneux/TrackEval.git
-[submodule "FairMOT"]
-	path = external_tools/FairMOT
-	url = git@github.com:mchagneux/FairMOT.git
