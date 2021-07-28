@@ -31,7 +31,6 @@ You can download some data using the following scripts:
 cd data
 sh download_surfrider_images.sh
 sh download_validation_videos.sh
-sh download_synthetic_objects.sh
 ```
 
 Then run the following scripts to initialize the correct paths: 
@@ -46,17 +45,15 @@ The newly created file allows you to modify the filepaths to your convenience.
 
 All experiment scripts are found in [scripts/](scripts/)  under explicit names.
 
-## Base network
+## Detection network
 
 ### Training 
 
 
 ```shell
-sh scripts/train_base.sh
+sh scripts/train_detector.sh
 ```
 Then open Tensorboard in your browser to follow training. 
-
-## Extension network 
 
 ### Obtaining heatmaps from the base network 
 If you need a pretrained version of the base network you can run: 
@@ -67,21 +64,4 @@ sh download_pretrained_base.sh
 ```
 This will download one of our pretrained models. 
 
-To extract heatmaps from the base network: 
-
-```shell 
-sh scripts/extract_heatmaps.sh
-``` 
-
 You can modify the BASE_PRETRAINED variable in scripts_for_experiments/shell_variables.sh to point to the base networks weights that you obtained yourself through retraining, for example.
- 
- 
- ### Training 
- 
-Similarly as for the base network, you can run:
-
-```shell
-sh scripts_for_experiments/train_extension.sh
-```
-
-Then open Tensorboard in your browser to follow training.
