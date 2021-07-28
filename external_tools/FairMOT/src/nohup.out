@@ -1,0 +1,259 @@
+Using tensorboardX
+Fix size testing.
+training chunk_sizes: [8]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_dla34
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 787.0), ('surfrider_test', 38.0)])
+total # identities: 826
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 787.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=8, cat_spec_wh=False, chunk_sizes=[8], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='/home/zyf/dataset', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_dla34/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_dla34', fix_res=True, gpus=[2], gpus_str='2', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../models/ctdet_coco_dla_2x.pth', lr=0.0001, lr_step=[50], ltrb=True, master_batch_size=8, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=826, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=60, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_dla34', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+loaded ../models/ctdet_coco_dla_2x.pth, epoch 230
+Skip loading parameter hm.2.weight, required shapetorch.Size([1, 256, 1, 1]), loaded shapetorch.Size([80, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter hm.2.bias, required shapetorch.Size([1]), loaded shapetorch.Size([80]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.weight, required shapetorch.Size([4, 256, 1, 1]), loaded shapetorch.Size([2, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.bias, required shapetorch.Size([4]), loaded shapetorch.Size([2]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='sum' instead.
+  warnings.warn(warning.format(ret))
+Drop LR to 1e-05
+Using tensorboardX
+Fix size testing.
+training chunk_sizes: [8]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_dla34_140_epochs
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 787.0), ('surfrider_test', 38.0)])
+total # identities: 826
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 787.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=8, cat_spec_wh=False, chunk_sizes=[8], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='/home/zyf/dataset', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_dla34_140_epochs/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_dla34_140_epochs', fix_res=True, gpus=[2], gpus_str='2', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../models/ctdet_coco_dla_2x.pth', lr=0.0001, lr_step=[50], ltrb=True, master_batch_size=8, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=826, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=140, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_dla34_140_epochs', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+loaded ../models/ctdet_coco_dla_2x.pth, epoch 230
+Skip loading parameter hm.2.weight, required shapetorch.Size([1, 256, 1, 1]), loaded shapetorch.Size([80, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter hm.2.bias, required shapetorch.Size([1]), loaded shapetorch.Size([80]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.weight, required shapetorch.Size([4, 256, 1, 1]), loaded shapetorch.Size([2, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.bias, required shapetorch.Size([4]), loaded shapetorch.Size([2]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='sum' instead.
+  warnings.warn(warning.format(ret))
+Drop LR to 1e-05
+Using tensorboardX
+Traceback (most recent call last):
+  File "train.py", line 96, in <module>
+    torch.cuda.set_device(2)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/cuda/__init__.py", line 263, in set_device
+    torch._C._cuda_setDevice(device)
+RuntimeError: CUDA error: invalid device ordinal
+Using tensorboardX
+[2]
+Fix size testing.
+training chunk_sizes: [8]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 1987.0), ('surfrider_test', 522.0)])
+total # identities: 2510
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 1987.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=8, cat_spec_wh=False, chunk_sizes=[8], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='../src/data/surfrider', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_new_dataset_dla34_140_epochs', fix_res=True, gpus=[2], gpus_str='2', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../models/ctdet_coco_dla_2x.pth', lr=0.0001, lr_step=[90], ltrb=True, master_batch_size=8, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=2510, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=140, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+Traceback (most recent call last):
+  File "train.py", line 98, in <module>
+    main(opt)
+  File "train.py", line 61, in main
+    trainer.set_device(opt.gpus, opt.chunk_sizes, opt.device)
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/trains/base_trainer.py", line 38, in set_device
+    self.model_with_loss = self.model_with_loss.to(device)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 612, in to
+    return self._apply(convert)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 359, in _apply
+    module._apply(fn)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 359, in _apply
+    module._apply(fn)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 359, in _apply
+    module._apply(fn)
+  [Previous line repeated 1 more time]
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 381, in _apply
+    param_applied = fn(param)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 610, in convert
+    return t.to(device, dtype if t.is_floating_point() else None, non_blocking)
+RuntimeError: CUDA error: out of memory
+Using tensorboardX
+[2]
+Fix size testing.
+training chunk_sizes: [8]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 1987.0), ('surfrider_test', 522.0)])
+total # identities: 2510
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 1987.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=8, cat_spec_wh=False, chunk_sizes=[8], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='../src/data/surfrider', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_new_dataset_dla34_140_epochs', fix_res=True, gpus=[2], gpus_str='2', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../models/ctdet_coco_dla_2x.pth', lr=0.0001, lr_step=[90], ltrb=True, master_batch_size=8, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=2510, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=140, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+loaded ../models/ctdet_coco_dla_2x.pth, epoch 230
+Skip loading parameter hm.2.weight, required shapetorch.Size([1, 256, 1, 1]), loaded shapetorch.Size([80, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter hm.2.bias, required shapetorch.Size([1]), loaded shapetorch.Size([80]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.weight, required shapetorch.Size([4, 256, 1, 1]), loaded shapetorch.Size([2, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.bias, required shapetorch.Size([4]), loaded shapetorch.Size([2]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Using tensorboardX
+[2]
+Fix size testing.
+training chunk_sizes: [16]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 1987.0), ('surfrider_test', 522.0)])
+total # identities: 2510
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 1987.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=16, cat_spec_wh=False, chunk_sizes=[16], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='../src/data/surfrider', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_new_dataset_dla34_140_epochs', fix_res=True, gpus=[2], gpus_str='2', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../models/ctdet_coco_dla_2x.pth', lr=0.0001, lr_step=[90], ltrb=True, master_batch_size=16, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=2510, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=140, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+loaded ../models/ctdet_coco_dla_2x.pth, epoch 230
+Skip loading parameter hm.2.weight, required shapetorch.Size([1, 256, 1, 1]), loaded shapetorch.Size([80, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter hm.2.bias, required shapetorch.Size([1]), loaded shapetorch.Size([80]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.weight, required shapetorch.Size([4, 256, 1, 1]), loaded shapetorch.Size([2, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.bias, required shapetorch.Size([4]), loaded shapetorch.Size([2]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='sum' instead.
+  warnings.warn(warning.format(ret))
+Traceback (most recent call last):
+  File "train.py", line 14, in <module>
+    from models.model import create_model, load_model, save_model
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/models/model.py", line 11, in <module>
+    from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/models/networks/pose_dla_dcn.py", line 16, in <module>
+    from dcn_v2 import DCN
+ModuleNotFoundError: No module named 'dcn_v2'
+Traceback (most recent call last):
+  File "train.py", line 14, in <module>
+    from models.model import create_model, load_model, save_model
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/models/model.py", line 11, in <module>
+    from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/models/networks/pose_dla_dcn.py", line 16, in <module>
+    from dcn_v2 import DCN
+ModuleNotFoundError: No module named 'dcn_v2'
+Using tensorboardX
+[1]
+Fix size testing.
+training chunk_sizes: [16]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 1987.0), ('surfrider_test', 522.0)])
+total # identities: 2510
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 1987.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=16, cat_spec_wh=False, chunk_sizes=[16], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='../src/data/surfrider', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_new_dataset_dla34_140_epochs', fix_res=True, gpus=[1], gpus_str='1', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../exp/mot/surfrider_new_dataset_dla34_140_epochs/model_72.pth', lr=0.0001, lr_step=[90, 120], ltrb=True, master_batch_size=16, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=2510, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=140, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_new_dataset_dla34_140_epochs', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+loaded ../exp/mot/surfrider_new_dataset_dla34_140_epochs/model_72.pth, epoch 72
+Traceback (most recent call last):
+  File "train.py", line 98, in <module>
+    main(opt)
+  File "train.py", line 69, in main
+    log_dict_train, _ = trainer.train(epoch, train_loader)
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/trains/base_trainer.py", line 119, in train
+    return self.run_epoch('train', epoch, data_loader)
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/trains/base_trainer.py", line 71, in run_epoch
+    output, loss, loss_stats = model_with_loss(batch)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/trains/base_trainer.py", line 19, in forward
+    outputs = self.model(batch['input'])
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/models/networks/pose_dla_dcn.py", line 471, in forward
+    x = self.base(x)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/infres/chagneux/repos/FairMOT/src/lib/models/networks/pose_dla_dcn.py", line 288, in forward
+    x = self.base_layer(x)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/container.py", line 117, in forward
+    input = module(input)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/conv.py", line 423, in forward
+    return self._conv_forward(input, self.weight)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/modules/conv.py", line 419, in _conv_forward
+    return F.conv2d(input, weight, self.bias, self.stride,
+RuntimeError: CUDA out of memory. Tried to allocate 646.00 MiB (GPU 2; 31.75 GiB total capacity; 205.50 MiB already allocated; 587.50 MiB free; 220.00 MiB reserved in total by PyTorch)
+Using tensorboardX
+Traceback (most recent call last):
+  File "train.py", line 96, in <module>
+    torch.cuda.set_device(2)
+  File "/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/cuda/__init__.py", line 263, in set_device
+    torch._C._cuda_setDevice(device)
+RuntimeError: CUDA error: invalid device ordinal
+Drop LR to 1e-05
+Using tensorboardX
+[0]
+Fix size testing.
+training chunk_sizes: [16]
+The output will be saved to  /home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_1070_images_290_epochs
+0
+Setting up data...
+================================================================================
+dataset summary
+OrderedDict([('surfrider_train', 2015.0), ('surfrider_test', 551.0)])
+total # identities: 2567
+start index
+OrderedDict([('surfrider_train', 0), ('surfrider_test', 2015.0)])
+================================================================================
+heads {'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}
+Namespace(K=500, arch='dla_34', batch_size=16, cat_spec_wh=False, chunk_sizes=[16], conf_thres=0.4, data_cfg='../src/lib/cfg/surfrider.json', data_dir='../src/data/surfrider', dataset='jde', debug_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_1070_images_290_epochs/debug', dense_wh=False, det_thres=0.3, down_ratio=4, exp_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot', exp_id='surfrider_1070_images_290_epochs', fix_res=True, gpus=[0], gpus_str='0', head_conv=256, heads={'hm': 1, 'wh': 4, 'id': 128, 'reg': 2}, hide_data_time=False, hm_weight=1, id_loss='ce', id_weight=1, img_size=(1088, 608), input_h=1088, input_res=1088, input_video='../videos/MOT16-03.mp4', input_w=608, keep_res=False, load_model='../models/ctdet_coco_dla_2x.pth', lr=0.0001, lr_step=[140], ltrb=True, master_batch_size=16, mean=None, metric='loss', min_box_area=100, mse_loss=False, multi_loss='uncertainty', nID=2567, nms_thres=0.4, norm_wh=False, not_cuda_benchmark=False, not_prefetch_test=False, not_reg_offset=False, num_classes=1, num_epochs=290, num_iters=-1, num_stacks=1, num_workers=8, off_weight=1, output_format='video', output_h=272, output_res=272, output_root='../demos', output_w=152, pad=31, print_iter=0, reg_loss='l1', reg_offset=True, reid_dim=128, resume=False, root_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../..', save_all=False, save_dir='/home/infres/chagneux/repos/FairMOT/src/lib/../../exp/mot/surfrider_1070_images_290_epochs', seed=317, std=None, task='mot', test=False, test_hie=False, test_mot15=False, test_mot16=False, test_mot17=False, test_mot20=False, track_buffer=30, trainval=False, val_hie=False, val_intervals=5, val_mot15=False, val_mot16=False, val_mot17=True, val_mot20=False, vis_thresh=0.5, wh_weight=0.1)
+Creating model...
+Starting training...
+loaded ../models/ctdet_coco_dla_2x.pth, epoch 230
+Skip loading parameter hm.2.weight, required shapetorch.Size([1, 256, 1, 1]), loaded shapetorch.Size([80, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter hm.2.bias, required shapetorch.Size([1]), loaded shapetorch.Size([80]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.weight, required shapetorch.Size([4, 256, 1, 1]), loaded shapetorch.Size([2, 256, 1, 1]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+Skip loading parameter wh.2.bias, required shapetorch.Size([4]), loaded shapetorch.Size([2]). If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.0.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.weight.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+No param id.2.bias.If you see this, your model does not fully load the pre-trained weight. Please make sure you have correctly specified --arch xxx or set the correct --num_classes for your own dataset.
+/home/infres/chagneux/anaconda3/envs/FairMOT/lib/python3.8/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='sum' instead.
+  warnings.warn(warning.format(ret))
+Drop LR to 1e-05
