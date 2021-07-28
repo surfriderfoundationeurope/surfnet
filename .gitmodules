@@ -4,3 +4,6 @@
 [submodule "external/FairMOT"]
 	path = external/FairMOT
 	url = git@github.com:mchagneux/FairMOT.git
+[submodule "external/sort"]
+	path = external/sort
+	url = git@github.com:mchagneux/sort.git
