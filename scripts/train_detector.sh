@@ -18,7 +18,7 @@ trap "kill 0" EXIT
 
 tensorboard --logdir=${output_dir} & 
 
-nohup python src/train_base.py \
+nohup python src/train_detector.py \
     --model ${model_name} \
     --dataset ${dataset} \
     --data-path ${IMAGES} \

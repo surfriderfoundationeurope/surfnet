@@ -8,11 +8,11 @@ from torch.utils.tensorboard import SummaryWriter
 from torch import nn
 from torchvision import datasets
 
-from base.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
-from base import presets
-from base.centernet.models import create_model as get_model_centernet
-from base.losses import FocalLoss
-from base import train_utils as utils
+from detection.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
+from detection import presets
+from detection.centernet.models import create_model as get_model_centernet
+from detection.losses import FocalLoss
+from detection import train_utils as utils
 
 
 def get_dataset(dir_path, name, image_set, args):
@@ -20,9 +20,6 @@ def get_dataset(dir_path, name, image_set, args):
     def sbd(*args, **kwargs):
         return datasets.SBDataset(*args, mode='segmentation', **kwargs)
     paths = {
-        "voc": (dir_path, datasets.VOCSegmentation, 21),
-        "voc_aug": (dir_path, sbd, 21),
-        "coco": (dir_path, get_coco, 21),
         "surfrider_old": (dir_path, get_surfrider_old, 4),
         "surfrider": (dir_path, get_surfrider, 1),
         "surfrider_video_frames": (dir_path, get_surfrider_video_frames, 1)
