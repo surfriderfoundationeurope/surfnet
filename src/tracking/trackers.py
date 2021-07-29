@@ -259,6 +259,8 @@ trackers = {'EKF': EKF,
            'UKF': UKF} 
 
 def get_tracker(algorithm_and_params):
+    print(f'{algorithm_and_params} will be used for tracking.')
+
     splitted_name = algorithm_and_params.split('_')
     if len(splitted_name) > 1: 
         algorithm_name, param = splitted_name

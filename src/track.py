@@ -163,11 +163,12 @@ def main(args):
     engine = get_tracker(args.algorithm)
 
     if args.external_detections: 
-        print('Tracking with external detections.')
+        print('USING EXTERNAL DETECTIONS')
+
         sequence_names = next(os.walk(args.data_dir))[1]
 
         for sequence_name in sequence_names: 
-            print(f'Started tracking of {sequence_name}')
+            print(f'---Processing {sequence_name}')
             with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
                 detections = pickle.load(f)
             with open(os.path.join(args.data_dir,sequence_name,'saved_frames.pickle'),'rb') as f: 
@@ -177,14 +178,16 @@ def main(args):
             reader = FramesWithInfo(frames)
             detections = resize_external_detections(detections, ratio)
 
+            print('Tracking...')
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, sequence_name)
             write_tracking_results_to_file(results, ratio_x=ratio, ratio_y=ratio, output_filename=output_filename)
 
     else: 
-        print(f'Tracking with internal detector, detection threshold at {args.detection_threshold}.')
-        print('Loading model.')
+        print(f'USING INTERNAL DETECTOR, detection threshold at {args.detection_threshold}.')
+
+        print('---Loading model...')
         model = load_model(args.model_weights)
         print('Model loaded.')
 
@@ -195,7 +198,7 @@ def main(args):
         video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
         for video_filename in video_filenames: 
-            print(f'Processing {video_filename}')
+            print(f'---Processing {video_filename}')
             reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
 
@@ -204,11 +207,11 @@ def main(args):
             ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
             ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
-            print('Getting detections')
+            print('Detections...')
             detections = get_detections_for_video(reader, detector)
             reader.init()
 
-            print('Started tracking')
+            print('Tracking...')
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
