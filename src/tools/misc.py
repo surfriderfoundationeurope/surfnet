@@ -1,15 +1,17 @@
 from matplotlib.pyplot import grid
-import numpy as np 
-import math 
+import numpy as np
+import math
 import cv2
 import torch
 import torchvision.transforms.functional as F
 from detection.centernet.models import create_model as create_base
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 class ResizeForCenterNet(object):
     def __init__(self, fix_res=False):
-        self.fix_res = fix_res 
-    
+        self.fix_res = fix_res
+
     def __call__(self, image):
         if self.fix_res:
             new_h = 512
@@ -54,11 +56,11 @@ def gaussian2D(shape, sigma=1):
 def draw_umich_gaussian(heatmap, center, radius, k=1):
     diameter = 2 * radius + 1
     gaussian = gaussian2D((diameter, diameter), sigma=diameter / 6)
-    
+
     x, y = int(center[0]), int(center[1])
 
     height, width = heatmap.shape[0:2]
-        
+
     left, right = min(x, radius), min(width - x, radius + 1)
     top, bottom = min(y, radius), min(height - y, radius + 1)
 
@@ -113,8 +115,8 @@ def pre_process_centernet(image, meta=None, fix_res=True):
     # if self.opt.flip_test:
     #     images = np.concatenate((images, images[:, :, :, ::-1]), axis=0)
     images = torch.from_numpy(images)
-    # meta = {'c': c, 's': s, 
-    #         'out_height': inp_height // self.opt.down_ratio, 
+    # meta = {'c': c, 's': s,
+    #         'out_height': inp_height // self.opt.down_ratio,
     #         'out_width': inp_width // self.opt.down_ratio}
     return images.squeeze() #, meta
 
@@ -176,7 +178,7 @@ def load_model(base_weights):
     base_model = load_checkpoint(base_model, base_weights)
     for param in base_model.parameters():
         param.requires_grad = False
-    base_model.to('cuda')
+    base_model.to(device)
     base_model.eval()
     return base_model
 
@@ -188,4 +190,3 @@ def _calculate_euclidean_similarity(distances, zero_distance):
     """
     sim = np.maximum(0, 1 - distances/zero_distance)
     return sim
-
