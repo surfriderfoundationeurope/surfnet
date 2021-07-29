@@ -17,7 +17,8 @@ python src/track.py \
     --noise_covariances_path data/tracking_parameters \
     --model_weights models/centernet_pretrained.pth \
     --output_shape 960,544 \
-    --skip_frames 0
+    --skip_frames 0 \
+    --display 0
 
 
 

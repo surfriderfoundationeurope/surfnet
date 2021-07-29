@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import pickle
 from scipy.spatial.distance import euclidean
 from scipy.optimize import linear_sum_assignment
-
 class Display:
 
     def __init__(self, on, interactive=True):
@@ -55,6 +54,7 @@ class Display:
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
+display = None 
 
 def build_confidence_function_for_trackers(trackers, flow01):
     tracker_nbs = []
@@ -153,8 +153,6 @@ def track_video(reader, detections, args, engine, transition_variance, observati
  
     return results
 
-display = Display(on=False, interactive=True)
-
 def main(args):
 
     transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
@@ -232,7 +230,15 @@ if __name__ == '__main__':
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_shape',type=str,default='960,544')
     parser.add_argument('--external_detections',action='store_true')
+    parser.add_argument('--display', type=int, default=0)
     args = parser.parse_args()
+
+    if args.display == 0: 
+        display = Display(on=False, interactive=True)
+    elif args.display == 1:
+        display = Display(on=True, interactive=True)
+    elif args.display == 2:
+        display = Display(on=True, interactive=False)
 
     args.output_shape = tuple(int(s) for s in args.output_shape.split(','))
 

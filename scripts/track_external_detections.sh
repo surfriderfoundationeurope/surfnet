@@ -12,5 +12,6 @@ python src/track.py \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --algorithm ${algorithm} \
-    --noise_covariances_path data/tracking_parameters
+    --noise_covariances_path data/tracking_parameters \
+    --display 0
 
