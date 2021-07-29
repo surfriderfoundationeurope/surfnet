@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pickle
 from scipy.spatial.distance import euclidean
 from scipy.optimize import linear_sum_assignment
+
 class Display:
 
     def __init__(self, on, interactive=True):

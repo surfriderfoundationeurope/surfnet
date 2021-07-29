@@ -602,8 +602,6 @@ def compute_precision_recall_hungarian_pickle_detections_mot_gt(mot_gt_filename,
         plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
 
 
-
-
 if __name__ == '__main__':
 
     # extension_weights = 'experiments/extension/surfnet32_alpha_2_beta_4_lr_1e-5_single_class_video_frames/model_72.pth'
