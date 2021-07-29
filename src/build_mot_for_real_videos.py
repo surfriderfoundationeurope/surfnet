@@ -1,6 +1,5 @@
 import numpy as np
-from numpy.lib import vander 
-from common.opencv_tools import SimpleVideoReader
+from tools.video_readers import SimpleVideoReader
 import cv2
 import os 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')

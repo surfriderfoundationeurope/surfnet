@@ -54,6 +54,7 @@ class Display:
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
+
 display = None 
 
 def build_confidence_function_for_trackers(trackers, flow01):

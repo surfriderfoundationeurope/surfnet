@@ -3,8 +3,6 @@ from math import log
 # from numba.np.ufunc.decorators import vectorize
 from torchvision import datasets
 from torch.utils import data
-from extension.models import SurfNet
-from common.datasets.datasets import SurfnetDataset
 import torch 
 from torch.utils.data import DataLoader, dataloader, dataset
 from torch import sigmoid
@@ -12,17 +10,15 @@ import matplotlib.pyplot as plt
 from torchvision import transforms as T
 from torchvision.datasets import ImageFolder
 import numpy as np
-from extension.losses import TestLoss, TrainLoss, TrainLossOneTerm
 from torchvision.transforms.functional import center_crop
 import pickle
 import os
-from base.centernet.models import create_model as create_model_centernet
-from base.centernet.models import load_model as load_model_centernet
-from common.utils import load_my_model, transform_test_CenterNet, nms
-from train_extension import spatial_transformer, get_loaders
-from train_base import get_dataset
+from detection.centernet.models import create_model as create_model_centernet
+from detection.centernet.models import load_model as load_model_centernet
+from detection.detect import transform_for_test, nms
+from train_detector import get_dataset
 import cv2
-from common.utils import pre_process_centernet, _calculate_euclidean_similarity
+from tools.misc import pre_process_centernet, _calculate_euclidean_similarity
 from tqdm import tqdm
 # from sklearn.metrics import roc_curve
 # from numba import jit
@@ -79,132 +75,6 @@ def plot_heatmaps_and_gt(heatmaps, gt, normalize):
     ax3.imshow(heatmaps[2].sigmoid_().cpu(),**kwargs)
     plt.show()
     plt.close()
-
-def evaluate_extension_network_static_images(base_weights, extension_weights, data_path='data/surfrider_images/'):
-
-    args = Args(focal=True,data_path=data_path,dataset='surfrider', downsampling_factor=4, batch_size=1)
-    dataset_test, _ = get_dataset(args.data_path, 'surfrider', "val", args)
-    dataloader_ = DataLoader(dataset_test, shuffle=True, batch_size=1)
-
-
-
-    verbose = True
-    enable_nms = True
-    thres = 0.3 
-    base_model = create_model_centernet('dla_34',heads={'hm':3,'wh':2}, head_conv=256)
-    base_model = load_my_model(base_model, base_weights)
-    extension_model = SurfNet(32)
-    extension_model.load_state_dict(torch.load(extension_weights))
-    for param in base_model.parameters():
-        param.requires_grad = False
-    for param in extension_model.parameters():
-        param.requires_grad = False
-
-    base_model.to('cuda')
-    extension_model.to('cuda')
-    base_model.eval()
-    extension_model.eval()
-    
-    loss = TestLoss(alpha=2, beta=4)
-
-
-    with torch.no_grad():
-        running_loss_base = 0.0
-        running_loss_extension = 0.0
-        for batch_nb, (image, target) in enumerate(dataloader_):
-            image = image.to('cuda')
-            target = target.to('cuda')
-            target = torch.max(target[:,:-2,:,:],dim=1,keepdim=True)[0]
-            Z = base_model(image)[-1]['hm']
-            Z = torch.max(Z,dim=1,keepdim=True)[0]
-            h = extension_model(Z)
-
-            loss_base = loss(Z,target)
-            loss_extension = loss(h, target)
-            running_loss_base+=loss_base
-            running_loss_extension+=loss_extension
-
-
-            Z = torch.sigmoid(Z)
-            h = torch.sigmoid(h)
-            if enable_nms:
-                target = nms(target)
-                Z = nms(Z)
-                h = nms(h)
-                if thres: 
-                    Z[Z<thres] = 0
-                    h[h<thres] = 0
-
-            if verbose: 
-                fig, (ax0, ax1, ax2, ax3) = plt.subplots(1,4, figsize=(20,20))
-                image = np.transpose(image.squeeze().cpu().numpy(), axes=[1, 2, 0])
-                image = image * (0.229, 0.224, 0.225) + (0.485, 0.456, 0.406)
-                ax0.imshow(image)
-                ax0.set_title('Image')
-                ax1.imshow(target[0][0].cpu(), cmap='gray',vmin=0, vmax=1)
-                ax1.set_title('Ground truth')
-                ax2.imshow(Z.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
-                ax2.set_title('Z, loss: {}'.format(loss_base))
-                ax3.imshow(h.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
-                ax3.set_title('h, loss: {}'.format(loss_extension))
-                plt.show()
-
-    print('Evaluation loss base network:', running_loss_base.item()/(batch_nb+1))
-    print('Evaluation loss extension network', running_loss_extension.item()/(batch_nb+1))
-
-def evaluate_extension_network_video_frames(extension_weights, extracted_heatmaps_dir='data/extracted_heatmaps/'):
-
-    verbose = False
-    enable_nms = False
-    thres = 0.3
-    args = Args(focal=True, data_path=extracted_heatmaps_dir,dataset='surfrider',downsampling_factor=4, batch_size=1)
-    loader_train, loader_test = get_loaders(args)
-    extension_model = SurfNet(32)
-    for param in extension_model.parameters():
-        param.requires_grad = False
-    extension_model.load_state_dict(torch.load(extension_weights))
-
-    extension_model.to('cuda')
-    extension_model.eval()
-
-    loss = TestLoss(alpha=2, beta=4)
-
-    with torch.no_grad():
-        running_loss_base = 0.0
-        running_loss_extension = 0.0
-        for batch_nb, (Z, target) in tqdm(enumerate(loader_test)):
-            Z = Z.to('cuda')
-            target = target.to('cuda')
-            h = extension_model(Z)
-
-            loss_base = loss(Z, target)
-            loss_extension = loss(h, target)
-
-            running_loss_base+=loss_base
-            running_loss_extension+=loss_extension
-
-            Z = torch.sigmoid(Z)
-            h = torch.sigmoid(h)
-            if enable_nms:
-                target = nms(target)
-                Z = nms(Z)
-                h = nms(h)
-                if thres: 
-                    Z[Z<thres] = 0
-                    h[h<thres] = 0
-
-            if verbose: 
-                fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(20,20))
-                ax1.imshow(target[0][0].cpu(), cmap='gray',vmin=0, vmax=1)
-                ax1.set_title('Ground truth')
-                ax2.imshow(Z.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
-                ax2.set_title('Z, loss: {}'.format(loss_base))
-                ax3.imshow(h.cpu()[0][0],cmap='gray',vmin=0,vmax=1)
-                ax3.set_title('h, loss: {}'.format(loss_extension))
-                plt.show()
-
-    print('Evaluation loss base network:', running_loss_base.item()/(batch_nb+1))
-    print('Evaluation loss extension network', running_loss_extension.item()/(batch_nb+1))
 
 def plot_extracted_heatmaps(data_dir):
     pickle_files = [data_dir + file_name for file_name in sorted(os.listdir(data_dir)) if '.pickle' in file_name]
@@ -271,31 +141,6 @@ def load_base(base_weights):
     base_model.to('cuda')
     base_model.eval()
     return base_model
-
-def extract_heatmaps_extension_from_base_heatmaps(extension_weights, annotations_dir, data_dir, split='val'):
-    # args = Args(focal=True, data_path=input_dir, dataset='surfrider', downsampling_factor=4, batch_size=1)
-    dataset_test = SurfnetDataset(annotations_dir, data_dir, split=split)
-    loader_test = DataLoader(dataset_test, batch_size=1, shuffle=False)
-
-    extension_model  = load_extension(extension_weights)
-    with torch.no_grad():
-        base_predictions = list()
-        extension_predictions = list()
-        ground_truth = list() 
-
-        for (Z, target) in tqdm(loader_test):
-            Z = Z.to('cuda')
-            h = extension_model(Z)
-            base_predictions.append(torch.sigmoid(Z).cpu()[0][0])
-            extension_predictions.append(torch.sigmoid(h).cpu()[0][0])
-            ground_truth.append(target[0][0])
-
-        with open('base_predictions.pickle','wb') as f: 
-            pickle.dump(torch.stack(base_predictions),f)
-        with open('extension_predictions.pickle','wb') as f: 
-            pickle.dump(torch.stack(extension_predictions),f)     
-        with open('ground_truth.pickle','wb') as f: 
-            pickle.dump(torch.stack(ground_truth),f) 
 
 def extract_heatmaps_extension_from_images(base_weights, extension_weights, input_dir):
 
