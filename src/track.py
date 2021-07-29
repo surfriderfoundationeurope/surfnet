@@ -3,7 +3,7 @@ import numpy as np
 import os
 from tqdm import tqdm
 from detection.detect import detect
-from tracking.utils import in_frame, init_trackers, get_detections_for_video
+from tracking.utils import in_frame, init_trackers, get_detections_for_video, FramesWithInfo, resize_external_detections
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
 from tools.misc import load_model
@@ -12,25 +12,6 @@ import matplotlib.pyplot as plt
 import pickle
 from scipy.spatial.distance import euclidean
 from scipy.optimize import linear_sum_assignment
-
-class FramesWithInfo:
-    def __init__(self, frames, output_shape):
-        self.frames = frames
-        self.output_shape = output_shape
-        self.end = len(frames)
-        self.read_head = 0
-    
-    def __next__(self):
-        if self.read_head < self.end:
-            frame = self.frames[self.read_head]
-            self.read_head+=1
-            return frame
-
-        else: 
-            raise StopIteration
-    
-    def __iter__(self):
-        return self
 
 class Display:
 
@@ -74,8 +55,6 @@ class Display:
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
-
-display = Display(on=False, interactive=True)
 
 def build_confidence_function_for_trackers(trackers, flow01):
     tracker_nbs = []
@@ -174,6 +153,8 @@ def track_video(reader, detections, args, engine, transition_variance, observati
  
     return results
 
+display = Display(on=True, interactive=True)
+
 def main(args):
 
     transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
@@ -186,35 +167,26 @@ def main(args):
 
         for sequence_name in sequence_names: 
             print(sequence_name)
+
             with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
                 detections = pickle.load(f)
             with open(os.path.join(args.data_dir,sequence_name,'saved_frames.pickle'),'rb') as f: 
                 frames = pickle.load(f)
 
-            reader = FramesWithInfo(frames, output_shape=frames[0].shape[:-1][::-1])
+            ratio = 4
+            reader = FramesWithInfo(frames)
+            detections = resize_external_detections(detections, ratio)
 
-
-            for detection_nb in range(len(detections)):
-                detection = detections[detection_nb]
-                if len(detection):
-                    detection = np.array(detection)[:,:-1]
-                    detection[:,0] = (detection[:,0] + detection[:,2])/2
-                    detection[:,1] = (detection[:,1] + detection[:,3])/2
-                    detections[detection_nb] = detection[:,:2]/4
-            
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, sequence_name)
             output_file = open(output_filename+'.txt', 'w')
-            ratio_x, ratio_y = 4, 4
 
             for result in results:
                 output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
                                                                         result[1]+1,
-                                                                        ratio_x *
-                                                                        result[2],
-                                                                        ratio_y *
-                                                                        result[3],
+                                                                        ratio * result[2],
+                                                                        ratio * result[3],
                                                                         -1,
                                                                         -1,
                                                                         1,

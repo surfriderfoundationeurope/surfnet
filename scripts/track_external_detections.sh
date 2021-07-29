@@ -1,16 +1,16 @@
 . scripts/shell_variables.sh 
 
 algorithm=EKF_1
-details='hungarian_shorts'
+details='test'
 experiment_name=${algorithm}_${details}
 output_dir=experiments/tracking/${experiment_name}
 create_clean_directory $output_dir
 
 python src/track.py \
-    --all_external \
-    --data_dir /home/infres/chagneux/repos/FairMOT/surfrider_short_segments \
+    --external_detections \
+    --data_dir external/FairMOT/surfrider_long_segments_12fps \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --algorithm ${algorithm} \
-    --noise_covariances_dir data/tracking_parameters
+    --noise_covariances_path data/tracking_parameters
 

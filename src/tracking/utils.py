@@ -68,5 +68,35 @@ def get_detections_for_video(reader, detector):
 
     return detections
 
+def resize_external_detections(detections, ratio):
 
+    for detection_nb in range(len(detections)):
+        detection = detections[detection_nb]
+        if len(detection):
+            detection = np.array(detection)[:,:-1]
+            detection[:,0] = (detection[:,0] + detection[:,2])/2
+            detection[:,1] = (detection[:,1] + detection[:,3])/2
+            detections[detection_nb] = detection[:,:2]/ratio
+    return detections
+        
+class FramesWithInfo:
+    def __init__(self, frames, output_shape=None):
+        self.frames = frames
+        if output_shape is None: 
+            self.output_shape = frames[0].shape[:-1][::-1]
+        else: self.output_shape = output_shape
+        self.end = len(frames)
+        self.read_head = 0
+    
+    def __next__(self):
+        if self.read_head < self.end:
+            frame = self.frames[self.read_head]
+            self.read_head+=1
+            return frame
+
+        else: 
+            raise StopIteration
+    
+    def __iter__(self):
+        return self
 
