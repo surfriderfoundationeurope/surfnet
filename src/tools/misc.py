@@ -3,10 +3,8 @@ import numpy as np
 import math 
 import cv2
 import torch
-import torchvision.transforms as T 
 import torchvision.transforms.functional as F
 from detection.centernet.models import create_model as create_base
-import pickle
 
 class ResizeForCenterNet(object):
     def __init__(self, fix_res=False):
@@ -168,91 +166,20 @@ def get_3rd_point(a, b):
     direct = a - b
     return b + np.array([-direct[1], direct[0]], dtype=np.float32)
 
-def load_my_model(model, trained_model_weights_filename):
+def load_checkpoint(model, trained_model_weights_filename):
     checkpoint = torch.load(trained_model_weights_filename, map_location='cpu')
     model.load_state_dict(checkpoint['model'])
     return model
 
-
-def load_base(base_weights):
+def load_model(base_weights):
     base_model = create_base('dla_34', heads={'hm': 1, 'wh': 2}, head_conv=256)
-    base_model = load_my_model(base_model, base_weights)
+    base_model = load_checkpoint(base_model, base_weights)
     for param in base_model.parameters():
         param.requires_grad = False
     base_model.to('cuda')
     base_model.eval()
     return base_model
 
-def transform_test_CenterNet():
-
-    transforms = []
-
-    # transforms.append(ResizeForCenterNet(fix_res))
-    transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
-    transforms.append(T.ToTensor())
-    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
-                                  std=[0.229, 0.224, 0.225]))
-
-    return T.Compose(transforms)
-
-def transforms_test_deeplab():
-    transforms = []
-
-    transforms.append(T.ToTensor())
-    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
-                                  std=[0.229, 0.224, 0.225]))
-
-    return T.Compose(transforms)
-
-def nms(heat, kernel=3):
-    pad = (kernel - 1) // 2
-
-    hmax = torch.nn.functional.max_pool2d(
-        heat, (kernel, kernel), stride=1, padding=pad)
-    keep = (hmax == heat).float()
-    return heat * keep
-
-def warp_flow(inputs, flows, device):
-
-    inputs_ = inputs + 55 
-    flows = flows.permute(0,3,1,2)
-    B, C, H, W = inputs_.shape
-
-    xx = torch.arange(0, W).view(1,-1).repeat(H,1)
-
-    yy = torch.arange(0, H).view(-1,1).repeat(1,W)
-
-    xx = xx.view(1,1,H,W).repeat(B,1,1,1)
-
-    yy = yy.view(1,1,H,W).repeat(B,1,1,1)
-
-    grid = torch.cat((xx,yy),1).float().to(device)
-
-    vgrid = grid + flows
-
-    vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:].clone() / max(W-1,1)-1.0
-
-    vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:].clone() / max(H-1,1)-1.0
-
-    warped_outputs = torch.nn.functional.grid_sample(inputs_, vgrid.permute(0,2,3,1), 'nearest')
-    warped_outputs.add_(-55)
-    inputs_ = inputs_ - 55 
-    # import matplotlib.pyplot as plt
-
-
-
-    # for input, warped_output in zip(inputs_, warped_outputs):
-    #     fig , (ax0, ax1) = plt.subplots(1,2)
-    #     ax0.imshow(torch.sigmoid(input).cpu().detach().permute(1,2,0),cmap='gray',vmin=0, vmax=1)
-    #     ax1.imshow(torch.sigmoid(warped_output).cpu().detach().permute(1,2,0), cmap='gray',vmin=0, vmax=1)
-    #     plt.show()
-    return warped_outputs
-
-
-def open_pickle(pickle_filename):
-    with open(pickle_filename, 'rb') as f: 
-        return pickle.load(f)
-        
 def _calculate_euclidean_similarity(distances, zero_distance):
     """ Calculates the euclidean distance between two sets of detections, and then converts this into a similarity
     measure with values between 0 and 1 using the following formula: sim = max(0, 1 - dist/zero_distance).

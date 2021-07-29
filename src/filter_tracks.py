@@ -47,11 +47,9 @@ def main(args):
                                                                     -1,
                                                                     -1))
 
-
 def filter_by_nb_obs(tracklets, min_len_tracklet):
 
     return [tracklet for tracklet in tracklets if len(tracklet) > min_len_tracklet]
-
 
 def filter_by_mean_consecutive_length(tracklets, min_mean):
 

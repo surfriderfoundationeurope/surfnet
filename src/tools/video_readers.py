@@ -94,12 +94,8 @@ class IterableFrameReader:
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
             
     def __next__(self):
-        if not self.first_frame_read:
-            self.first_frame_read = True
-        else:
-            for _ in range(self.skip_frames): 
-                self.video.read()
         ret, frame = self.video.read()
+        self._skip_frames()
         if ret: 
             return cv2.resize(frame, self.output_shape)
         raise StopIteration
@@ -110,6 +106,10 @@ class IterableFrameReader:
     def init(self):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
         self.first_frame_read = False
+    
+    def _skip_frames(self):
+        for _ in range(self.skip_frames):
+            self.video.read()        
 
 class SimpleVideoReader:
     def __init__(self, video_filename, skip_frames=0):

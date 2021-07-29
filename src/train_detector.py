@@ -9,7 +9,7 @@ from torch import nn
 from torchvision import datasets
 
 from detection.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
-from detection import presets
+from detection import transforms
 from detection.centernet.models import create_model as get_model_centernet
 from detection.losses import FocalLoss
 from detection import train_utils as utils
@@ -17,8 +17,7 @@ from detection import train_utils as utils
 
 def get_dataset(dir_path, name, image_set, args):
     
-    def sbd(*args, **kwargs):
-        return datasets.SBDataset(*args, mode='segmentation', **kwargs)
+
     paths = {
         "surfrider_old": (dir_path, get_surfrider_old, 4),
         "surfrider": (dir_path, get_surfrider, 1),
@@ -36,7 +35,7 @@ def get_transform(train, num_classes, args):
 
     base_size = 540
     crop_size = (544, 960)
-    return presets.ImgAugPresetTrain(base_size, crop_size, num_classes, args.downsampling_factor) if train else presets.ImgAugPresetVal(base_size, crop_size, num_classes, args.downsampling_factor)
+    return transforms.TrainTransforms(base_size, crop_size, num_classes, args.downsampling_factor) if train else transforms.ValTransforms(base_size, crop_size, num_classes, args.downsampling_factor)
 
 def evaluate(model, focal_loss, data_loader, device, num_classes):
     model.eval()

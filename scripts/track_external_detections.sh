@@ -12,6 +12,5 @@ python src/track.py \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --algorithm ${algorithm} \
-    --read_from folder \
     --noise_covariances_dir data/tracking_parameters
 

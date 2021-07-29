@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 import os
 from tqdm import tqdm
-from tracking.utils import in_frame, init_trackers, detect_base, detect_internal
-from common.opencv_tools import IterableFrameReader
-from common.flow_tools import compute_flow
-from common.utils import load_base
+from detection.detect import detect
+from tracking.utils import in_frame, init_trackers, get_detections_for_video
+from tools.video_readers import IterableFrameReader
+from tools.optical_flow import compute_flow
+from tools.misc import load_model
 from tracking.trackers import get_tracker
 import matplotlib.pyplot as plt
 import pickle
@@ -60,7 +61,6 @@ class Display:
             self.ax.xaxis.tick_top()
             plt.legend(handles=self.legends)
             self.fig.canvas.draw()
-            plt.title('Raw count: {}'.format(sum([len(tracker.tracklet) > self.count_threshold for tracker in trackers])))
             if self.interactive: 
                 plt.show()
                 while not plt.waitforbuttonpress():
@@ -75,7 +75,7 @@ class Display:
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
 
-display = Display(on=False, interactive=False)
+display = Display(on=False, interactive=True)
 
 def build_confidence_function_for_trackers(trackers, flow01):
     tracker_nbs = []
@@ -118,7 +118,6 @@ def track_video(reader, detections, args, engine, transition_variance, observati
     if display.on: 
     
         display.display_shape = (reader.output_shape[0] // args.downsampling_factor, reader.output_shape[1] // args.downsampling_factor)
-        display.count_threshold = args.count_threshold
         display.update_detections_and_frame(detections_for_frame, frame0)
 
     if len(detections_for_frame):
@@ -177,13 +176,12 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
 def main(args):
 
-    transition_variance = np.load(os.path.join(args.noise_covariances_dir, 'transition_variance.npy'))
-    observation_variance = np.load(os.path.join(
-        args.noise_covariances_dir, 'observation_variance.npy'))
+    transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
+    observation_variance = np.load(os.path.join(args.noise_covariances_path, 'observation_variance.npy'))
 
     engine = get_tracker(args.algorithm)
 
-    if args.all_external: 
+    if args.external_detections: 
         sequence_names = next(os.walk(args.data_dir))[1]
 
         for sequence_name in sequence_names: 
@@ -204,7 +202,6 @@ def main(args):
                     detection[:,1] = (detection[:,1] + detection[:,3])/2
                     detections[detection_nb] = detection[:,:2]/4
             
-            args.downsampling_factor = 1
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, sequence_name)
@@ -228,16 +225,11 @@ def main(args):
             output_file.close()
 
     else: 
-        base_model = load_base(args.base_weights)
+        model = load_model(args.model_weights)
 
-        def detector(frame): return detect_base(frame, threshold=args.detection_threshold,
-                                                base_model=base_model)
+        def detector(frame): return detect(frame, threshold=args.detection_threshold,
+                                                model=model)
 
-
-        detections_save_folder = os.path.join(args.output_dir,'detections')
-        heatmaps_save_folder = os.path.join(args.output_dir,'heatmaps')
-        os.mkdir(detections_save_folder)
-        os.mkdir(heatmaps_save_folder)
 
         video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
@@ -245,8 +237,7 @@ def main(args):
 
             reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
-            output_filename = os.path.join(
-                args.output_dir, video_filename.split('.')[0] +'.txt')
+            output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
             output_file = open(output_filename, 'w')
 
             input_shape = reader.input_shape
@@ -255,14 +246,8 @@ def main(args):
             ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
 
-            detections, heatmaps = detect_internal(reader, detector)
+            detections = get_detections_for_video(reader, detector)
             reader.init()
-
-            with open(os.path.join(detections_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:
-                pickle.dump(detections,f)
-            with open(os.path.join(heatmaps_save_folder,video_filename.split('.')[0]+'.pickle'),'wb') as f:
-                pickle.dump(heatmaps,f)
-   
 
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
             for result in results:
@@ -281,41 +266,23 @@ def main(args):
 
             output_file.close()
 
-
-
-
-
-
-
-
 if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser(description='Tracking')
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--annotation_file', type=str)
-    parser.add_argument('--count_threshold', type=float, default=5)
     parser.add_argument('--detection_threshold', type=float, default=0.33)
     parser.add_argument('--confidence_threshold', type=float, default=0.2)
-    parser.add_argument('--base_weights', type=str)
-    parser.add_argument('--extension_weights', type=str)
+    parser.add_argument('--model_weights', type=str)
     parser.add_argument('--output_dir', type=str)
-    parser.add_argument('--downsampling_factor', type=int)
-    parser.add_argument('--external_detections_dir', type=str)
-    parser.add_argument('--detector', type=str ,default='internal_base')
+    parser.add_argument('--downsampling_factor', type=int, default=1)
     parser.add_argument('--algorithm', type=str, default='Kalman')
-    parser.add_argument('--read_from',type=str)
-    parser.add_argument('--noise_covariances_dir',type=str)
+    parser.add_argument('--noise_covariances_path',type=str)
     parser.add_argument('--skip_frames',type=int,default=0)
-    parser.add_argument('--output_w',type=int,default=None)
-    parser.add_argument('--output_h',type=int,default=None)
-    parser.add_argument('--version',type=str,default='from_detections')
-    parser.add_argument('--all_external',action='store_true')
+    parser.add_argument('--output_shape',type=str,default='960,544')
+    parser.add_argument('--external_detections',action='store_true')
     args = parser.parse_args()
 
-    if args.output_w is not None:
-        args.output_shape = (args.output_w, args.output_h)
-    else: 
-        args.output_shape = None
+    args.output_shape = tuple(int(s) for s in args.output_shape.split(','))
 
     main(args)

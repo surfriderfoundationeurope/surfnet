@@ -1,14 +1,7 @@
-from numpy.lib import unravel_index
 from scipy.stats import multivariate_normal
 import numpy as np 
-import cv2
 import os
 from tqdm import tqdm
-import torch
-from common.utils import transform_test_CenterNet, nms
-import pickle
-from collections import defaultdict
-from numpy.random import default_rng
 
 
 class GaussianMixture(object):
@@ -31,26 +24,6 @@ class GaussianMixture(object):
         for weight, component in zip(self.weights, self.components):
             result += weight*component.cdf(x)
         return result
-
-
-
-class MultivariateDiscrete:
-    def __init__(self, shape, unnormalized_weights):
-        self.shape = shape
-        self.tempering_coeff = 3
-        self.update_weights(unnormalized_weights)
-        self.indices = np.arange(shape[0]*shape[1])
-        self.sampler = default_rng()
-
-    def sample(self, num_samples):
-        samples = self.sampler.choice(a = self.indices, size = num_samples, p = self.normalized_weights)
-        return np.stack(np.unravel_index(samples, self.shape)).T[:,::-1]
-
-    def update_weights(self, unnormalized_weights):
-        self.normalized_weights = exp_and_normalise(np.log(unnormalized_weights**self.tempering_coeff))
-
-# def Multivariate 
-
 
 def init_trackers(engine, detections, frame_nb, state_variance, observation_variance, delta):
     trackers = []
@@ -84,97 +57,16 @@ def gather_filenames_for_video_in_annotations(video, images, data_dir):
     return [os.path.join(data_dir, image['file_name'])
                  for image in images_for_video]
 
-def detect_base_extension(frame, threshold, base_model, extension_model):
-
-    frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
-    base_result = base_model(frame)[-1]['hm']
-    extension_result = torch.sigmoid(extension_model(base_result))
-    detections = nms(extension_result).gt(threshold).squeeze()
-
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
-
-def detect_base(frame, threshold, base_model):
-
-    frame = transform_test_CenterNet()(frame).to('cuda').unsqueeze(0)
-    base_result = torch.sigmoid(base_model(frame)[-1]['hm'])
-    detections = nms(base_result).gt(threshold).squeeze()
-
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1], base_result.squeeze().cpu().numpy()
-
-def detect_internal(reader, detector):
+def get_detections_for_video(reader, detector):
 
     detections = []
-    heatmaps = []
     for frame in tqdm(reader):
 
-        detections_for_frame, heatmap_for_frame = detector(frame)
-        heatmaps.append(heatmap_for_frame)
+        detections_for_frame = detector(frame)
         if len(detections_for_frame): detections.append(detections_for_frame)
         else: detections.append(np.array([]))
 
-    return detections, heatmaps
-
-def detect_external(detections_filename, heatmaps_filename, file_type='mot', nb_frames=None):
-
-    if file_type == 'mot':
-        with open(detections_filename, 'r') as f:
-            detections_read = [detection.split(',') for detection in f.readlines()]
-        detections_from_file = defaultdict(list)
-        for detection in detections_read:
-            detections_from_file[int(detection[0])].append(
-                [float(detection[2]), float(detection[3])])
-
-        detections_from_file = {k: np.array(v)
-                                for k, v in detections_from_file.items()}
-
-        detections = []
-
-        for frame_nb in range(nb_frames):
-            if frame_nb+1 in detections_from_file.keys():
-                detections.append(detections_from_file[frame_nb+1])
-            else:
-                detections.append(np.array([]))
-
-
-    elif file_type == 'CenterTrackpickle':
-        with open(detections_filename, 'rb') as f:
-            detections_read = pickle.load(f)
-        
-        detections = []
-
-        for detections_for_frame in detections_read.values():
-            if len(detections_for_frame): 
-                detections.append(np.concatenate([detection['ct'].reshape(1,2) for detection in detections_for_frame]))
-            else: detections.append(np.array([]))
-    
-    elif file_type == 'simplepickle':
-        with open(detections_filename, 'rb') as f:
-            detections = pickle.load(f)
-        with open(heatmaps_filename,'rb') as f:
-            heatmaps = pickle.load(f)
-
-
-    return detections, heatmaps
-
-
-def discretized_gaussian(mean, var, shape):
-    continuous_gaussian = multivariate_normal(mean=mean, cov=np.diag(var))
-    discrete_gaussian = np.zeros(shape)
-    delta = 0.5
-    for y in range(shape[0]):
-        for x in range(shape[1]):
-            right_top = np.array([x+delta, y+delta])
-            left_low = np.array([x-delta, y-delta])
-            right_low = np.array([x+delta, y-delta])
-            left_top = np.array([x-delta, y+delta])
-            discrete_gaussian[y,x] = continuous_gaussian.cdf(right_top) \
-                - continuous_gaussian.cdf(right_low) \
-                - continuous_gaussian.cdf(left_top) \
-                + continuous_gaussian.cdf(left_low)
-    return discrete_gaussian/discrete_gaussian.sum()
-
-
-
+    return detections
 
 
 
