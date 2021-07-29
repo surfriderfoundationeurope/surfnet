@@ -8,3 +8,5 @@ __pycache__/
 *.pyc
 scripts/shell_variables.sh
 *.png
+experiments/evaluations
+experiments/extension
