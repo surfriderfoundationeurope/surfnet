@@ -79,6 +79,24 @@ def resize_external_detections(detections, ratio):
             detections[detection_nb] = detection[:,:2]/ratio
     return detections
         
+def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
+    output_file = open(output_filename+'.txt', 'w')
+
+    for result in results:
+        output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
+                                                                result[1]+1,
+                                                                ratio_x * result[2],
+                                                                ratio_y * result[3],
+                                                                -1,
+                                                                -1,
+                                                                1,
+                                                                -1,
+                                                                -1,
+                                                                -1))
+
+    output_file.close()
+
+    
 class FramesWithInfo:
     def __init__(self, frames, output_shape=None):
         self.frames = frames

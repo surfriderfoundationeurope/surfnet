@@ -3,7 +3,7 @@ import numpy as np
 import os
 from tqdm import tqdm
 from detection.detect import detect
-from tracking.utils import in_frame, init_trackers, get_detections_for_video, FramesWithInfo, resize_external_detections
+from tracking.utils import in_frame, init_trackers, get_detections_for_video, FramesWithInfo, resize_external_detections, write_tracking_results_to_file
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
 from tools.misc import load_model
@@ -153,7 +153,7 @@ def track_video(reader, detections, args, engine, transition_variance, observati
  
     return results
 
-display = Display(on=True, interactive=True)
+display = Display(on=False, interactive=True)
 
 def main(args):
 
@@ -163,11 +163,11 @@ def main(args):
     engine = get_tracker(args.algorithm)
 
     if args.external_detections: 
+        print('Tracking with external detections.')
         sequence_names = next(os.walk(args.data_dir))[1]
 
         for sequence_name in sequence_names: 
-            print(sequence_name)
-
+            print(f'Started tracking of {sequence_name}')
             with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
                 detections = pickle.load(f)
             with open(os.path.join(args.data_dir,sequence_name,'saved_frames.pickle'),'rb') as f: 
@@ -180,24 +180,13 @@ def main(args):
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, sequence_name)
-            output_file = open(output_filename+'.txt', 'w')
-
-            for result in results:
-                output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
-                                                                        result[1]+1,
-                                                                        ratio * result[2],
-                                                                        ratio * result[3],
-                                                                        -1,
-                                                                        -1,
-                                                                        1,
-                                                                        -1,
-                                                                        -1,
-                                                                        -1))
-
-            output_file.close()
+            write_tracking_results_to_file(results, ratio_x=ratio, ratio_y=ratio, output_filename=output_filename)
 
     else: 
+        print(f'Tracking with internal detector, detection threshold at {args.detection_threshold}.')
+        print('Loading model.')
         model = load_model(args.model_weights)
+        print('Model loaded.')
 
         def detector(frame): return detect(frame, threshold=args.detection_threshold,
                                                 model=model)
@@ -206,37 +195,24 @@ def main(args):
         video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
         for video_filename in video_filenames: 
-
+            print(f'Processing {video_filename}')
             reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
-            output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
-            output_file = open(output_filename, 'w')
 
             input_shape = reader.input_shape
             output_shape = reader.output_shape
             ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
             ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
-
+            print('Getting detections')
             detections = get_detections_for_video(reader, detector)
             reader.init()
 
+            print('Started tracking')
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
-            for result in results:
-                output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
-                                                                        result[1]+1,
-                                                                        ratio_x *
-                                                                        result[2],
-                                                                        ratio_y *
-                                                                        result[3],
-                                                                        -1,
-                                                                        -1,
-                                                                        1,
-                                                                        -1,
-                                                                        -1,
-                                                                        -1))
 
-            output_file.close()
+            output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
+            write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
 if __name__ == '__main__':
 
