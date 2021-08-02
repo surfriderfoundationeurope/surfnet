@@ -1,16 +1,16 @@
 . scripts/shell_variables.sh 
 
-downsampling_factor='4'
-alpha='2'
-beta='4'
+downsampling_factor=4
+alpha=2
+beta=4
 lr=1.25e-4
 lr_step=140
-model_name='dla_34'
-dataset='surfrider'
+model_name=dla_34
+dataset=surfrider
 batch_size=16
-experiment_name='new_dataset_290_epochs_3'
+experiment_name=test
 
-output_dir='experiments/base/'${experiment_name}
+output_dir=experiments/detection/${experiment_name}
 create_clean_directory $output_dir 
 
 trap "exit" INT TERM 
@@ -18,7 +18,7 @@ trap "kill 0" EXIT
 
 tensorboard --logdir=${output_dir} & 
 
-nohup python src/train_detector.py \
+python src/train_detector.py \
     --model ${model_name} \
     --dataset ${dataset} \
     --data-path ${IMAGES} \
@@ -30,6 +30,6 @@ nohup python src/train_detector.py \
     --beta ${beta} \
     --lr ${lr} \
     --epochs 290 \
-    --lr_step ${lr_step} &
+    --lr_step ${lr_step} 
 
 

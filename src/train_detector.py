@@ -19,14 +19,11 @@ def get_dataset(dir_path, name, image_set, args):
     
 
     paths = {
-        "surfrider_old": (dir_path, get_surfrider_old, 4),
-        "surfrider": (dir_path, get_surfrider, 1),
-        "surfrider_video_frames": (dir_path, get_surfrider_video_frames, 1)
-    }
+        "surfrider": (dir_path, get_surfrider, 1)    
+        }
     p, ds_fn, num_classes = paths[name]
 
-    train = image_set == 'train'
-    transform = get_transform(train, num_classes, args)
+    transform = get_transform(image_set == 'train', num_classes, args)
     ds = ds_fn(p, image_set=image_set, transforms=transform)
 
     return ds, num_classes
@@ -61,6 +58,7 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler, devi
     header = 'Epoch: [{}]'.format(epoch)
     i = 0
     running_loss = 0.0
+
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
 
         image, target = image.to(device), target.to(device)

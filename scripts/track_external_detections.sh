@@ -8,7 +8,7 @@ create_clean_directory $output_dir
 
 python src/track.py \
     --external_detections \
-    --data_dir data/external_detections/FairMOT/surfrider_long_segments_12fps \
+    --data_dir data/external_detections/FairMOT/surfrider_short_segments_12fps \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --algorithm ${algorithm} \
