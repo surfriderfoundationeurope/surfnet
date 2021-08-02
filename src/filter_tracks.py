@@ -1,6 +1,8 @@
 import numpy as np 
 from collections import defaultdict 
 import argparse
+from tools.video_readers import IterableFrameReader
+from tools.optical_flow import compute_flow
 
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
@@ -23,8 +25,8 @@ def main(args):
     elif args.filter_type == 'v1':
         tracks = filter_by_mean_consecutive_length(tracklets, args.min_mean)
 
-    else: raise NotImplementedError
-
+    elif args.filter_type == 'smoothing_v0':
+        tracks = filter_from_smoothing(tracklets, args.video_filename)
 
     results = []
     for tracker_nb, associated_detections in enumerate(tracks):
@@ -75,12 +77,30 @@ def filter_by_mean_consecutive_length(tracklets, min_mean):
             tracks.append(tracklet)
             
     return tracks
-        
 
-def smooth_tracklets():
+def filter_from_smoothing(tracklets, video_filename):
+
+    reader = IterableFrameReader(video_filename, skip_frames=0, output_shape=(960,544))
+    frame0 = next(reader)
+    flows = []
+    for frame1 in reader:
+        flows.append(compute_flow(frame0, frame1, 4))
+        frame0 = frame1.copy()
     return 
 
+
+
+
+
+
+
+
     
+
+
+
+        
+
 
 
     
@@ -93,6 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_name',type=str)
     parser.add_argument('--filter_type',type=str)
     parser.add_argument('--min_mean',type=float)
+    parser.add_argument('--video_filename',type=str)
     args = parser.parse_args()
     main(args)
 
