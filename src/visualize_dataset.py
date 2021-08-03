@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from torch.utils.data import dataloader
 from train_detector import get_dataset
+from datasets.datasets import SurfnetDataset
 
 plt.ion()
 fig, (ax0, ax1, ax2, ax3) = plt.subplots(1,4)

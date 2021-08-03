@@ -2,23 +2,27 @@ import numpy as np
 from collections import defaultdict 
 import argparse
 from tracking.trackers import UKF
-from tracking.utils import confidence_from_multivariate_distribution
+from tracking.utils import confidence_from_multivariate_distribution, FramesWithInfo
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
 from pykalman import AdditiveUnscentedKalmanFilter
 from numpy import ma
 from tqdm import tqdm 
 from scipy.stats import multivariate_normal
+import pickle 
+from scipy.spatial.distance import euclidean 
 
 class UKFSmoother:
 
-    def __init__(self, transition_variance, observation_variance, flows):
+    def __init__(self, transition_variance, observation_variance, flows, delta):
+
         self.observation_covariance = np.diag(observation_variance)
         transition_functions = [lambda x: x + flow[int(x[1]),int(x[0]),:] for flow in flows]
         self.smoother = AdditiveUnscentedKalmanFilter(transition_functions=transition_functions,
                                                  observation_functions=lambda z: np.eye(2).dot(z),
                                                  transition_covariance=np.diag(transition_variance),
                                                  observation_covariance=self.observation_covariance)
+        self.delta = delta
 
     def predictive_probabilities(self, observations):
 
@@ -34,7 +38,7 @@ class UKFSmoother:
 
             predictive_distribution = multivariate_normal(smoothed_state_mean, smoothed_state_covariance+self.observation_covariance)
 
-            predictive_probabilities.append(confidence_from_multivariate_distribution(observation, predictive_distribution, delta=4))
+            predictive_probabilities.append(confidence_from_multivariate_distribution(observation, predictive_distribution, delta=self.delta))
         
         return predictive_probabilities
         
@@ -61,7 +65,8 @@ def main(args):
         tracks = filter_by_mean_consecutive_length(tracklets, args.min_mean)
 
     elif args.filter_type == 'smoothing_v0':
-        tracks = filter_from_smoothing(tracklets, args.video_filename)
+        smoothed_tracklets = filter_from_smoothing(tracklets, args.frames_file)
+        tracks = filter_by_nb_obs(smoothed_tracklets, min_len_tracklet=args.min_len_tracklet)
 
     results = []
     for tracker_nb, associated_detections in enumerate(tracks):
@@ -113,34 +118,54 @@ def filter_by_mean_consecutive_length(tracklets, min_mean):
             
     return tracks
 
-def filter_from_smoothing(tracklets, video_filename):
-    downsampling_factor = 4
+def filter_from_smoothing(tracklets, frames_file):
+
+    confidence_threshold = 0.5
+    downsampling_factor = 1
     observation_variance = np.load('data/tracking_parameters/observation_variance.npy')
     transition_variance = np.load('data/tracking_parameters/transition_variance.npy')
-    reader = IterableFrameReader(video_filename, skip_frames=0, output_shape=(960,544))
+
+    with open(frames_file,'rb') as f:
+        frames = pickle.load(f)
+
+    reader = FramesWithInfo(frames)
+
+    delta = 0.05*euclidean(reader.output_shape, np.array([0,0]))
+
+    print('-- Computing flows...')
     frame0 = next(reader)
     flows = []
     for frame1 in tqdm(reader):
         flows.append(compute_flow(frame0, frame1, downsampling_factor))
         frame0 = frame1.copy()
-
+    
     ratio_x = flows[0].shape[1] / 1920 
     ratio_y = flows[0].shape[0] / 1080
 
-    for tracklet in tracklets: 
-        first_frame_nb = tracklet[0][0] - 1
-        last_frame_nb = tracklet[-1][0] - 1
-        flows_for_tracklet = flows[first_frame_nb:last_frame_nb]
-        observations = ma.empty(shape=(last_frame_nb-first_frame_nb+1,2))
-        observations.mask = True
-        for (frame_nb, center_x, center_y) in tracklet:
-            observations[frame_nb-1] = ratio_x * center_x, ratio_y * center_y
+    smoothed_tracklets = []
+    print('-- Smoothing tracklets')
+    for tracklet in tqdm(tracklets): 
+        if len(tracklet) > 1:
+            first_frame_nb = tracklet[0][0] - 1
+            last_frame_nb = tracklet[-1][0] - 1
+            flows_for_tracklet = flows[first_frame_nb:last_frame_nb]
+            observations = ma.empty(shape=(last_frame_nb-first_frame_nb+1,2))
+            observations.mask = True
+            for (frame_nb, center_x, center_y) in tracklet:
+                observations[frame_nb-(first_frame_nb+1)] = ratio_x * center_x, ratio_y * center_y
 
-        smoother = UKFSmoother(transition_variance, observation_variance, flows_for_tracklet)
-        predictive_probabilities = smoother.predictive_probabilities(observations)
+            smoother = UKFSmoother(transition_variance, observation_variance, flows_for_tracklet, delta)
+            smoothed_predictive_probabilities = smoother.predictive_probabilities(observations)
+
+            smoothed_tracklet = [observation for observation, proba in zip(tracklet, smoothed_predictive_probabilities) if proba > confidence_threshold]
+
+            smoothed_tracklets.append(smoothed_tracklet)
+
+        else: 
+            smoothed_tracklets.append(tracklet)
 
 
-        return 
+    return smoothed_tracklets
 
 
     
@@ -153,7 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_name',type=str)
     parser.add_argument('--filter_type',type=str)
     parser.add_argument('--min_mean',type=float)
-    parser.add_argument('--video_filename',type=str)
+    parser.add_argument('--frames_file',type=str)
     args = parser.parse_args()
     main(args)
 
