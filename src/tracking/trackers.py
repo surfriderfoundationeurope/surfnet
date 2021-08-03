@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import multivariate_normal
-from tracking.utils import in_frame, exp_and_normalise, GaussianMixture
+from tracking.utils import in_frame, exp_and_normalise, GaussianMixture, confidence_from_multivariate_distribution
 from pykalman import KalmanFilter, AdditiveUnscentedKalmanFilter
 import matplotlib.patches as mpatches
 
@@ -29,23 +29,7 @@ class Tracker:
         self.updated = False
 
     def build_confidence_function(self, flow):
-
-        def confidence_from_multivariate_distribution(coord, distribution):
-            delta = self.delta
-            x = coord[0]
-            y = coord[1]
-            right_top = np.array([x+delta, y+delta])
-            left_low = np.array([x-delta, y-delta])
-            right_low = np.array([x+delta, y-delta])
-            left_top = np.array([x-delta, y+delta])
-
-            return distribution.cdf(right_top) \
-                - distribution.cdf(right_low) \
-                - distribution.cdf(left_top) \
-                + distribution.cdf(left_low)
-
         distribution = self.predictive_distribution(flow)
-        
         return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
     
     def get_display_colors(self, display, tracker_nb):

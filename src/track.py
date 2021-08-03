@@ -201,12 +201,6 @@ def main(args):
             print(f'---Processing {video_filename}')
             reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
-
-            input_shape = reader.input_shape
-            output_shape = reader.output_shape
-            ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
-            ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
-
             print('Detections...')
             detections = get_detections_for_video(reader, detector)
             reader.init()
@@ -215,6 +209,10 @@ def main(args):
             results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
             output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
+            input_shape = reader.input_shape
+            output_shape = reader.output_shape
+            ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
+            ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
             write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
 if __name__ == '__main__':

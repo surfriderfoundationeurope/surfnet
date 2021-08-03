@@ -96,7 +96,18 @@ def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
 
     output_file.close()
 
-    
+def confidence_from_multivariate_distribution(coord, distribution, delta):
+    x, y = coord
+    right_top = np.array([x+delta, y+delta])
+    left_low = np.array([x-delta, y-delta])
+    right_low = np.array([x+delta, y-delta])
+    left_top = np.array([x-delta, y+delta])
+
+    return distribution.cdf(right_top) \
+        - distribution.cdf(right_low) \
+        - distribution.cdf(left_top) \
+        + distribution.cdf(left_low)
+
 class FramesWithInfo:
     def __init__(self, frames, output_shape=None):
         self.frames = frames

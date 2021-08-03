@@ -1,23 +1,44 @@
 import numpy as np 
 from collections import defaultdict 
 import argparse
+from tracking.trackers import UKF
+from tracking.utils import confidence_from_multivariate_distribution
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
 from pykalman import AdditiveUnscentedKalmanFilter
 from numpy import ma
 from tqdm import tqdm 
+from scipy.stats import multivariate_normal
 
 class UKFSmoother:
+
     def __init__(self, transition_variance, observation_variance, flows):
+        self.observation_covariance = np.diag(observation_variance)
         transition_functions = [lambda x: x + flow[int(x[1]),int(x[0]),:] for flow in flows]
         self.smoother = AdditiveUnscentedKalmanFilter(transition_functions=transition_functions,
                                                  observation_functions=lambda z: np.eye(2).dot(z),
                                                  transition_covariance=np.diag(transition_variance),
-                                                 observation_covariance=np.diag(observation_variance))
+                                                 observation_covariance=self.observation_covariance)
 
+    def predictive_probabilities(self, observations):
 
-    def predictive_distribution(self):
-        return 
+        smoothed_state_means, smoothed_state_covariances = self.smoother.smooth(observations)
+
+        valid_indices = ~observations.mask[:,0]
+        observations = observations[valid_indices]
+        smoothed_state_means = smoothed_state_means[valid_indices]
+        smoothed_state_covariances = smoothed_state_covariances[valid_indices]
+
+        predictive_probabilities = []
+        for observation, smoothed_state_mean, smoothed_state_covariance in zip(observations, smoothed_state_means, smoothed_state_covariances):
+
+            predictive_distribution = multivariate_normal(smoothed_state_mean, smoothed_state_covariance+self.observation_covariance)
+
+            predictive_probabilities.append(confidence_from_multivariate_distribution(observation, predictive_distribution, delta=4))
+        
+        return predictive_probabilities
+        
+
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
     if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
@@ -115,14 +136,8 @@ def filter_from_smoothing(tracklets, video_filename):
         for (frame_nb, center_x, center_y) in tracklet:
             observations[frame_nb-1] = ratio_x * center_x, ratio_y * center_y
 
-        transition_functions = [lambda x: x + flow[int(x[1]),int(x[0]),:] for flow in flows_for_tracklet]
-
-        smoother = AdditiveUnscentedKalmanFilter(transition_functions=transition_functions,
-                                                 observation_functions=lambda z: np.eye(2).dot(z),
-                                                 transition_covariance=np.diag(transition_variance),
-                                                 observation_covariance=np.diag(observation_variance))
-
-        smoothed_state_means, smoothed_state_covariances = smoother.smooth(observations)
+        smoother = UKFSmoother(transition_variance, observation_variance, flows_for_tracklet)
+        predictive_probabilities = smoother.predictive_probabilities(observations)
 
 
         return 
