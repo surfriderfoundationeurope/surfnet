@@ -272,6 +272,3 @@ def get_tracker(algorithm_and_params):
         tracker = trackers[algorithm_name]
     
     return tracker
-
-
-

@@ -3,7 +3,8 @@ from collections import defaultdict
 import argparse
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
-
+from pykalman import KalmanFilter
+from numpy import ma
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
     if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
@@ -79,30 +80,23 @@ def filter_by_mean_consecutive_length(tracklets, min_mean):
     return tracks
 
 def filter_from_smoothing(tracklets, video_filename):
-
+                
     reader = IterableFrameReader(video_filename, skip_frames=0, output_shape=(960,544))
     frame0 = next(reader)
     flows = []
     for frame1 in reader:
         flows.append(compute_flow(frame0, frame1, 4))
         frame0 = frame1.copy()
-    return 
 
-
-
-
-
-
-
-
-    
-
-
-
-        
-
-
-
+    for tracklet in tracklets: 
+        first_frame_nb = tracklet[0][0] - 1
+        last_frame_nb = tracklet[-1][0] - 1
+        flows_for_tracklet = flows[first_frame_nb:last_frame_nb]
+        observations = ma.empty(shape=(last_frame_nb-first_frame_nb+1,2))
+        observations.mask = True
+        for (frame_nb, center_x, center_y) in tracklet:
+            observations[frame_nb-1] = center_x, center_y
+        test = 0
     
 
 if __name__ == '__main__':
