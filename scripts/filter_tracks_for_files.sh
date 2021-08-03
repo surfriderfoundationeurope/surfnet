@@ -11,7 +11,7 @@ for filter_type in v0 v1; do
 
         for f in *.txt; do 
             cd ~/repos/surfnet
-            python src/filter_tracks.py \
+            python src/smooth_tracks.py \
                 --input_file ${files_dir}/$f \
                 --filter_type ${filter_type} \
                 --min_mean ${tau} \

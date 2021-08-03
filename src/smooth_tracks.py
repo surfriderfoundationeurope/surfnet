@@ -1,16 +1,14 @@
-import numpy as np 
-from collections import defaultdict 
-import argparse
-from tracking.trackers import UKF
-from tracking.utils import confidence_from_multivariate_distribution, FramesWithInfo
-from tools.video_readers import IterableFrameReader
-from tools.optical_flow import compute_flow
 from pykalman import AdditiveUnscentedKalmanFilter
-from numpy import ma
-from tqdm import tqdm 
 from scipy.stats import multivariate_normal
-import pickle 
-from scipy.spatial.distance import euclidean 
+from tracking.utils import confidence_from_multivariate_distribution, FramesWithInfo
+from tools.optical_flow import compute_flow
+from collections import defaultdict
+import pickle
+import numpy as np 
+from numpy import ma
+from scipy.spatial.distance import euclidean
+from tqdm import tqdm
+import argparse 
 
 class UKFSmoother:
 
@@ -41,7 +39,7 @@ class UKFSmoother:
             predictive_probabilities.append(confidence_from_multivariate_distribution(observation, predictive_distribution, delta=self.delta))
         
         return predictive_probabilities
-        
+
 
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
@@ -57,78 +55,12 @@ def main(args):
 
     tracklets = list(tracklets.values())
 
-    if args.filter_type == 'v0':
-
-        tracks = filter_by_nb_obs(tracklets, args.min_len_tracklet)
-
-    elif args.filter_type == 'v1':
-        tracks = filter_by_mean_consecutive_length(tracklets, args.min_mean)
-
-    elif args.filter_type == 'smoothing_v0':
-        smoothed_tracklets = filter_from_smoothing(tracklets, args.frames_file)
-        tracks = filter_by_nb_obs(smoothed_tracklets, min_len_tracklet=args.min_len_tracklet)
-
-    results = []
-    for tracker_nb, associated_detections in enumerate(tracks):
-        for associated_detection in associated_detections:
-            results.append((associated_detection[0], tracker_nb, associated_detection[1], associated_detection[2]))
-
-    results = sorted(results, key=lambda x: x[0])
-
-    with open(args.output_name.split('.')[0]+'.txt','w') as out_file:
-
-        for result in results:
-            out_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0],
-                                                                    result[1]+1,
-                                                                    result[2],
-                                                                    result[3],
-                                                                    -1,
-                                                                    -1,
-                                                                    1,
-                                                                    -1,
-                                                                    -1,
-                                                                    -1))
-
-def filter_by_nb_obs(tracklets, min_len_tracklet):
-
-    return [tracklet for tracklet in tracklets if len(tracklet) > min_len_tracklet]
-
-def filter_by_mean_consecutive_length(tracklets, min_mean):
-
-    tracks = []
-
-    for tracklet in tracklets: 
-
-        consecutive_parts = [[tracklet[0]]]
-
-        for obs in tracklet[1:]:
-
-            previous_frame_id = consecutive_parts[-1][-1][0]
-
-            if obs[0] == previous_frame_id + 1:
-                consecutive_parts[-1].append(obs)
-            else:
-                consecutive_parts.append([obs])
-
-        consecutive_parts_lengths = [len(consecutive_part) for consecutive_part in consecutive_parts]
-        consecutive_parts_lengths_mean = np.mean(consecutive_parts_lengths)
-
-        if consecutive_parts_lengths_mean > min_mean:
-            tracks.append(tracklet)
-            
-    return tracks
-
-def filter_from_smoothing(tracklets, frames_file):
-
-    confidence_threshold = 0.5
-    downsampling_factor = 1
-    observation_variance = np.load('data/tracking_parameters/observation_variance.npy')
-    transition_variance = np.load('data/tracking_parameters/transition_variance.npy')
-
-    with open(frames_file,'rb') as f:
+    with open(args.frames_file,'rb') as f:
         frames = pickle.load(f)
 
     reader = FramesWithInfo(frames)
+    observation_variance = np.load('data/tracking_parameters/observation_variance.npy')
+    transition_variance = np.load('data/tracking_parameters/transition_variance.npy')
 
     delta = 0.05*euclidean(reader.output_shape, np.array([0,0]))
 
@@ -136,7 +68,7 @@ def filter_from_smoothing(tracklets, frames_file):
     frame0 = next(reader)
     flows = []
     for frame1 in tqdm(reader):
-        flows.append(compute_flow(frame0, frame1, downsampling_factor))
+        flows.append(compute_flow(frame0, frame1, args.downsampling_factor))
         frame0 = frame1.copy()
     
     ratio_x = flows[0].shape[1] / 1920 
@@ -157,7 +89,7 @@ def filter_from_smoothing(tracklets, frames_file):
             smoother = UKFSmoother(transition_variance, observation_variance, flows_for_tracklet, delta)
             smoothed_predictive_probabilities = smoother.predictive_probabilities(observations)
 
-            smoothed_tracklet = [observation for observation, proba in zip(tracklet, smoothed_predictive_probabilities) if proba > confidence_threshold]
+            smoothed_tracklet = [observation for observation, proba in zip(tracklet, smoothed_predictive_probabilities) if proba > args.confidence_threshold]
 
             smoothed_tracklets.append(smoothed_tracklet)
 
@@ -165,21 +97,37 @@ def filter_from_smoothing(tracklets, frames_file):
             smoothed_tracklets.append(tracklet)
 
 
-    return smoothed_tracklets
+    results = []
+    for tracker_nb, associated_detections in enumerate(smoothed_tracklets):
+        for associated_detection in associated_detections:
+            results.append((associated_detection[0], tracker_nb, associated_detection[1], associated_detection[2]))
 
+    results = sorted(results, key=lambda x: x[0])
 
-    
+    with open(args.output_name.split('.')[0]+'.txt','w') as out_file:
+
+        for result in results:
+            out_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0],
+                                                                    result[1]+1,
+                                                                    result[2],
+                                                                    result[3],
+                                                                    -1,
+                                                                    -1,
+                                                                    1,
+                                                                    -1,
+                                                                    -1,
+                                                                    -1))
+
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_file',type=str)
-    parser.add_argument('--min_len_tracklet',type=int)
     parser.add_argument('--output_name',type=str)
-    parser.add_argument('--filter_type',type=str)
-    parser.add_argument('--min_mean',type=float)
     parser.add_argument('--frames_file',type=str)
+
+    parser.add_argument('--confidence_threshold',type=float)
+    parser.add_argument('--downsampling_factor',type=int)
     args = parser.parse_args()
     main(args)
 
-    

@@ -3,6 +3,8 @@ import numpy as np
 import os
 from tqdm import tqdm
 
+from tools.optical_flow import compute_flow
+
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
@@ -128,4 +130,4 @@ class FramesWithInfo:
     
     def __iter__(self):
         return self
-
+        
