@@ -166,7 +166,7 @@ class EKF(Tracker):
 
         elif EKF.order == 1: 
             grad_flow_value = np.array([np.gradient(flow[:,:,0]),np.gradient(flow[:,:,1])])[:,:,int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0])]
-            return np.eye(2) + grad_flow_value, flow_value - grad_flow_value.dot(self.filtered_state_mean) 
+            return np.eye(2) + grad_flow_value, flow_value - grad_flow_value.dot(self.filtered_state_mean)
 
         else: 
             raise NotImplementedError
