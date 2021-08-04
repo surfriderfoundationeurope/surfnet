@@ -86,7 +86,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_name',type=str)
     parser.add_argument('--filter_type',type=str)
     parser.add_argument('--min_mean',type=float)
-    parser.add_argument('--frames_file',type=str)
     args = parser.parse_args()
     main(args)
 

@@ -1,6 +1,6 @@
 import cv2 
 from collections import defaultdict
-from common.opencv_tools import SimpleVideoReader
+from tools.video_readers import SimpleVideoReader
 
 def main(args):
 
