@@ -1,6 +1,6 @@
 fps=12
-segments=short
-algorithm='EKF_1_smoothed'
+segments=long
+algorithm='UKF'
 for filter_type in v0; do 
     for tau in 1 2 3 4 5 6 7 8 9; do 
         files_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_v0_tau_0

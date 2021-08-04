@@ -30,7 +30,7 @@ class Tracker:
 
     def build_confidence_function(self, flow):
         distribution = self.predictive_distribution(flow)
-        return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
+        return lambda coord: confidence_from_multivariate_distribution(coord, distribution, self.delta)
     
     def get_display_colors(self, display, tracker_nb):
         colors = display.colors
@@ -193,6 +193,10 @@ class EKF(Tracker):
 
 class UKF(Tracker):
 
+    def _transition_function(state, flow):
+        max_y, max_x = flow.shape[:-1]
+        return state + flow[int(min(state[1], max_y-1)),int(min(state[0], max_x-1)),:]
+
     def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
             super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
             self.filter = AdditiveUnscentedKalmanFilter(initial_state_mean=X0, 
@@ -205,9 +209,10 @@ class UKF(Tracker):
             self.filtered_state_covariance = self.observation_covariance
 
     def UKF_step(self, observation, flow):
+
         return self.filter.filter_update(self.filtered_state_mean, 
                                         self.filtered_state_covariance, 
-                                        transition_function=lambda x: x + flow[int(x[1]),int(x[0]),:],
+                                        transition_function=lambda state: UKF._transition_function(state,flow),
                                         observation=observation)
 
                                                                                              
