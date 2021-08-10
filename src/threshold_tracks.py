@@ -34,19 +34,19 @@ def main(args):
     results = sorted(results, key=lambda x: x[0])
 
     with open(args.output_name.split('.')[0]+'.txt','w') as out_file:
-
-        for result in results:
-            out_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0],
-                                                                    result[1]+1,
-                                                                    result[2],
-                                                                    result[3],
-                                                                    -1,
-                                                                    -1,
-                                                                    1,
-                                                                    -1,
-                                                                    -1,
-                                                                    -1))
-
+        if len(results):
+            for result in results:
+                out_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0],
+                                                                        result[1]+1,
+                                                                        result[2],
+                                                                        result[3],
+                                                                        -1,
+                                                                        -1,
+                                                                        1,
+                                                                        -1,
+                                                                        -1,
+                                                                        -1))
+            
 def filter_by_nb_obs(tracklets, min_len_tracklet):
 
     return [tracklet for tracklet in tracklets if len(tracklet) > min_len_tracklet]
