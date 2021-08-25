@@ -1,7 +1,9 @@
 import numpy as np 
 from collections import defaultdict 
 import argparse
-
+from torch import max_pool1d
+import torch
+from scipy.signal import convolve
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
     if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
@@ -22,6 +24,10 @@ def main(args):
 
     elif args.filter_type == 'v1':
         tracks = filter_by_mean_consecutive_length(tracklets, args.min_mean)
+
+    elif args.filter_type == 'v2':
+        tracks = filter_by_nb_consecutive_obs(tracklets, args.min_len_tracklet)
+
 
     else:
         raise NotImplementedError
@@ -76,6 +82,35 @@ def filter_by_mean_consecutive_length(tracklets, min_mean):
             
     return tracks
 
+def compute_tracklet_density_fill(tracklet, kernel_size):
+
+    observation_points = np.zeros(tracklet[-1][0] - tracklet[0][0] + 1)
+    first_frame_id = tracklet[0][0] - 1
+    for observation in tracklet:
+        frame_id = observation[0] - 1
+        observation_points[frame_id - first_frame_id] = 1
+    density_fill = convolve(observation_points, np.ones(kernel_size), mode='same')
+    density_fill = observation_points * density_fill
+    density_fill = density_fill[density_fill > 0].astype(int)
+
+    return density_fill.astype(int)
+
+
+
+def filter_by_nb_consecutive_obs(tracklets, min_len_tracklet):
+
+    new_tracklets = []
+    kernel_size = 3
+
+    for tracklet in tracklets: 
+        new_tracklet = []
+        density_fill = compute_tracklet_density_fill(tracklet, kernel_size=kernel_size)
+        for (observation, density_fill_value) in zip(tracklet, density_fill):
+            if density_fill_value > 1:
+                new_tracklet.append(observation)
+        new_tracklets.append(new_tracklet)
+
+    return filter_by_nb_obs(new_tracklets, min_len_tracklet)
     
 
 if __name__ == '__main__':

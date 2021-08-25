@@ -1,7 +1,7 @@
 fps=12
-segments=new_short
+segments=short_bis
 algorithm='EKF_1'
-for filter_type in v0; do 
+for filter_type in v2; do 
     for tau in 1 2 3 4 5 6 7 8 9; do 
         files_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_v0_tau_0
         output_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_${filter_type}_tau_${tau}
@@ -11,7 +11,7 @@ for filter_type in v0; do
 
         for f in *.txt; do 
             cd ~/repos/surfnet
-            python src/threshold_tracks.py \
+            python -m debugpy --listen 5678 --wait-for-client src/threshold_tracks.py \
                 --input_file ${files_dir}/$f \
                 --filter_type ${filter_type} \
                 --min_mean ${tau} \
