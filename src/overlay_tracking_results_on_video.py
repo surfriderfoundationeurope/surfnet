@@ -55,13 +55,13 @@ def main(args):
         for detection in detections_for_frame:
             # if detection[0] >= 48 and detection[0] <= 50:
             frame = cv2.circle(frame, (int(detection[1]), int(detection[2])), 5, (0, 0, 255), -1)
-            cv2.putText(frame, '{}'.format(detection[0]), (int(detection[1]), int(detection[2])+20), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
+            cv2.putText(frame, '{}'.format(detection[0]), (int(detection[1]), int(detection[2])+20), font, 2, (255, 0, 0), 3, cv2.LINE_AA)
 
         if gt_filename is not None: 
             gt_for_frame = gt_results[frame_nb]
             for gt in gt_for_frame:
                 # frame = cv2.circle(frame, (int(gt[1]), int(gt[2])), 5, (255, 0, 0), -1)
-                cv2.putText(frame, '{}'.format(gt[0]), (int(gt[1]), int(gt[2])+10), font, 2, (255, 0, 0), 2, cv2.LINE_AA)
+                cv2.putText(frame, '{}'.format(gt[0]), (int(gt[1]), int(gt[2])+10), font, 2, (0, 0, 255), 2, cv2.LINE_AA)
     
         if write: writer.write(frame)
         else: 

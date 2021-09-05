@@ -1,6 +1,6 @@
 cwd=$(pwd)
 sequences=short_segments_12fps
-tracker_name=ours_EKF_1_12fps_v0_tau_0
+tracker_name=ours_EKF_1_12fps_v2_7_tau_5
 videos_dir=data/validation_videos/all/${sequences}/videos
 mot_gt_files_dir=data/validation_videos/all/${sequences}/mot_gt_files/surfrider-test
 results_dir=external/TrackEval/data/trackers/surfrider_${sequences}/surfrider-test/${tracker_name}/data

@@ -123,7 +123,7 @@ class SMC(Tracker):
 
     def fill_display(self, display, tracker_nb):
         color = self.get_display_colors(display, tracker_nb)
-        display.ax.scatter(self.particles[:,0], self.particles[:,1], s=5, c=color)
+        display.ax0.scatter(self.particles[:,0], self.particles[:,1], s=5, c=color)
 
 class EKF(Tracker): 
 
@@ -187,9 +187,9 @@ class EKF(Tracker):
         distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
 
         color = self.get_display_colors(display, tracker_nb)
-        cs = display.ax.contour(distribution.pdf(pos), colors=color)
-        display.ax.clabel(cs, inline=True, fontsize='large')
-        display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
+        cs = display.ax0.contour(distribution.pdf(pos),colors=color,linewidths=4, vmin=0.2)
+        # display.ax0.clabel(cs, inline=True, fontsize='large')
+        # display.ax0.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
 
 class UKF(Tracker):
 
@@ -239,9 +239,9 @@ class UKF(Tracker):
         distribution = multivariate_normal(self.filtered_state_mean, self.filtered_state_covariance)
 
         color = self.get_display_colors(display, tracker_nb)
-        cs = display.ax.contour(distribution.pdf(pos), colors=color)
-        display.ax.clabel(cs, inline=True, fontsize='large')
-        display.ax.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
+        cs = display.ax0.contour(distribution.pdf(pos), colors=color)
+        # display.ax0.clabel(cs, inline=True, fontsize='large')
+        display.ax0.scatter(self.filtered_state_mean[0], self.filtered_state_mean[1], color=color, marker="x", s=100)
 
 trackers = {'EKF': EKF,
            'SMC': SMC,

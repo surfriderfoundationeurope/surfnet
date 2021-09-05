@@ -17,13 +17,14 @@ class Display:
 
     def __init__(self, on, interactive=True):
         self.on = on
-        self.fig, self.ax = plt.subplots()
+        self.fig, self.ax0 = plt.subplots(figsize=(20,10))
         self.interactive = interactive
         if interactive:
             plt.ion()
-        self.colors =  plt.rcParams['axes.prop_cycle'].by_key()['color']
+        self.colors =  ['blue','red'] #plt.rcParams['axes.prop_cycle'].by_key()['color']
         self.legends = []
         self.plot_count = 0
+        self.flow = None
         
     def display(self, trackers):
 
@@ -33,28 +34,57 @@ class Display:
                 tracker.fill_display(self, tracker_nb)
                 something_to_show = True
 
-        self.ax.imshow(self.latest_frame_to_show)
+        self.ax0.imshow(self.latest_frame_to_show)
+        # self.ax1.imshow(self.latest_frame_to_show)
 
-        if len(self.latest_detections): 
-            self.ax.scatter(self.latest_detections[:, 0], self.latest_detections[:, 1], c='r', s=40)
+        # if len(self.latest_detections): 
+        #     self.ax0.scatter(self.latest_detections[:, 0], self.latest_detections[:, 1], c='r', s=40)
             
         if something_to_show: 
-            self.ax.xaxis.tick_top()
-            plt.legend(handles=self.legends)
+            self.ax0.xaxis.tick_top()
+            if self.flow is not None:
+                magnitude, angle = cv2.cartToPolar(self.flow[..., 0], self.flow[..., 1])
+      
+                # Sets image hue according to the optical flow 
+                # direction
+                self.mask[..., 0] = angle * 180 / np.pi / 2
+                
+                # Sets image value according to the optical flow
+                # magnitude (normalized)
+                self.mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
+
+                rgb = cv2.cvtColor(self.mask, cv2.COLOR_HSV2BGR)
+            
+                # Opens a new window and displays the output frame
+                cv2.imwrite(os.path.join('plots','flow_'+str(self.plot_count)+'.png'),rgb)
+
+            # plt.legend(handles=self.legends)
             self.fig.canvas.draw()
+            self.ax0.set_axis_off()
+            # self.ax1.set_axis_off()
+            plt.autoscale(True)
+            plt.tight_layout()
             if self.interactive: 
                 plt.show()
                 while not plt.waitforbuttonpress():
                     continue
             else:
                 plt.savefig(os.path.join('plots',str(self.plot_count)))
-            self.ax.cla()
+            self.ax0.cla()
+            # self.ax1.cla()
             self.legends = []
             self.plot_count+=1
 
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
+    
+    def update_flow(self, flow):
+        self.flow = flow
+        self.mask = np.zeros_like(self.latest_frame_to_show)
+  
+        # Sets image saturation to maximum
+        self.mask[..., 1] = 255
 
 display = None 
 
@@ -92,7 +122,7 @@ def track_video(reader, detections, args, engine, transition_variance, observati
     frame_nb = 0
     frame0 = next(reader)
     detections_for_frame = detections[frame_nb]
-
+    flow01 = None
     max_distance = euclidean(reader.output_shape, np.array([0,0]))
     delta = 0.05*max_distance
 
@@ -111,7 +141,9 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
         detections_for_frame = detections[frame_nb]
         frame1 = next(reader)
-        if display.on: display.update_detections_and_frame(detections_for_frame, frame1)
+        if display.on: 
+            display.update_detections_and_frame(detections_for_frame, frame1)
+            display.update_flow(flow01)
 
         if not init:
             if len(detections_for_frame):
@@ -168,6 +200,8 @@ def main(args):
         sequence_names = next(os.walk(args.data_dir))[1]
 
         for sequence_name in sequence_names: 
+            if sequence_name != 'part_1_segment_7': 
+                continue
             print(f'---Processing {sequence_name}')
             with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
                 detections = pickle.load(f)

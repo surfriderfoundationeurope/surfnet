@@ -11,3 +11,4 @@ scripts/shell_variables.sh
 experiments/evaluations
 experiments/extension
 *.pdf
+archive/

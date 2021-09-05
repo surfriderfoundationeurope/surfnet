@@ -1,5 +1,5 @@
 cwd=$(pwd)
-segments=new_short
+segments=short
 algorithm=EKF_1
 original_dir=experiments/tracking/${algorithm}/${segments}_segments
 fps=12

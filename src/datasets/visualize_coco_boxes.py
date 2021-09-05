@@ -16,7 +16,7 @@ def draw_bbox(image, anns, ratio):
 
         [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
         
-        cv2.rectangle(image, (bbox_x,bbox_y),(bbox_x+bbox_w,bbox_y+bbox_h), color=(255,0,0),thickness=3)
+        cv2.rectangle(image, (bbox_x,bbox_y),(bbox_x+bbox_w,bbox_y+bbox_h), color=(0,0,255),thickness=3)
 
     return image
 
@@ -32,7 +32,7 @@ print('{} images loaded'.format(len(imgIds)))
 permutation = np.random.permutation(imgIds.shape[0])
 
 permutation = np.random.permutation(imgIds)
-for imgId in permutation:
+for imgId in permutation[:40]:
     image = coco.loadImgs(ids=[imgId])[0]
     try:
         image = Image.open(os.path.join(data_dir,image['file_name']))
@@ -61,8 +61,8 @@ for imgId in permutation:
     target_w = int(ratio*w) 
     image = cv2.resize(image,(target_w,target_h))
     image = draw_bbox(image,anns,ratio)
-    cv2.imshow('image',image)
-    cv2.waitKey(0)
+    cv2.imwrite(f'image_{imgId}.png',image)
+    # cv2.waitKey(0)
 
 
 

@@ -4,6 +4,9 @@ import argparse
 from torch import max_pool1d
 import torch
 from scipy.signal import convolve
+# import scipy.ndimage.filters as ndif
+
+
 def main(args):
     raw_results = np.loadtxt(args.input_file, delimiter=',')
     if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
@@ -19,15 +22,14 @@ def main(args):
     tracklets = list(tracklets.values())
 
     if args.filter_type == 'v0':
-
         tracks = filter_by_nb_obs(tracklets, args.min_len_tracklet)
 
     elif args.filter_type == 'v1':
         tracks = filter_by_mean_consecutive_length(tracklets, args.min_mean)
 
-    elif args.filter_type == 'v2':
-        tracks = filter_by_nb_consecutive_obs(tracklets, args.min_len_tracklet)
-
+    elif args.filter_type.startswith('v2'):
+        kernel_size = int(args.filter_type.split('_')[1])
+        tracks = filter_by_nb_consecutive_obs(tracklets, args.min_len_tracklet, kernel_size)
 
     else:
         raise NotImplementedError
@@ -84,29 +86,29 @@ def filter_by_mean_consecutive_length(tracklets, min_mean):
 
 def compute_tracklet_density_fill(tracklet, kernel_size):
 
+    pad = (kernel_size-1)//2
     observation_points = np.zeros(tracklet[-1][0] - tracklet[0][0] + 1)
     first_frame_id = tracklet[0][0] - 1
     for observation in tracklet:
         frame_id = observation[0] - 1
         observation_points[frame_id - first_frame_id] = 1
-    density_fill = convolve(observation_points, np.ones(kernel_size), mode='same')
+    density_fill = convolve(observation_points, np.ones(kernel_size)/kernel_size, mode='same')
+    if len(observation_points) >= kernel_size:
+        density_fill[:pad] = density_fill[pad:2*pad]
+        density_fill[-pad:] = density_fill[-2*pad:-pad]
     density_fill = observation_points * density_fill
-    density_fill = density_fill[density_fill > 0].astype(int)
 
-    return density_fill.astype(int)
+    return  density_fill[density_fill > 0]
 
-
-
-def filter_by_nb_consecutive_obs(tracklets, min_len_tracklet):
+def filter_by_nb_consecutive_obs(tracklets, min_len_tracklet, kernel_size):
 
     new_tracklets = []
-    kernel_size = 3
 
     for tracklet in tracklets: 
         new_tracklet = []
         density_fill = compute_tracklet_density_fill(tracklet, kernel_size=kernel_size)
         for (observation, density_fill_value) in zip(tracklet, density_fill):
-            if density_fill_value > 1:
+            if density_fill_value > 0.6:
                 new_tracklet.append(observation)
         new_tracklets.append(new_tracklet)
 

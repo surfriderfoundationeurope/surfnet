@@ -1,7 +1,7 @@
 . scripts/shell_variables.sh 
 
-algorithm=EKF_0
-details='hungarian_internal'
+algorithm=EKF_1
+details='viz'
 experiment_name=${algorithm}_${details}
 output_dir=experiments/tracking/${experiment_name}
 create_clean_directory $output_dir
@@ -18,7 +18,7 @@ python src/track.py \
     --model_weights models/centernet_pretrained.pth \
     --output_shape 960,544 \
     --skip_frames 0 \
-    --display 0
+    --display 2
 
 
 
