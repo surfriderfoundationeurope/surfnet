@@ -1,6 +1,6 @@
 cwd=$(pwd)
 segments=short
-algorithm=EKF_1
+algorithm=UKF
 original_dir=experiments/tracking/${algorithm}/${segments}_segments
 fps=12
 target_dir=${cwd}/external/TrackEval/data/trackers/surfrider_${segments}_segments_${fps}fps/surfrider-test

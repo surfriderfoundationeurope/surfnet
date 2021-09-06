@@ -1,8 +1,8 @@
 . scripts/shell_variables.sh 
 
-algorithm=EKF_1
-details='viz'
-experiment_name=${algorithm}_${details}
+algorithm=SMC_20
+details=''
+experiment_name=${algorithm}${details}
 output_dir=experiments/tracking/${experiment_name}
 create_clean_directory $output_dir
 
@@ -13,5 +13,5 @@ python src/track.py \
     --confidence_threshold 0.5 \
     --algorithm ${algorithm} \
     --noise_covariances_path data/tracking_parameters \
-    --display 2
+    --display 0
 

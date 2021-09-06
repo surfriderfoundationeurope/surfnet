@@ -99,7 +99,7 @@ class SMC(Tracker):
             a=len(self.particles), p=self.normalized_weights, size=len(self.particles))
         self.particles = self.particles[resampling_indices]
 
-    def predictive_distribution(self, flow, nb_new_particles=5):
+    def predictive_distribution(self, flow, nb_new_particles=10):
         new_particles = []
         new_weights = []
 

@@ -1,8 +1,8 @@
 fps=12
 segments=short
-algorithm='EKF_1'
-for filter_type in v0 v2_3 v2_5 v2_7; do 
-    for tau in 1 2 3 4 5 6 7 8 9; do 
+algorithm='SMC_20'
+for filter_type in v2_7; do 
+    for tau in 5; do 
         files_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_v0_tau_0
         output_dir=experiments/tracking/${algorithm}/${segments}_segments/${fps}fps_${filter_type}_tau_${tau}
         mkdir ${output_dir}

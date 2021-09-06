@@ -200,8 +200,6 @@ def main(args):
         sequence_names = next(os.walk(args.data_dir))[1]
 
         for sequence_name in sequence_names: 
-            if sequence_name != 'part_1_segment_7': 
-                continue
             print(f'---Processing {sequence_name}')
             with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
                 detections = pickle.load(f)
