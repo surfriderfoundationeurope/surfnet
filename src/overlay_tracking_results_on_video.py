@@ -2,6 +2,25 @@ import cv2
 from collections import defaultdict
 from tools.video_readers import SimpleVideoReader
 
+
+def draw_text(img, text,
+          font=cv2.FONT_HERSHEY_PLAIN,
+          pos=(0, 0),
+          font_scale=3,
+          font_thickness=2,
+          text_color=(0, 255, 0),
+          text_color_bg=(0, 0, 0)
+          ):
+
+    x, y = pos
+    text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+    text_w, text_h = text_size
+    cv2.rectangle(img, pos, (x + text_w, y + text_h), text_color_bg, -1)
+    cv2.putText(img, text, (x, y + text_h + font_scale - 1), font, font_scale, text_color, font_thickness)
+
+    return text_size
+
+
 def main(args):
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -48,20 +67,22 @@ def main(args):
 
 
     font = cv2.FONT_HERSHEY_SIMPLEX
-    ret, frame, frame_nb = video.read()
-    while ret: 
+    ret = True 
 
+    while ret: 
+        ret, frame, frame_nb = video.read()
         detections_for_frame = results[frame_nb]
         for detection in detections_for_frame:
             # if detection[0] >= 48 and detection[0] <= 50:
             frame = cv2.circle(frame, (int(detection[1]), int(detection[2])), 5, (0, 0, 255), -1)
-            cv2.putText(frame, '{}'.format(detection[0]), (int(detection[1]), int(detection[2])+20), font, 2, (255, 0, 0), 3, cv2.LINE_AA)
+            # draw_text(frame, f'{detection[0]}',pos=(int(detection[1]+20), int(detection[2])-30),font_scale=2, font_thickness=2, text_color=(51, 51, 255))
+            # cv2.putText(frame, ,, font, 1, (51, 51, 255), 2, cv2.LINE_AA)
 
         if gt_filename is not None: 
             gt_for_frame = gt_results[frame_nb]
             for gt in gt_for_frame:
                 # frame = cv2.circle(frame, (int(gt[1]), int(gt[2])), 5, (255, 0, 0), -1)
-                cv2.putText(frame, '{}'.format(gt[0]), (int(gt[1]), int(gt[2])+10), font, 2, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.putText(frame, '{}'.format(gt[0]), (int(gt[1]), int(gt[2])), font, 2, (0, 0, 255), 2, cv2.LINE_AA)
     
         if write: writer.write(frame)
         else: 
@@ -69,7 +90,6 @@ def main(args):
             cv2.imshow('tracking_results', frame)
             # cv2.imshow('heatmap', cv2.resize(heatmaps[frame_nb].cpu().numpy(),frame.shape[:-1][::-1]))
             cv2.waitKey(0)
-        ret, frame, frame_nb = video.read()
     if write: writer.release()
 
 
