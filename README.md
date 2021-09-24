@@ -28,7 +28,6 @@ Add your videos to [data/validation_videos](data/validation_videos) or download 
 ```shell
 sh script/tracks.sh
 ```
-
 The tracking and count results will be in [experiments/tracking](experiments/tracking) in the subfolder of your experiment (default="test").
 
 If you want to overlay the tracks on your original, run: 
@@ -39,5 +38,7 @@ python src/overlay_tracking_results_on_video.py \
     --input_mot_file <path-to-tracking-results-for-video> \
     --write True 
     --output_name <name-of-the-output-file>
+    --skip_frames 1
 ```
 
+Note that by default we set `skip_frames = 1` to lower the number of fps by two (both during tracking and for the overlay).
