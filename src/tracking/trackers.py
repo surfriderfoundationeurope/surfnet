@@ -143,10 +143,6 @@ class SMC(Tracker):
 
 class EKF(Tracker): 
 
-
-    def set_param(param):
-        EKF.order = int(param)
-
     def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
             super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
             self.filter = KalmanFilter(initial_state_mean=X0, 
@@ -162,14 +158,10 @@ class EKF(Tracker):
 
         flow_value = flow[int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0]), :]
 
-        if EKF.order == 0: return np.eye(2), flow_value
 
-        elif EKF.order == 1: 
-            grad_flow_value = np.array([np.gradient(flow[:,:,0]),np.gradient(flow[:,:,1])])[:,:,int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0])]
-            return np.eye(2) + grad_flow_value, flow_value - grad_flow_value.dot(self.filtered_state_mean) 
+        grad_flow_value = np.array([np.gradient(flow[:,:,0]),np.gradient(flow[:,:,1])])[:,:,int(self.filtered_state_mean[1]),int(self.filtered_state_mean[0])]
+        return np.eye(2) + grad_flow_value, flow_value - grad_flow_value.dot(self.filtered_state_mean) 
 
-        else: 
-            raise NotImplementedError
         
     def EKF_step(self, observation, flow):
         transition_matrix, transition_offset = self.get_update_parameters(flow)
