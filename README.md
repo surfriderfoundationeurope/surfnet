@@ -1,7 +1,5 @@
 # Installation 
 
-## General requirements
-
 Follow these steps in that order exactly:
 ```shell
 git clone --recursive https://github.com/mchagneux/surfnet.git <folder-for-surfnet> -b release
@@ -24,7 +22,7 @@ sh download_pretrained_base.sh
 cd ../src/detection/centernet/networks/DCNv2
 sh make.sh
 ```
-## Validation 
+# Run 
 
 Add your videos to [data/validation_videos](data/validation_videos) or download the ones from the paper with the script in the folder. Then: 
 
