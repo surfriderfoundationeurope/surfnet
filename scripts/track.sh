@@ -1,8 +1,6 @@
 . scripts/shell_variables.sh 
 
-algorithm=EKF
-details=''
-experiment_name=${algorithm}_${details}
+experiment_name=test
 output_dir=experiments/tracking/${experiment_name}
 create_clean_directory $output_dir
 
@@ -27,6 +25,7 @@ do
         --kappa 7  \
         --tau 5 \
         --output_name $f
+    rm $f 
 done
 
 

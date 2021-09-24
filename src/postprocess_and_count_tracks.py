@@ -31,7 +31,7 @@ def main(args):
 
     results = sorted(results, key=lambda x: x[0])
 
-    with open(args.output_name.split('.')[0]+'.txt','w') as out_file:
+    with open(args.output_name.split('.')[0]+'_tracks.txt','w') as out_file:
         if len(results):
             for result in results:
                 out_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0],
@@ -45,6 +45,12 @@ def main(args):
                                                                         -1,
                                                                         -1))
             
+    with open(args.output_name.split('.')[0]+'_count.txt','w') as out_file:
+        if len(results):
+            out_file.write(f'{max(result[1]+1 for result in results)}')
+        else: 
+            out_file.write('0')
+                
 def threshold(tracklets, tau):
 
     return [tracklet for tracklet in tracklets if len(tracklet) > tau]
