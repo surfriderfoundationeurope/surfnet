@@ -14,10 +14,19 @@ python src/track.py \
     --detection_threshold 0.38 \
     --downsampling_factor 4 \
     --noise_covariances_path data/tracking_parameters \
-    --model_weights /home/mathis/repos/surfnet/models/centernet_pretrained.pth \
+    --model_weights models/centernet_pretrained.pth \
     --output_shape 960,544 \
     --skip_frames 1 \
-    --display 1
+    --display 0
 
+
+for f in ${output_dir}/*; 
+do 
+    python src/postprocess_and_count_tracks.py \
+        --input_file $f \
+        --kappa 7  \
+        --tau 5 \
+        --output_name $f
+done
 
 

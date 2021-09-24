@@ -80,7 +80,7 @@ def resize_external_detections(detections, ratio):
     return detections
         
 def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
-    output_file = open(output_filename+'.txt', 'w')
+    output_file = open(output_filename, 'w')
 
     for result in results:
         output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
