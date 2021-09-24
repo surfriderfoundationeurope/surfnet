@@ -27,7 +27,7 @@ sh make.sh
 Add your videos to [data/validation_videos](data/validation_videos) or download the ones from the paper with the script in the folder. Then: 
 
 ```shell
-sh script/track.sh
+sh scripts/track.sh
 ```
 The tracking and count results will be in [experiments/tracking](experiments/tracking) in the subfolder of your experiment (default="test").
 
