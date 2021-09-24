@@ -37,8 +37,8 @@ If you want to overlay the tracks on your original, run:
 python src/overlay_tracking_results_on_video.py \
     --input_video <path-to-video> \
     --input_mot_file <path-to-tracking-results-for-video> \
-    --write True 
-    --output_name <name-of-the-output-file>
+    --write True \
+    --output_name <name-of-the-output-file> \
     --skip_frames 1
 ```
 
