@@ -18,6 +18,9 @@ python setup.py install
 cd scripts 
 sh init_shell_variables.sh
 
+cd ../models 
+sh download_pretrained_base.sh
+
 cd ../src/detection/centernet/networks/DCNv2
 sh make.sh
 ```
