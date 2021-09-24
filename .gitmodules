@@ -1,0 +1,3 @@
+[submodule "src/detection/centernet/networks/DCNv2"]
+	path = src/detection/centernet/networks/DCNv2
+	url = https://github.com/mchagneux/DCNv2_latest.git
