@@ -69,20 +69,6 @@ class ConvertCocoPolysToBboxes(object):
         else:
             target = {'bboxes':[],'cats':[]}
 
-        # fig, (ax0, ax1) = plt.subplots(1,2,figsize=(20,20))
-        # blobs = None
-        # for bbox in target['bboxes']:
-        #     if blobs is not None:
-        #         blobs += blob_for_bbox(bbox, 600, 600, 6)
-        #     else:
-        #         blobs = blob_for_bbox(bbox, 600, 600, 6)
-
-        # ax0.imshow(image)
-        # if blobs is not None:
-        #     ax1.imshow(blobs, cmap='gray')
-        # else: ax1.set_axis_off()
-        # plt.show()
-
         return image, target
 
 
@@ -203,8 +189,6 @@ def get_surfrider_video_frames(root, image_set, transforms):
     # CAT_LIST = [0, 1, 2, 3]
 
     transforms = Compose([
-        # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-        # ConvertCocoPolysToMask(),
         ConvertCocoPolysToBboxes(),
         transforms
     ])

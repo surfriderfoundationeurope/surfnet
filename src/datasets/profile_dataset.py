@@ -1,4 +1,3 @@
-from common.datasets import SurfnetDatasetFlow
 import cProfile, pstats, io
 from pstats import SortKey
 

@@ -5,12 +5,10 @@ import time
 import torch
 import torch.utils.data
 from torch.utils.tensorboard import SummaryWriter
-from torch import nn
-from torchvision import datasets
 
-from detection.coco_utils import get_coco, get_surfrider, get_surfrider_old, get_surfrider_video_frames
+from detection.coco_utils import get_surfrider
 from detection import transforms
-from detection.centernet.models import create_model as get_model_centernet
+from detection.centernet.models import create_model 
 from detection.losses import FocalLoss
 from detection import train_utils as utils
 
@@ -19,9 +17,7 @@ def get_dataset(dir_path, name, image_set, args):
     
 
     paths = {
-        "surfrider_old": (dir_path, get_surfrider_old, 4),
         "surfrider": (dir_path, get_surfrider, 1),
-        "surfrider_video_frames": (dir_path, get_surfrider_video_frames, 1)
     }
     p, ds_fn, num_classes = paths[name]
 
@@ -35,7 +31,9 @@ def get_transform(train, num_classes, args):
 
     base_size = 540
     crop_size = (544, 960)
-    return transforms.TrainTransforms(base_size, crop_size, num_classes, args.downsampling_factor) if train else transforms.ValTransforms(base_size, crop_size, num_classes, args.downsampling_factor)
+    if train: 
+        return transforms.TrainTransforms(base_size, crop_size, num_classes, args.downsampling_factor) 
+    return transforms.ValTransforms(base_size, crop_size, num_classes, args.downsampling_factor)
 
 def evaluate(model, focal_loss, data_loader, device, num_classes):
     model.eval()
@@ -118,8 +116,7 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn)
 
-    model = get_model_centernet(arch=args.model, heads={
-                                'hm': num_classes, 'wh': 2}, head_conv=256)
+    model = create_model(arch=args.model, heads={'hm': num_classes, 'wh': 2}, head_conv=256)
 
     model.to(device)
 
@@ -142,26 +139,20 @@ def main(args):
     if args.resume:
         checkpoint = torch.load(args.resume, map_location='cpu')
         model_without_ddp.load_state_dict(
-            checkpoint['model'], strict=not args.test_only)
-        if not args.test_only:
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-            args.start_epoch = checkpoint['epoch'] + 1
-    writer = SummaryWriter(args.logdir)
+            checkpoint['model'], strict=True)
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        args.start_epoch = checkpoint['epoch'] + 1
 
-    if args.test_only:
-        confmat = evaluate(model, data_loader_test,
-                           device=device, num_classes=num_classes)
-        print(confmat)
-        return
+    writer = SummaryWriter(args.logdir)
 
     start_time = time.time()
 
 
     criterion_train = FocalLoss(args.alpha, args.beta,
-                            train=True, centernet_output=True)
+                            train=True)
     criterion_test = FocalLoss(args.alpha, args.beta,
-                            train=False, centernet_output=True)
+                            train=False)
 
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -195,7 +186,6 @@ def main(args):
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
 
-
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser(
@@ -206,8 +196,6 @@ def parse_args():
     parser.add_argument('--dataset', default='surfrider', help='dataset name')
     parser.add_argument(
         '--model', default='deeplabv3__mobilenet_v3_large', help='model')
-    parser.add_argument('--aux-loss', action='store_true',
-                        help='auxiliar loss')
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=8, type=int)
     parser.add_argument('--epochs', default=140, type=int, metavar='N',
@@ -229,19 +217,6 @@ def parse_args():
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                         help='start epoch')
-    parser.add_argument(
-        "--test-only",
-        dest="test_only",
-        help="Only test the model",
-        action="store_true",
-    )
-    # parser.add_argument(
-    #     "--pretrained",
-    #     dest="pretrained",
-    #     help="Use pre-trained models from the modelzoo",
-    #     action="store_true",
-    # )
-    # distributed training parameters
     parser.add_argument('--world-size', default=1, type=int,
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://',
@@ -260,6 +235,7 @@ def parse_args():
 
 
 if __name__ == "__main__":
+
     args = parse_args()
     args_dict = vars(args)
 
