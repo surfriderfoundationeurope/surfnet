@@ -2,8 +2,8 @@
 
 Follow these steps in that order exactly:
 ```shell
-git clone --recursive https://github.com/mchagneux/surfnet.git <folder-for-surfnet> -b release
-conda create -n surfnet pytorch=1.7 torchvision=0.8.1 -c pytorch 
+git clone  https://github.com/mchagneux/surfnet.git <folder-for-surfnet> -b release
+conda create -n surfnet pytorc torchvision-c pytorch 
 conda activate surfnet
 cd <folder-for-surfnet>
 pip install -r requirements.txt
@@ -15,12 +15,6 @@ python setup.py install
 
 cd scripts 
 sh init_shell_variables.sh
-
-cd ../models 
-sh download_pretrained_base.sh
-
-cd ../src/detection/centernet/networks/DCNv2
-sh make.sh
 ```
 # Run 
 
