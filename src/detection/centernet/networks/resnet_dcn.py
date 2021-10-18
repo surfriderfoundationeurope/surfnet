@@ -223,7 +223,7 @@ class PoseResNet(nn.Module):
             #         padding=1, dilation=1, deformable_groups=1)
             fc = torchvision.ops.DeformConv2d(in_channels = self.inplanes, 
                                         out_channels = planes, 
-                                        kernel_size=(3,3), 
+                                        kernel_size=3, 
                                         stride=1,
                                         padding=1, 
                                         dilation=1, 
