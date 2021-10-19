@@ -20,9 +20,9 @@ def subset_from_image_ids(coco_dataset, image_ids):
     categories = coco_dataset['categories']
     return {'images':new_images,'annotations':new_annotations,'categories':categories}
 
-train_proportion = 0.8
+train_proportion = 0.9
 annotations_dir = 'data/images/annotations'
-with open(os.path.join(annotations_dir,'instances_1107.json'),'r') as f:
+with open(os.path.join(annotations_dir,'instances_1810.json'),'r') as f:
     full_dataset = json.load(f)
 
 image_ids = [image['id'] for image in full_dataset['images']]

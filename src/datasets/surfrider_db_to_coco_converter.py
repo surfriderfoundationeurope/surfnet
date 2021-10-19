@@ -79,7 +79,7 @@ for annotation_id, annotation in enumerate(annotations):
 
 coco = {'images':coco_images,'annotations':coco_annotations,'categories':coco_categories}
 
-with open('data/images/annotations/instances_0607.json','w') as f:
+with open('data/images/annotations/instances_1810.json','w') as f:
     json.dump(coco, f)
 
 
