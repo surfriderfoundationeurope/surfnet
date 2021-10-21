@@ -83,7 +83,6 @@ class IterableFrameReader:
         self.video = cv2.VideoCapture(video_filename)
         self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.skip_frames = skip_frames
-        self.first_frame_read = False
         if output_shape is None: 
             w, h = self.input_shape
             new_h = (h | 31) + 1
@@ -105,8 +104,10 @@ class IterableFrameReader:
     
     def init(self):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        self.first_frame_read = False
-    
+
+    def set_head(self, frame_nb):
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_nb)
+        
     def _skip_frames(self):
         for _ in range(self.skip_frames):
             self.video.read()        

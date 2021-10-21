@@ -9,13 +9,13 @@ python src/track.py \
     --data_dir data/validation_videos \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
-    --detection_threshold 0.38 \
+    --detection_threshold 0.2 \
     --downsampling_factor 4 \
     --noise_covariances_path data/tracking_parameters \
-    --model_weights models/centernet_pretrained.pth \
+    --model_weights experiments/detection/retrain_3500_images_no_DCNv2/model_70.pth \
     --output_shape 960,544 \
-    --skip_frames 1 \
-    --display 0
+    --skip_frames 0 \
+    --display 1
 
 
 for f in ${output_dir}/*; 
@@ -27,5 +27,3 @@ do
         --output_name $f
     rm $f 
 done
-
-
