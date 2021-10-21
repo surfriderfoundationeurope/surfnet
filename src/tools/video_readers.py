@@ -91,6 +91,8 @@ class IterableFrameReader:
         else:
             self.output_shape = output_shape
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
+        print(f'Running at {self.fps}fps.')
+
             
     def __next__(self):
         ret, frame = self.video.read()

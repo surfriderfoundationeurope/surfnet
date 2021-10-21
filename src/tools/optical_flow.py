@@ -55,20 +55,14 @@ def dense_flow_norm(dense_flow):
     v, u = dense_flow[...,1], dense_flow[...,0]
     return np.sqrt(u ** 2 + v ** 2)
 
-
-
 def compute_flow(frame0, frame1, downsampling_factor):
-    h, w = frame0.shape[:-1]
 
-    new_h = h // downsampling_factor
-    new_w = w // downsampling_factor
+    if downsampling_factor > 1:
+        h, w = frame0.shape[:-1]
+        new_h = h // downsampling_factor
+        new_w = w // downsampling_factor
 
-    frame0 = cv2.resize(frame0, (new_w, new_h))
-    frame1 = cv2.resize(frame1, (new_w, new_h))
+        frame0 = cv2.resize(frame0, (new_w, new_h))
+        frame1 = cv2.resize(frame1, (new_w, new_h))
 
-    flow01 = flow_opencv_dense(frame0, frame1)
-    # if verbose:
-    #     flow01 = np.ones_like(flow01)
-    #     flow01[:,:,0] = 5
-    #     flow01[:,:,1] = 100
-    return flow01
+    return flow_opencv_dense(frame0, frame1)
