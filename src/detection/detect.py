@@ -2,7 +2,6 @@ import torch
 import torchvision.transforms as T
 import cv2
 
-from tools.misc import device
 
 def transform_for_test():
 
@@ -25,7 +24,7 @@ def nms(heat, kernel=3):
     return heat * keep
 
 def detect(frame, threshold, model):
-
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     frame = transform_for_test()(frame).to(device).unsqueeze(0)
     result = torch.sigmoid(model(frame)[-1]['hm'])
     detections = nms(result).gt(threshold).squeeze()
