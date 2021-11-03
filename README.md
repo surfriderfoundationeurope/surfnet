@@ -51,7 +51,7 @@ If you want to visualize the images, run:
 python src/datasets/visualize_coco_boxes.py
 ```
 ---
-**Warning: the remaining section will download more that 5GB of images.**
+*Warning: the remaining section will download more that 5GB of images.*
 
 If you want to download the rest, you need to install AzCopy (see https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10 for example). You also need to personally ask me the URL and SAS token (temporary workaround). When this is done, simply run: 
 
