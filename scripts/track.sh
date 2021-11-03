@@ -6,13 +6,13 @@ create_clean_directory $output_dir
 
 
 python src/track.py \
-    --data_dir data/validation_videos \
+    --data_dir data/validation_videos/T1 \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --detection_threshold 0.38 \
     --downsampling_factor 4 \
     --noise_covariances_path data/tracking_parameters \
-    --model_weights models/centernet_pretrained.pth \
+    --model_weights models/pretrained_model.pth \
     --output_shape 960,544 \
     --skip_frames 1 \
     --display 0
