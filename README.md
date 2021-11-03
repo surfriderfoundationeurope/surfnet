@@ -50,8 +50,28 @@ If you want to visualize the images, run:
 ```
 python src/datasets/visualize_coco_boxes.py
 ```
+---
+**Warning: the remaining section will download more that 5GB of images.**
 
-Instructions to download the rest of the dataset will be added soon.
+If you want to download the rest, you need to install AzCopy (see https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10 for example). You also need to personally ask me the URL and SAS token (temporary workaround). When this is done, simply run: 
+
+```shell 
+cd data/images
+azcopy copy --recursive '<URL+SAS>' './'
+mv images2label/* images/
+rm -rf images2label
+```
+
+This will add the remaining images into the previsouly created folder.
+
+Finally, run: 
+
+```shell 
+python src/datasets/surfrider_db_to_coco_converter.py
+python src/datasets/merge_coco_annotations.py
+python src/datasets/coco_split_train_test.py
+```
+This will download the remaining annotations, merge them with the previous ones, and re-split into train and test. 
 
 ### Validation videos 
 
