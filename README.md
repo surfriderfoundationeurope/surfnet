@@ -48,7 +48,6 @@ If you want to visualize the images, run:
 
 
 ```
-
 python src/datasets/visualize_coco_boxes.py
 ```
 
