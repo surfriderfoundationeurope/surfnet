@@ -6,13 +6,13 @@ create_clean_directory $output_dir
 
 
 python src/track.py \
-    --data_dir /home/infres/chagneux/repos/surfnet/data/validation_videos/all/long_segments_12fps/videos \
+    --data_dir data/validation_videos/T1 \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --detection_threshold 0.3 \
     --downsampling_factor 4 \
     --noise_covariances_path data/tracking_parameters \
-    --model_weights experiments/detection/retrain_3500_images_no_DCNv2/model_258.pth \
+    --model_weights models/pretrained_model.pth \
     --output_shape 960,544 \
     --skip_frames 0 \
     --display 0

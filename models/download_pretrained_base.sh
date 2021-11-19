@@ -1,2 +1,2 @@
-wget https://partage.imt.fr/index.php/s/NPje4ojLPwFErQH/download
-mv download centernet_pretrained.pth
+wget https://partage.imt.fr/index.php/s/oxX3mXisftxH2ZD/download
+mv download pretrained_model.pth
