@@ -5,10 +5,10 @@ alpha='2'
 beta='4'
 lr=1.25e-4
 lr_step=140
-model_name='res_18'
+model_name='mobilenetv3small'
 dataset='surfrider'
 batch_size=16
-experiment_name='3500_images_res_18'
+experiment_name='3500_images_mobilenet'
 
 output_dir='experiments/detection/'${experiment_name}
 create_clean_directory $output_dir 

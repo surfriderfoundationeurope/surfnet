@@ -12,11 +12,11 @@ python src/track.py \
     --detection_threshold 0.3 \
     --downsampling_factor 4 \
     --noise_covariances_path data/tracking_parameters \
-    --model_weights experiments/detection/3500_images_res_18/model_289.pth \
+    --model_weights experiments/detection/3500_images_mobilenet/model_25.pth \
     --output_shape 960,544 \
     --skip_frames 3 \
-    --arch 'res_18' \
-    --display 0
+    --arch 'mobilenetv3small' \
+    --display 1
 
 
 for f in ${output_dir}/*; 
