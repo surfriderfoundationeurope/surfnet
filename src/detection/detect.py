@@ -1,5 +1,5 @@
 import torch
-
+from time import time
 
 
 def nms(heat, kernel=3):
@@ -11,6 +11,8 @@ def nms(heat, kernel=3):
     return heat * keep
 
 def detect(preprocessed_frames, threshold, model):
-    result = torch.sigmoid(model(preprocessed_frames)[-1]['hm'])
-    detections = nms(result).gt(threshold).squeeze()
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
+
+    batch_result = torch.sigmoid(model(preprocessed_frames)[-1]['hm'])
+    batch_peaks = nms(batch_result).gt(threshold).squeeze()
+    detections = [torch.nonzero(peaks).cpu().numpy()[:,::-1] for peaks in batch_peaks]
+    return detections

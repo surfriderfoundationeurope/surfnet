@@ -1,12 +1,12 @@
 from scipy.stats import multivariate_normal
 import numpy as np 
 import os
-from tqdm import tqdm
 import torchvision.transforms as T
 import cv2
 from torch.utils.data import DataLoader
-
+import torch
 from tools.video_readers import TorchFrameReader 
+from time import time 
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
@@ -77,12 +77,16 @@ def get_detections_for_video(reader, detector, batch_size=16):
     detections = []
     dataset = TorchFrameReader(reader, frame_transforms())
     loader = DataLoader(dataset, batch_size=batch_size)
-    for preprocessed_frames in tqdm(loader):
-        detections_for_frames = detector(preprocessed_frames.to('cuda'))
-        for detections_for_frame in detections_for_frames:
-            if len(detections_for_frame): detections.append(detections_for_frame)
-            else: detections.append(np.array([]))
-
+    average_times = []
+    with torch.no_grad():
+        for preprocessed_frames in loader:
+            time0 = time()
+            detections_for_frames = detector(preprocessed_frames.to('cuda'))
+            average_times.append(time() - time0)
+            for detections_for_frame in detections_for_frames:
+                if len(detections_for_frame): detections.append(detections_for_frame)
+                else: detections.append(np.array([]))
+    print('Frame-wise inference time:', 1/(np.mean(average_times)/batch_size),' fps')
     return detections
 
 def resize_external_detections(detections, ratio):

@@ -5,7 +5,7 @@ output_dir=experiments/tracking/${experiment_name}
 create_clean_directory $output_dir
 
 
-python -m debugpy --listen 5678 --wait-for-client src/track.py \
+python src/track.py \
     --data_dir data/validation_videos/T1 \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
@@ -16,7 +16,7 @@ python -m debugpy --listen 5678 --wait-for-client src/track.py \
     --output_shape 960,544 \
     --skip_frames 3 \
     --arch 'res_18' \
-    --display 1
+    --display 0
 
 
 for f in ${output_dir}/*; 

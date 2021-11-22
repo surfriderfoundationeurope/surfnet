@@ -1,6 +1,6 @@
 import cv2
 import torch 
-
+from tqdm import tqdm 
 class AdvancedFrameReader:
     def __init__(self, video_name, read_every, rescale_factor, init_time_min, init_time_s):
 
@@ -93,13 +93,13 @@ class IterableFrameReader:
             self.output_shape = output_shape
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
         print(f'Running at {self.fps}fps.')
-        self.counter = 0
+        self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)))
      
     def __next__(self):
         ret, frame = self.video.read()
         self._skip_frames()
-        if ret and self.counter < 20:
-            self.counter += 1
+        if ret:
+            self.progress_bar.update(1+self.skip_frames)
             return cv2.resize(frame, self.output_shape)
         raise StopIteration
 
@@ -107,8 +107,8 @@ class IterableFrameReader:
         return self
     
     def init(self):
-        self.counter = 0
         self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)))
 
     def set_head(self, frame_nb):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_nb)
@@ -120,7 +120,7 @@ class IterableFrameReader:
 
 class SimpleVideoReader:
     def __init__(self, video_filename, skip_frames=0):
-        self.skip_frames = skip_frames 
+        self.skip_frames = skip_frames
         self.video = cv2.VideoCapture(video_filename)
         self.shape = (int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (skip_frames+1)

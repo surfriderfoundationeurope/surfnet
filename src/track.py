@@ -107,7 +107,7 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
     if display.on: display.display(trackers)
 
-    for frame_nb in tqdm(range(1,len(detections))):
+    for frame_nb in range(1,len(detections)):
 
         detections_for_frame = detections[frame_nb]
         frame1 = next(reader)
@@ -209,7 +209,7 @@ def main(args):
             ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
             print('Detections...')
-            detections = get_detections_for_video(reader, detector, batch_size=1)
+            detections = get_detections_for_video(reader, detector, batch_size=16)
             reader.init()
 
             print('Tracking...')
