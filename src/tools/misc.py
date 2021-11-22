@@ -6,7 +6,6 @@ import torch
 import torchvision.transforms.functional as F
 from detection.centernet.models import create_model as create_base
 
-
 class ResizeForCenterNet(object):
     def __init__(self, fix_res=False):
         self.fix_res = fix_res
@@ -172,8 +171,8 @@ def load_checkpoint(model, trained_model_weights_filename):
     model.load_state_dict(checkpoint['model'])
     return model
 
-def load_model(base_weights, device=None):
-    base_model = create_base('dla_34', heads={'hm': 1, 'wh': 2}, head_conv=256)
+def load_model(arch, heads, base_weights, device=None):
+    base_model = create_base(arch, heads=heads, head_conv=256)
     base_model = load_checkpoint(base_model, base_weights)
     for param in base_model.parameters():
         param.requires_grad = False

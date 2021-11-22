@@ -188,7 +188,8 @@ def main(args):
         print(f'USING INTERNAL DETECTOR, detection threshold at {args.detection_threshold}.')
 
         print('---Loading model...')
-        model = load_model(args.model_weights)
+        heads = {'hm':1} if args.arch != 'dla_34' else {'hm':1, 'wh':2}
+        model = load_model(arch=args.arch, heads=heads, base_weights=args.model_weights)
         print('Model loaded.')
 
         def detector(frame): return detect(frame, threshold=args.detection_threshold,
@@ -208,7 +209,7 @@ def main(args):
             ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
             print('Detections...')
-            detections = get_detections_for_video(reader, detector)
+            detections = get_detections_for_video(reader, detector, batch_size=1)
             reader.init()
 
             print('Tracking...')
@@ -232,6 +233,7 @@ if __name__ == '__main__':
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_shape',type=str,default='960,544')
     parser.add_argument('--external_detections',action='store_true')
+    parser.add_argument('--arch', type=str, default='dla_34')
     parser.add_argument('--display', type=int, default=0)
     args = parser.parse_args()
 

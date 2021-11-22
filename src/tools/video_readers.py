@@ -1,6 +1,7 @@
 import cv2
+import torch 
 
-class AdvancedFrameReader():
+class AdvancedFrameReader:
     def __init__(self, video_name, read_every, rescale_factor, init_time_min, init_time_s):
 
         self.cap = cv2.VideoCapture(video_name)
@@ -92,12 +93,13 @@ class IterableFrameReader:
             self.output_shape = output_shape
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
         print(f'Running at {self.fps}fps.')
-
-            
+        self.counter = 0
+     
     def __next__(self):
         ret, frame = self.video.read()
         self._skip_frames()
-        if ret: 
+        if ret and self.counter < 20:
+            self.counter += 1
             return cv2.resize(frame, self.output_shape)
         raise StopIteration
 
@@ -105,12 +107,14 @@ class IterableFrameReader:
         return self
     
     def init(self):
+        self.counter = 0
         self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     def set_head(self, frame_nb):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_nb)
         
     def _skip_frames(self):
+        # self.set_head(self.video.get(cv2.CAP_PROP_POS_FRAMES) + self.skip_frames)
         for _ in range(self.skip_frames):
             self.video.read()        
 
@@ -136,4 +140,20 @@ class SimpleVideoReader:
     def _skip_frames(self):
         for _ in range(self.skip_frames):
             self.video.read()
+
+class TorchFrameReader(torch.utils.data.IterableDataset):
+
+    def __init__(self, reader, transforms):
+        self.reader = reader
+        self.transforms = transforms
+    
+    def __iter__(self):
+        for frame in self.reader:
+            yield self.transforms(frame)
+
+
+        
+        
+
+        
 

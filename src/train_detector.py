@@ -116,7 +116,7 @@ def main(args):
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn)
 
-    model = create_model(arch=args.model, heads={'hm': num_classes, 'wh': 2}, head_conv=256)
+    model = create_model(arch=args.model, heads={'hm': num_classes}, head_conv=256)
 
     model.to(device)
 

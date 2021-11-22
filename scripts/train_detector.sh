@@ -5,18 +5,18 @@ alpha='2'
 beta='4'
 lr=1.25e-4
 lr_step=140
-model_name='dla_34'
+model_name='res_18'
 dataset='surfrider'
-batch_size=8
-experiment_name='retrain_3500_images_no_DCNv2'
+batch_size=16
+experiment_name='3500_images_res_18'
 
 output_dir='experiments/detection/'${experiment_name}
 create_clean_directory $output_dir 
 
-trap "exit" INT TERM 
-trap "kill 0" EXIT
+# trap "exit" INT TERM 
+# trap "kill 0" EXIT
 
-tensorboard --logdir=${output_dir} & 
+# tensorboard --logdir=${output_dir} & 
 
 nohup python src/train_detector.py \
     --model ${model_name} \
