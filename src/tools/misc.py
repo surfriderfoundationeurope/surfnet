@@ -171,14 +171,24 @@ def load_checkpoint(model, trained_model_weights_filename):
     model.load_state_dict(checkpoint['model'])
     return model
 
-def load_model(arch, heads, base_weights, device=None):
+def load_model(arch, model_weights, device=None):
+
+    if model_weights is None: 
+        if arch == 'mobilenetv3small':
+            model_weights = 'models/mobilenet_v3_pretrained.pth'
+        elif arch == 'res18':
+            model_weights = 'models/mobilenet_v3_pretrained.pth'
+        elif arch == 'dla_34':
+            model_weights = 'models/dla_34_pretrained.pth'
+    heads = {'hm':1} if arch != 'dla_34' else {'hm':1, 'wh':2}       
+    
     base_model = create_base(arch, heads=heads, head_conv=256)
-    base_model = load_checkpoint(base_model, base_weights)
-    for param in base_model.parameters():
-        param.requires_grad = False
+    base_model = load_checkpoint(base_model, model_weights)
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     base_model.to(device)
+    for param in base_model.parameters():
+        param.requires_grad = False
     base_model.eval()
     return base_model
 

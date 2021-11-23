@@ -12,10 +12,11 @@ python src/track.py \
     --detection_threshold 0.3 \
     --downsampling_factor 4 \
     --noise_covariances_path data/tracking_parameters \
-    --model_weights models/mobilenet_epoch250.pth \
     --output_shape 960,544 \
     --skip_frames 3 \
-    --arch 'mobilenetv3small' \
+    --arch mobilenetv3small \
+    --device cpu \
+    --gpu_batch_size 8 \
     --display 1
 
 

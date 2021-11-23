@@ -157,67 +157,39 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
 def main(args):
 
+
+    engine = get_tracker('EKF')
+
+    print('---Loading model...')            
+    model = load_model(arch=args.arch, model_weights=args.model_weights, device=args.device)
+    print('Model loaded.')
+
+    detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
+
     transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
     observation_variance = np.load(os.path.join(args.noise_covariances_path, 'observation_variance.npy'))
 
-    engine = get_tracker(args.algorithm)
+    video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
-    if args.external_detections: 
-        print('USING EXTERNAL DETECTIONS')
-
-        sequence_names = next(os.walk(args.data_dir))[1]
-
-        for sequence_name in sequence_names: 
-            print(f'---Processing {sequence_name}')
-            with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
-                detections = pickle.load(f)
-            with open(os.path.join(args.data_dir,sequence_name,'saved_frames.pickle'),'rb') as f: 
-                frames = pickle.load(f)
-
-            ratio = 4
-            reader = FramesWithInfo(frames)
-            detections = resize_external_detections(detections, ratio)
-
-            print('Tracking...')
-            results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
-
-            output_filename = os.path.join(args.output_dir, sequence_name)
-            write_tracking_results_to_file(results, ratio_x=ratio, ratio_y=ratio, output_filename=output_filename)
-
-    else: 
-        print(f'USING INTERNAL DETECTOR, detection threshold at {args.detection_threshold}.')
-
-        print('---Loading model...')
-        heads = {'hm':1} if args.arch != 'dla_34' else {'hm':1, 'wh':2}
-        device = None
-        model = load_model(arch=args.arch, heads=heads, base_weights=args.model_weights, device=device)
-        print('Model loaded.')
-
-        def detector(frame): return detect(frame, threshold=args.detection_threshold,
-                                                model=model)
+    for video_filename in video_filenames: 
+        print(f'---Processing {video_filename}')
+        reader = IterableFrameReader(os.path.join(args.data_dir, video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
 
-        video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
+        input_shape = reader.input_shape
+        output_shape = reader.output_shape
+        ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
+        ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
-        for video_filename in video_filenames: 
-            print(f'---Processing {video_filename}')
-            reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
+        print('Detecting...')
+        detections = get_detections_for_video(reader, detector, batch_size=args.gpu_batch_size, device=args.device)
+        reader.init()
 
+        print('Tracking...')
+        results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
 
-            input_shape = reader.input_shape
-            output_shape = reader.output_shape
-            ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
-            ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
-
-            print('Detections...')
-            detections = get_detections_for_video(reader, detector, batch_size=1, device=device)
-            reader.init()
-
-            print('Tracking...')
-            results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
-
-            output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
-            write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
+        output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
+        write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
 if __name__ == '__main__':
 
@@ -226,16 +198,16 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--detection_threshold', type=float, default=0.33)
     parser.add_argument('--confidence_threshold', type=float, default=0.2)
-    parser.add_argument('--model_weights', type=str)
     parser.add_argument('--output_dir', type=str)
     parser.add_argument('--downsampling_factor', type=int, default=1)
-    parser.add_argument('--algorithm', type=str, default='EKF')
     parser.add_argument('--noise_covariances_path',type=str)
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_shape',type=str,default='960,544')
-    parser.add_argument('--external_detections',action='store_true')
     parser.add_argument('--arch', type=str, default='dla_34')
+    parser.add_argument('--model_weights', type=str, default=None)
     parser.add_argument('--display', type=int, default=0)
+    parser.add_argument('--device', type=str, default=None)
+    parser.add_argument('--gpu_batch_size',type=int,default=8)
     args = parser.parse_args()
 
     if args.display == 0: 
