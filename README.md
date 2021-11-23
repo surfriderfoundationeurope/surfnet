@@ -18,7 +18,7 @@ python setup.py install
 cd scripts 
 sh init_shell_variables.sh
 ```
-## Downloading a pretrained model 
+## Downloading pretrained models
 
 ```shell 
 cd models 
