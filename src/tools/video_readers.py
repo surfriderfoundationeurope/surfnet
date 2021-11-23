@@ -80,7 +80,7 @@ class AdvancedFrameReader:
 
 class IterableFrameReader:
 
-    def __init__(self, video_filename, skip_frames=0, output_shape=None):
+    def __init__(self, video_filename, skip_frames=0, output_shape=None, progress_bar=False):
         self.video = cv2.VideoCapture(video_filename)
         self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.skip_frames = skip_frames
@@ -92,14 +92,17 @@ class IterableFrameReader:
         else:
             self.output_shape = output_shape
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
-        print(f'Running at {self.fps}fps.')
-        self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)))
-     
+        print(f'Reading video at {self.fps}fps.')
+        if progress_bar: 
+            self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)/(self.skip_frames+1)))
+            self.progress_bar_update = self.progress_bar.update(1)
+        else: 
+            self.progress_bar_update = lambda: None
     def __next__(self):
         ret, frame = self.video.read()
         self._skip_frames()
         if ret:
-            self.progress_bar.update(1+self.skip_frames)
+            self.progress_bar_update()
             return cv2.resize(frame, self.output_shape)
         raise StopIteration
 

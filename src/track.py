@@ -178,6 +178,7 @@ def main(args):
 
     for video_filename in video_filenames: 
         print(f'---Processing {video_filename}')
+        print(args.output_shape)
         reader = IterableFrameReader(os.path.join(args.data_dir, video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
 
 

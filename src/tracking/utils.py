@@ -1,12 +1,12 @@
 from scipy.stats import multivariate_normal
 import numpy as np 
 import os
-import torchvision.transforms as T
 import cv2
 from torch.utils.data import DataLoader
 import torch
 from tools.video_readers import TorchFrameReader 
 from time import time 
+from detection.transforms import TransformFrames
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
@@ -61,21 +61,10 @@ def gather_filenames_for_video_in_annotations(video, images, data_dir):
     return [os.path.join(data_dir, image['file_name'])
                  for image in images_for_video]
 
-def frame_transforms():
-
-    transforms = []
-
-    transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
-    transforms.append(T.ToTensor())
-    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
-                                  std=[0.229, 0.224, 0.225]))
-
-    return T.Compose(transforms)
-
 def get_detections_for_video(reader, detector, batch_size=16, device=None):
 
     detections = []
-    dataset = TorchFrameReader(reader, frame_transforms())
+    dataset = TorchFrameReader(reader, TransformFrames())
     loader = DataLoader(dataset, batch_size=batch_size)
     average_times = []
     with torch.no_grad():

@@ -26,7 +26,6 @@ if __name__ == '__main__':
     model.eval()
 
     print(model)
-    model.eval()
     # # print(model)
     # # model = create_model(arch='res_18', heads={'hm':1}, head_conv=256)
     # # backbone = nn.Sequential(*list(model.children())[:-2]).to('cpu')
