@@ -210,7 +210,6 @@ if __name__ == '__main__':
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_shape',type=str,default='960,544')
     parser.add_argument('--arch', type=str, default='dla_34')
-    parser.add_argument('--model_weights', type=str, default=None)
     parser.add_argument('--display', type=int, default=0)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--detection_batch_size',type=int,default=1)
