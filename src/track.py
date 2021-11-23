@@ -177,9 +177,11 @@ def main(args):
     video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
     for video_filename in video_filenames: 
-        print(f'---Processing {video_filename}')
-        print(args.output_shape)
-        reader = IterableFrameReader(os.path.join(args.data_dir, video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
+        print(f'---Processing {video_filename}')        
+        reader = IterableFrameReader(video_filename=os.path.join(args.data_dir, video_filename), 
+                                     skip_frames=args.skip_frames, 
+                                     output_shape=args.output_shape,
+                                     progress_bar=True)
 
 
         input_shape = reader.input_shape

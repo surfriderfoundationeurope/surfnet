@@ -4,7 +4,7 @@ import os
 import cv2
 from torch.utils.data import DataLoader
 import torch
-from tools.video_readers import TorchFrameReader 
+from tools.video_readers import TorchIterableFromReader 
 from time import time 
 from detection.transforms import TransformFrames
 
@@ -64,7 +64,7 @@ def gather_filenames_for_video_in_annotations(video, images, data_dir):
 def get_detections_for_video(reader, detector, batch_size=16, device=None):
 
     detections = []
-    dataset = TorchFrameReader(reader, TransformFrames())
+    dataset = TorchIterableFromReader(reader, TransformFrames())
     loader = DataLoader(dataset, batch_size=batch_size)
     average_times = []
     with torch.no_grad():
@@ -75,7 +75,7 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
             for detections_for_frame in detections_for_frames:
                 if len(detections_for_frame): detections.append(detections_for_frame)
                 else: detections.append(np.array([]))
-    print('Frame-wise inference time:', 1/(np.mean(average_times)/batch_size),' fps')
+    print(f'Frame-wise inference time: {batch_size/np.mean(average_times)} fps')
     return detections
 
 def resize_external_detections(detections, ratio):

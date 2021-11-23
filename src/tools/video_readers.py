@@ -19,7 +19,7 @@ class AdvancedFrameReader:
 
         self.frame_skip = read_every -  1
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)/read_every
-        print('Reading at {} fps.'.format(self.fps))
+        print(f'Reading at {self.fps:.2f} fps')
 
         self.set_time_position(init_time_min, init_time_s)     
         self.init_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
@@ -144,7 +144,7 @@ class SimpleVideoReader:
         for _ in range(self.skip_frames):
             self.video.read()
 
-class TorchFrameReader(torch.utils.data.IterableDataset):
+class TorchIterableFromReader(torch.utils.data.IterableDataset):
 
     def __init__(self, reader, transforms):
         self.reader = reader
