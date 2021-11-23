@@ -94,7 +94,15 @@ If you have custom videos, add them to [data/validation_videos](data/validation_
 sh scripts/track.sh
 ```
 
-By default, this runs tracking on the first riverbank sequence ('T1').
+By default, this runs tracking on the first riverbank sequence (T1). You can change to the `--arch` parameter to:
+* `mobilenet_v3_small`
+* `res_18`
+* `dla_34`
+
+The default harware used is the CPU, but you can change the `--device` parameter to `None` and Torch will automatically select a GPU if there is one. In this case you should set a higher `--gpu_batch_size` to improve detection speed.
+
+
+
 
 The tracking and count results will be in [experiments/tracking](experiments/tracking) in the subfolder of your experiment (default="test").
 

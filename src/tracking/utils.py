@@ -78,8 +78,6 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
     dataset = TorchFrameReader(reader, frame_transforms())
     loader = DataLoader(dataset, batch_size=batch_size)
     average_times = []
-    if device is None:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     with torch.no_grad():
         for preprocessed_frames in loader:
             time0 = time()

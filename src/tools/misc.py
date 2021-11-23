@@ -171,26 +171,26 @@ def load_checkpoint(model, trained_model_weights_filename):
     model.load_state_dict(checkpoint['model'])
     return model
 
-def load_model(arch, model_weights, device=None):
+def load_model(arch, model_weights, device):
 
     if model_weights is None: 
-        if arch == 'mobilenetv3small':
+        if arch == 'mobilenet_v3_small':
             model_weights = 'models/mobilenet_v3_pretrained.pth'
-        elif arch == 'res18':
-            model_weights = 'models/mobilenet_v3_pretrained.pth'
+            arch = 'mobilenetv3small'
+        elif arch == 'res_18':
+            model_weights = 'models/res18_pretrained.pth'
         elif arch == 'dla_34':
             model_weights = 'models/dla_34_pretrained.pth'
+
     heads = {'hm':1} if arch != 'dla_34' else {'hm':1, 'wh':2}       
     
-    base_model = create_base(arch, heads=heads, head_conv=256)
-    base_model = load_checkpoint(base_model, model_weights)
-    if device is None:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    base_model.to(device)
-    for param in base_model.parameters():
+    model = create_base(arch, heads=heads, head_conv=256).to(device)
+    model = load_checkpoint(model, model_weights)
+    for param in model.parameters():
         param.requires_grad = False
-    base_model.eval()
-    return base_model
+    model.eval()
+    
+    return model
 
 def _calculate_euclidean_similarity(distances, zero_distance):
     """ Calculates the euclidean distance between two sets of detections, and then converts this into a similarity

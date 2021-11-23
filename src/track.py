@@ -1,18 +1,16 @@
 import cv2
 import numpy as np
 import os
-from tqdm import tqdm
 from detection.detect import detect
-from tracking.utils import in_frame, init_trackers, get_detections_for_video, FramesWithInfo, resize_external_detections, write_tracking_results_to_file
+from tracking.utils import in_frame, init_trackers, get_detections_for_video, write_tracking_results_to_file
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
 from tools.misc import load_model
 from tracking.trackers import get_tracker
 import matplotlib.pyplot as plt
-import pickle
 from scipy.spatial.distance import euclidean
 from scipy.optimize import linear_sum_assignment
-
+import torch 
 class Display:
 
     def __init__(self, on, interactive=True):
@@ -158,10 +156,17 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 def main(args):
 
 
+    if args.device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    else: 
+        device = args.device
+    device = torch.device(device)
+
+
     engine = get_tracker('EKF')
 
     print('---Loading model...')            
-    model = load_model(arch=args.arch, model_weights=args.model_weights, device=args.device)
+    model = load_model(arch=args.arch, model_weights=args.model_weights, device=device)
     print('Model loaded.')
 
     detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
@@ -182,7 +187,7 @@ def main(args):
         ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
         print('Detecting...')
-        detections = get_detections_for_video(reader, detector, batch_size=args.gpu_batch_size, device=args.device)
+        detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
         reader.init()
 
         print('Tracking...')
@@ -206,8 +211,8 @@ if __name__ == '__main__':
     parser.add_argument('--arch', type=str, default='dla_34')
     parser.add_argument('--model_weights', type=str, default=None)
     parser.add_argument('--display', type=int, default=0)
-    parser.add_argument('--device', type=str, default=None)
-    parser.add_argument('--gpu_batch_size',type=int,default=8)
+    parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--detection_batch_size',type=int,default=1)
     args = parser.parse_args()
 
     if args.display == 0: 
