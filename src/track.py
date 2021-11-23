@@ -189,7 +189,7 @@ def main(args):
 
         print('---Loading model...')
         heads = {'hm':1} if args.arch != 'dla_34' else {'hm':1, 'wh':2}
-        device = 'cpu'
+        device = None
         model = load_model(arch=args.arch, heads=heads, base_weights=args.model_weights, device=device)
         print('Model loaded.')
 
