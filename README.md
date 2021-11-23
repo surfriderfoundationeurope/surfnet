@@ -20,12 +20,13 @@ sh init_shell_variables.sh
 ```
 ## Downloading pretrained models
 
+You can download three pretrained models with the following script:
 ```shell 
 cd models 
 sh download_pretrained_base.sh
 ```
-
-A file called `pretrained_model.pth` will downloaded into  [models](models).
+There is DLA_34 with deformable convolutions, ResNet18 without deformable convolutions and MobileNetV3 (small version, from Torchvision) without deformable convolutions.
+The files will be downloaded into  [models](models).
 
 
 ## Downloading Surfrider datasets 
@@ -105,9 +106,8 @@ python src/overlay_tracking_results_on_video.py \
     --input_mot_file <path-to-tracking-results-for-video> \
     --write True \
     --output_name <name-of-the-output-file> \
-    --skip_frames 1
+    --skip_frames <nb-of-skipped-frames-when-tracking>
 ```
 
-Note that by default we set `skip_frames = 1` to lower the number of fps by two (both during tracking and for the overlay). You can try different parameters but you need to use the same for the tracking and the overlay.  
-
-
+Note that by default we set `skip_frames = 3` in [scripts/track.sh](scripts/track.sh) so that everything is read at 6fps. You must use the same number when generating the overlay.
+If you set `--write False` the overlay will be directly displayed without saving to a file and you must use the keyboard to step into the next frame.
