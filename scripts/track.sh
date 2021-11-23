@@ -17,7 +17,7 @@ python src/track.py \
     --arch res_18 \
     --device cpu \
     --detection_batch_size 1 \
-    --display 1
+    --display 0
 
 
 for f in ${output_dir}/*; 
@@ -25,7 +25,7 @@ do
     python src/postprocess_and_count_tracks.py \
         --input_file $f \
         --kappa 7  \
-        --tau 5 \
+        --tau 4 \
         --output_name $f
     rm $f 
 done

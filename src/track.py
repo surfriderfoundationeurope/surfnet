@@ -201,8 +201,9 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Tracking')
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--detection_threshold', type=float, default=0.33)
+    parser.add_argument('--detection_threshold', type=float, default=0.3)
     parser.add_argument('--confidence_threshold', type=float, default=0.2)
+    parser.add_argument('--model_weights', type=str, default=None)
     parser.add_argument('--output_dir', type=str)
     parser.add_argument('--downsampling_factor', type=int, default=1)
     parser.add_argument('--noise_covariances_path',type=str)
