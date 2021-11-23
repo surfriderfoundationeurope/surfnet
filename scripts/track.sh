@@ -14,8 +14,8 @@ python src/track.py \
     --noise_covariances_path data/tracking_parameters \
     --output_shape 960,544 \
     --skip_frames 3 \
-    --arch res_18 \
-    --device cpu \
+    --arch mobilenet_v3_small \
+    --device cuda \
     --detection_batch_size 1 \
     --display 0
 

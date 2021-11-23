@@ -95,7 +95,7 @@ class IterableFrameReader:
         print(f'Reading video at {self.fps}fps.')
         if progress_bar: 
             self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)/(self.skip_frames+1)))
-            self.progress_bar_update = self.progress_bar.update(1)
+            self.progress_bar_update = lambda: self.progress_bar.update(1)
         else: 
             self.progress_bar_update = lambda: None
     def __next__(self):
