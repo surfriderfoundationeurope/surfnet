@@ -189,7 +189,8 @@ def main(args):
 
         print('---Loading model...')
         heads = {'hm':1} if args.arch != 'dla_34' else {'hm':1, 'wh':2}
-        model = load_model(arch=args.arch, heads=heads, base_weights=args.model_weights)
+        device = None
+        model = load_model(arch=args.arch, heads=heads, base_weights=args.model_weights, device=device)
         print('Model loaded.')
 
         def detector(frame): return detect(frame, threshold=args.detection_threshold,
@@ -209,7 +210,7 @@ def main(args):
             ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
             print('Detections...')
-            detections = get_detections_for_video(reader, detector, batch_size=16)
+            detections = get_detections_for_video(reader, detector, batch_size=1, device=device)
             reader.init()
 
             print('Tracking...')

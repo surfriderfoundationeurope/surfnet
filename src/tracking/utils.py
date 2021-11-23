@@ -72,16 +72,18 @@ def frame_transforms():
 
     return T.Compose(transforms)
 
-def get_detections_for_video(reader, detector, batch_size=16):
+def get_detections_for_video(reader, detector, batch_size=16, device=None):
 
     detections = []
     dataset = TorchFrameReader(reader, frame_transforms())
     loader = DataLoader(dataset, batch_size=batch_size)
     average_times = []
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     with torch.no_grad():
         for preprocessed_frames in loader:
             time0 = time()
-            detections_for_frames = detector(preprocessed_frames.to('cuda'))
+            detections_for_frames = detector(preprocessed_frames.to(device))
             average_times.append(time() - time0)
             for detections_for_frame in detections_for_frames:
                 if len(detections_for_frame): detections.append(detections_for_frame)
