@@ -181,7 +181,8 @@ def main(args):
         reader = IterableFrameReader(video_filename=os.path.join(args.data_dir, video_filename), 
                                      skip_frames=args.skip_frames, 
                                      output_shape=args.output_shape,
-                                     progress_bar=True)
+                                     progress_bar=True,
+                                     preload=False)
 
 
         input_shape = reader.input_shape
@@ -191,7 +192,6 @@ def main(args):
 
         print('Detecting...')
         detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
-        reader.init()
 
         print('Tracking...')
         results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
