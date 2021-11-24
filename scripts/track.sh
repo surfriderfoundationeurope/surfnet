@@ -15,13 +15,8 @@ python src/track.py \
     --output_shape 960,544 \
     --skip_frames 3 \
     --arch res_18 \
-<<<<<<< HEAD
-    --device cuda \
-    --detection_batch_size 16 \
-=======
     --device cpu \
     --detection_batch_size 1 \
->>>>>>> 97945f3c4df6f9d9d0ef9a89d3616ba02a11aadf
     --display 0
 
 

@@ -110,7 +110,6 @@ class IterableFrameReader:
             self.frames = self._load_all_frames()
             self.counter = 0 
 
-
     def _load_all_frames(self): 
         frames = []
         while True:            
@@ -134,7 +133,6 @@ class IterableFrameReader:
         self.video.set(cv2.CAP_PROP_POS_FRAMES,0)
         if self.progress_bar: self.progress_bar.reset()
         raise StopIteration
-
 
     def _read_frame(self):
         ret, frame = self.video.read()
@@ -176,13 +174,9 @@ class SimpleVideoReader:
 
 class TorchIterableFromReader(torch.utils.data.IterableDataset):
 
-    def __init__(self, reader, transforms, preload=False):
+    def __init__(self, reader, transforms):
         self.transforms = transforms
-        if preload: 
-            print('Preloading frames...')
-            self.reader = [frame for frame in reader]
-            reader.init()
-        else: self.reader = reader
+        self.reader = reader
 
     def __iter__(self):
         for frame in self.reader:
