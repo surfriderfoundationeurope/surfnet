@@ -15,9 +15,8 @@ python src/track.py \
     --output_shape 960,544 \
     --skip_frames 3 \
     --arch mobilenet_v3_small \
-    --device cuda \
+    --device cpu \
     --detection_batch_size 1 \
-    --preload_frames \
     --display 0
 
 

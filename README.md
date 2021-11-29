@@ -99,7 +99,7 @@ By default, this runs tracking on the first riverbank sequence (T1). You can cha
 * `res_18`
 * `dla_34`
 
-The default harware used is the CPU, but you can change the `--device` parameter to `cuda` and Torch will automatically select a GPU if there is one. In this case you should set a higher `--detection_batch_size` to improve detection speed.
+The default harware used is the CPU, but you can change the `--device` parameter to `cuda` and PyTorch will automatically select a GPU if there is one. In this case you should set a higher `--detection_batch_size` to improve detection speed. You can also add `--preload_frames` if you want all video frames to be loaded into the RAM before detections and tracking.
 
 
 
