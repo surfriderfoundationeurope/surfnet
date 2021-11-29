@@ -84,12 +84,11 @@ def associate_detections_to_trackers(detections_for_frame, trackers, flow01):
     return assigned_trackers
     
 def track_video(reader, detections, args, engine, transition_variance, observation_variance):
-
     init = False
     trackers = dict()
     frame_nb = 0
     frame0 = next(reader)
-    detections_for_frame = detections[frame_nb]
+    detections_for_frame = next(detections)
 
     max_distance = euclidean(reader.output_shape, np.array([0,0]))
     delta = 0.05*max_distance
@@ -105,10 +104,8 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
     if display.on: display.display(trackers)
 
-    for frame_nb in range(1,len(detections)):
+    for frame_nb, (frame1, detections_for_frame) in enumerate(zip(reader, detections), start=1):
 
-        detections_for_frame = detections[frame_nb]
-        frame1 = next(reader)
         if display.on: display.update_detections_and_frame(detections_for_frame, frame1)
 
         if not init:
@@ -182,7 +179,7 @@ def main(args):
                                      skip_frames=args.skip_frames, 
                                      output_shape=args.output_shape,
                                      progress_bar=True,
-                                     preload=False)
+                                     preload=args.preload_frames)
 
 
         input_shape = reader.input_shape
@@ -194,7 +191,7 @@ def main(args):
         detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
 
         print('Tracking...')
-        results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
+        results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance)
 
         output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
         write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
@@ -216,6 +213,7 @@ if __name__ == '__main__':
     parser.add_argument('--display', type=int, default=0)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--detection_batch_size',type=int,default=1)
+    parser.add_argument('--preload_frames', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.display == 0: 

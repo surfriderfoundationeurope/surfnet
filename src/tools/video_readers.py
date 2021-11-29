@@ -100,7 +100,7 @@ class IterableFrameReader:
 
         print(f'Reading video at {self.fps}fps.')
         if progress_bar: 
-            self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)/(self.skip_frames+1)), leave=False)
+            self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)/(self.skip_frames+1)), leave=True)
             self.progress_bar_update = self.progress_bar.update
         else: 
             self.progress_bar_update = lambda: None
@@ -114,7 +114,8 @@ class IterableFrameReader:
         frames = []
         while True:            
             ret, frame = self._read_frame()
-            if ret: frames.append(frame)
+            if ret: 
+                frames.append(frame)
             else: break
         if self.progress_bar: self.progress_bar.reset()
         return frames
@@ -122,15 +123,17 @@ class IterableFrameReader:
     def __next__(self):
         if self.preload: 
             if self.counter < len(self.frames):
+                frame = self.frames[self.counter]
                 self.counter+=1
                 self.progress_bar_update()
-                return self.frames[self.counter]
+                return frame
         else:
             ret, frame = self._read_frame()
-            if ret: return frame 
+            if ret: 
+                return frame 
 
         self.counter=0
-        self.video.set(cv2.CAP_PROP_POS_FRAMES,0)
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
         if self.progress_bar: self.progress_bar.reset()
         raise StopIteration
 
@@ -139,7 +142,7 @@ class IterableFrameReader:
         self._skip_frames()
         if ret:
             self.progress_bar_update()
-            frame = cv2.resize(frame, self.output_shape)
+            frame =  cv2.resize(frame, self.output_shape)
         return ret, frame
 
     def __iter__(self):

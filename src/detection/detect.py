@@ -13,6 +13,6 @@ def nms(heat, kernel=3):
 def detect(preprocessed_frames, threshold, model):
 
     batch_result = torch.sigmoid(model(preprocessed_frames)[-1]['hm'])
-    batch_peaks = nms(batch_result).gt(threshold).squeeze()
+    batch_peaks = nms(batch_result).gt(threshold).squeeze(dim=1)
     detections = [torch.nonzero(peaks).cpu().numpy()[:,::-1] for peaks in batch_peaks]
     return detections
