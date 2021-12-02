@@ -1,8 +1,8 @@
 # from numba.np.ufunc import parallel
 # from numba.np.ufunc.decorators import vectorize
-import torch 
+import torch
 from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import os
@@ -12,7 +12,7 @@ import math
 from scipy.spatial.distance import cdist
 from tools.misc import load_model, _calculate_euclidean_similarity
 from detection.coco_utils import get_surfrider
-from detection.transforms import TrainTransforms  
+from detection.transforms import TrainTransforms
 
 
 def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
@@ -21,24 +21,24 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
 
     detections = (pred >= thres)
 
-    true_positives = 0 
-    false_positives = 0 
-    false_negatives = 0 
+    true_positives = 0
+    false_positives = 0
+    false_negatives = 0
     distances_true_positives = []
     distances_false_positives = []
-    
-    
+
+
     for gt_frame, detection_frame in zip(gt, detections):
-        true_positives_frame = 0 
-        false_positives_frame = 0 
-        false_negatives_frame = 0 
+        true_positives_frame = 0
+        false_positives_frame = 0
+        false_negatives_frame = 0
 
         position_positives = np.argwhere(gt_frame)
         position_detections = np.argwhere(detection_frame)
         max_allowed_cost = math.sqrt(detection_frame.shape[0]**2 + detection_frame.shape[1]**2)
 
-        
-        if len(position_positives): 
+
+        if len(position_positives):
             distance_matrix = cdist(position_positives, position_detections, metric='euclidean')
             assigned_positives_for_detections = np.argmin(distance_matrix, axis=0)
             for positive in range(len(position_positives)):
@@ -46,7 +46,7 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
                 if len(assigned_detections):
                     distances_to_detections = distance_matrix[positive, assigned_detections.squeeze()]
 
-                    if np.isscalar(distances_to_detections): 
+                    if np.isscalar(distances_to_detections):
                         distances_to_detections = np.array([distances_to_detections])
 
                     similarities = _calculate_euclidean_similarity(distances_to_detections, zero_distance=max_allowed_cost)
@@ -56,14 +56,14 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
                         false_positives_frame+=len(assigned_detections)-1
                         distances_true_positives.append(similarities[closest_detection])
                         similarities = np.delete(similarities, closest_detection)
-                    else: 
+                    else:
                         false_positives_frame+=len(assigned_detections)
                     distances_false_positives.extend(similarities)
                 else:
                     false_negatives_frame+=1
         else:
             false_positives_frame+=len(position_detections)
-        
+
         true_positives += true_positives_frame
         false_positives += false_positives_frame
         false_negatives += false_negatives_frame
@@ -76,7 +76,7 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
 
 def prec_recall_with_hungarian(gt, pred, thresholds, radius=0.01):
     _ , precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = [], [], [], [], []
-    for thres_nb, thres in enumerate(tqdm(thresholds)): 
+    for thres_nb, thres in enumerate(tqdm(thresholds)):
         _ , precision, recall, distances_true_positives, distances_false_positives  = prec_recall_for_thres(thres, thres_nb, gt, pred, radius)
         precision_list.append(precision)
         recall_list.append(recall)
@@ -85,7 +85,7 @@ def prec_recall_with_hungarian(gt, pred, thresholds, radius=0.01):
 
 
     return precision_list, recall_list, distances_true_positives_list, distances_false_positives_list
-            
+
 def plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position):
 
     fig, (ax1,ax2) = plt.subplots(1,2)
@@ -123,10 +123,10 @@ def plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list
 
 def pr_curve_from_file(filename, show=True):
     plt.close()
-    with open(filename, 'rb') as f: 
+    with open(filename, 'rb') as f:
         fig, axes = plot_pr_curve(*pickle.load(f))
         fig.tight_layout()
-    if not show: 
+    if not show:
         with open(filename.strip('.pickle')+'_axes.pickle','wb') as f:
             data = (fig, axes)
             pickle.dump(data,f)
@@ -136,14 +136,14 @@ def pr_curve_from_file(filename, show=True):
 
 def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluation', enable_nms=False, plot=False):
 
-    if enable_nms: 
+    if enable_nms:
         predictions = nms(predictions)
     gt = gt.numpy()
     predictions = predictions.numpy()
 
     thresholds = np.linspace(0,1,100)
     precision_list, recall_list, distances_true_positives_list, distances_false_positives_list = prec_recall_with_hungarian(gt, predictions, thresholds, radius=3)
-    
+
     precision_list, recall_list = np.array(precision_list), np.array(recall_list)
     f1 = 2*(precision_list*recall_list)/(precision_list+recall_list)
     best_position = np.argmax(f1)
@@ -151,12 +151,12 @@ def compute_precision_recall_hungarian(gt, predictions, output_filename='evaluat
     distances_true_positives_list_best_position = distances_true_positives_list[best_position]
     distances_false_positives_list_best_position = distances_false_positives_list[best_position]
 
-    with open(output_filename+'.pickle','wb') as f: 
+    with open(output_filename+'.pickle','wb') as f:
 
         data = (precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
         pickle.dump(data,f)
 
-    if plot: 
+    if plot:
         plot_pr_curve(precision_list, recall_list, f1, distances_true_positives_list_best_position, distances_false_positives_list_best_position, thresholds, best_position)
 
 def compute_model_outputs(arch):
@@ -180,14 +180,14 @@ def compute_model_outputs(arch):
     all_heatmaps = []
     all_gt = []
 
-    for batch_images, batch_labels in tqdm(loader): 
+    for batch_images, batch_labels in tqdm(loader):
         batch_labels = batch_labels[:,0,:,:]
         batch_output = model(batch_images.to(device))
         batch_heatmaps = torch.sigmoid(batch_output[-1]['hm']).squeeze(dim=1).cpu()
         batch_gt = (batch_labels == 1)
         all_gt.extend(batch_gt)
         all_heatmaps.extend(batch_heatmaps)
- 
+
     with open(f'eval_heatmaps_{arch}.pickle','wb') as f:
         pickle.dump(torch.stack(all_heatmaps), f)
     with open(f'eval_gt_{arch}.pickle','wb') as f:
@@ -200,7 +200,7 @@ def load_model_outputs(arch):
     with open(f'eval_gt_{arch}.pickle','rb') as f:
         all_gt = pickle.load(f)
 
-    return all_heatmaps, all_gt 
+    return all_heatmaps, all_gt
 
 def main(args=None):
     for arch in ['res_18','mobilenetv3small','dla_34']:
@@ -209,72 +209,7 @@ def main(args=None):
         compute_precision_recall_hungarian(all_gt, all_heatmaps, enable_nms=True, output_filename=f'evaluation_{arch}')
         pr_curve_from_file(f'evaluation_{arch}.pickle')
 
-        
-        
-
-
-
-
-
-
-
-
-
-
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
