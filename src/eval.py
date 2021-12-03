@@ -15,9 +15,6 @@ from detection.coco_utils import get_surfrider
 from detection.transforms import TrainTransforms  
 
 
-
-
-
 def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
 
 
