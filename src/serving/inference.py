@@ -4,7 +4,7 @@ import os
 from typing import Dict, List, Tuple
 
 import datetime
-from flask import request
+from flask import request, jsonify
 from werkzeug.utils import secure_filename
 
 
@@ -14,7 +14,7 @@ import numpy as np
 import os
 from detection.detect import detect
 from tracking.postprocess_and_count_tracks import filter_tracks, postprocess_for_api
-from tracking.utils import get_detections_for_video, write_tracking_results_to_file, read_tracking_results
+from tracking.utils import get_detections_for_video, write_tracking_results_to_file, read_tracking_results, gather_tracklets
 from tracking.track_video import track_video
 from tools.video_readers import IterableFrameReader
 from tools.misc import load_model
@@ -35,13 +35,13 @@ config_track = DotDict({
     "downsampling_factor": 4,
     "noise_covariances_path": "data/tracking_parameters",
     "output_shape": (960,544),
-    "skip_frames": 7, ## TODO TODO go back to 3
+    "skip_frames": 3, #3
     "arch": "mobilenet_v3_small",
     "device": "cpu",
     "detection_batch_size": 1,
     "display": 0,
-    "kappa": 7,
-    "tau": 4
+    "kappa": 7, #7
+    "tau": 4 #4
 })
 
 
@@ -59,7 +59,7 @@ def create_unique_folder(base_folder, filename):
     return output_dir
 
 
-def handle_post_request(upload_folder: str = UPLOAD_FOLDER) -> Dict:
+def handle_post_request(upload_folder = UPLOAD_FOLDER):
     """main function to handle a post request.
     The file is in `request.files`
 
@@ -91,7 +91,7 @@ def handle_post_request(upload_folder: str = UPLOAD_FOLDER) -> Dict:
 
     # postprocess
     output_json = postprocess_for_api(filtered_results)
-    return output_json
+    return jsonify(output_json)
 
 def track(args):
     if args.device is None:
@@ -132,13 +132,15 @@ def track(args):
     results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance, display)
 
     # store unfiltered results
-    output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'unfiltered.txt')
+    output_filename = os.path.splitext(args.video_path)[0] +'_unfiltered.txt'
     write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
-
     print('Filtering...')
-    filtered_results = filter_tracks(gather_tracklets(results), config_track.kappa, config_track.tau)
+
+    #results = read_tracking_results("/tmp/vid_unfiltered.txt") # for testing purposes
+    results = gather_tracklets(results)
+    filtered_results = filter_tracks(results, config_track.kappa, config_track.tau)
     # store filtered results
-    output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'filtered.txt')
+    output_filename = os.path.splitext(args.video_path)[0] +'_filtered.txt'
     write_tracking_results_to_file(filtered_results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
     return filtered_results

@@ -63,7 +63,7 @@ def build_confidence_function_for_trackers(trackers, flow01):
             confidence_functions.append(tracker.build_confidence_function(flow01))
     return tracker_nbs, confidence_functions
 
-def associate_detections_to_trackers(detections_for_frame, trackers, flow01):
+def associate_detections_to_trackers(detections_for_frame, trackers, flow01, confidence_threshold):
     tracker_nbs, confidence_functions = build_confidence_function_for_trackers(trackers, flow01)
     assigned_trackers = [None]*len(detections_for_frame)
     if len(tracker_nbs):
@@ -71,13 +71,13 @@ def associate_detections_to_trackers(detections_for_frame, trackers, flow01):
         for detection_nb, detection in enumerate(detections_for_frame):
             for tracker_id, confidence_function in enumerate(confidence_functions):
                 score = confidence_function(detection)
-                if score > args.confidence_threshold:
+                if score > confidence_threshold:
                     cost_matrix[detection_nb,tracker_id] = score
                 else:
                     cost_matrix[detection_nb,tracker_id] = 0
         row_inds, col_inds = linear_sum_assignment(cost_matrix,maximize=True)
         for row_ind, col_ind in zip(row_inds, col_inds):
-            if cost_matrix[row_ind,col_ind] > args.confidence_threshold: assigned_trackers[row_ind] = tracker_nbs[col_ind]
+            if cost_matrix[row_ind,col_ind] > confidence_threshold: assigned_trackers[row_ind] = tracker_nbs[col_ind]
 
     return assigned_trackers
 
@@ -119,7 +119,8 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
             if len(detections_for_frame):
 
-                assigned_trackers = associate_detections_to_trackers(detections_for_frame, trackers, flow01)
+                assigned_trackers = associate_detections_to_trackers(detections_for_frame, trackers,
+                                                                     flow01, args.confidence_threshold)
 
                 for detection, assigned_tracker in zip(detections_for_frame, assigned_trackers):
                     if in_frame(detection, flow01.shape[:-1]):
