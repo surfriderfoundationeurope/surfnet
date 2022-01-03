@@ -1,32 +1,17 @@
 import numpy as np
-from collections import defaultdict
 import argparse
 from scipy.signal import convolve
+from tracking.utils import write_tracking_results_to_file, read_tracking_results
+
 import json
-
-def main(args):
-    raw_results = np.loadtxt(args.input_file, delimiter=',')
-    if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
-    tracklets = defaultdict(list)
-    for result in raw_results:
-        track_id = int(result[1])
-        frame_id = int(result[0])
-        left, top, width, height = result[2:6]
-        center_x = left + width/2
-        center_y = top + height/2
-        tracklets[track_id].append((frame_id, center_x, center_y))
-
-    tracklets = list(tracklets.values())
-    results = filter_tracks(tracklets, args.kappa, args.tau)
-    if args.output_type == "api":
-        output = postprocess_for_api(results)
-        with open(args.output_file, 'w') as f:
-            json.dump(output, f)
-    else:
-        write(results, args)
 
 
 def filter_tracks(tracklets, kappa, tau):
+    """ filters the tracks depending on params
+    kappa: size of the moving average window
+    tau: minimum length of tracklet
+    returns raw filtered tracks
+    """
     if not kappa == 1:
         tracks = filter_by_nb_consecutive_obs(tracklets, kappa, tau)
     else: tracks = tracklets
@@ -40,6 +25,8 @@ def filter_tracks(tracklets, kappa, tau):
 
 
 def postprocess_for_api(results):
+    """ Converts tracking results into json object for API
+    """
     result_list = []
     id_list = {}
 
@@ -59,22 +46,16 @@ def postprocess_for_api(results):
     return {"detected_trash": result_list}
 
 
-def write(results, args):
-    with open(args.output_name.split('.')[0]+'_tracks.txt','w') as out_file:
-        if len(results):
-            for result in results:
-                out_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0],
-                                                                        result[1]+1,
-                                                                        result[2],
-                                                                        result[3],
-                                                                        -1,
-                                                                        -1,
-                                                                        1,
-                                                                        -1,
-                                                                        -1,
-                                                                        -1))
+def write(results, output_name):
+    """ Writes the results in two files:
+    - tracking in a Mathis format xxx_track.txt (frame, id, box_x, box_y, ...)
+    - the number of detected objects in a separate file xxx_count.txt
+    """
+    output_tracks_filename = output_name.split('.')[0]+'_tracks.txt'
+    write_tracking_results_to_file(results, ratio_x=1, ratio_y=1,
+                                   output_filename=output_tracks_filename)
 
-    with open(args.output_name.split('.')[0]+'_count.txt','w') as out_file:
+    with open(output_name.split('.')[0]+'_count.txt','w') as out_file:
         if len(results):
             out_file.write(f'{max(result[1]+1 for result in results)}')
         else:
@@ -125,4 +106,12 @@ if __name__ == '__main__':
     parser.add_argument('--tau',type=int)
     parser.add_argument('--output_type',type=str,default="api")
     args = parser.parse_args()
-    main(args)
+
+    tracklets = read_tracking_results(args.input_file)
+    filtered_results = filter_tracks(tracklets, args.kappa, args.tau)
+    if args.output_type == "api":
+        output = postprocess_for_api(filtered_results)
+        with open(args.output_name, 'w') as f:
+            json.dump(output, f)
+    else:
+        write(filtered_results, args.output_name)

@@ -6,3 +6,5 @@ tqdm
 tensorboard
 imgaug
 psycopg2-binary
+flask
+werkzeug

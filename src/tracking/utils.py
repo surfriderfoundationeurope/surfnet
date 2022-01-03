@@ -1,12 +1,14 @@
 from scipy.stats import multivariate_normal
-import numpy as np 
+import numpy as np
 import os
 import cv2
 from torch.utils.data import DataLoader
 import torch
-from tools.video_readers import TorchIterableFromReader 
-from time import time 
+from tools.video_readers import TorchIterableFromReader
+from time import time
 from detection.transforms import TransformFrames
+from collections import defaultdict
+
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
@@ -51,7 +53,7 @@ def in_frame(position, shape, border=0.02):
     y = position[1]
 
     return x > border*shape_x and x < (1-border)*shape_x and y > border*shape_y and y < (1-border)*shape_y
-    
+
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
     images_for_video = [image for image in images
                         if image['video_id'] == video['id']]
@@ -78,6 +80,7 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
     print(f'Frame-wise inference time: {batch_size/np.mean(average_times)} fps')
     return detections
 
+
 def resize_external_detections(detections, ratio):
 
     for detection_nb in range(len(detections)):
@@ -88,43 +91,75 @@ def resize_external_detections(detections, ratio):
             detection[:,1] = (detection[:,1] + detection[:,3])/2
             detections[detection_nb] = detection[:,:2]/ratio
     return detections
-        
-def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
-    output_file = open(output_filename, 'w')
 
-    for result in results:
-        output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
+
+def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
+    """ writes the output result of a tracking the following format:
+    - frame
+    - id
+    - x_tl, y_tl, w=0, h=0
+    - 4x unused=-1
+    """
+    with open(output_filename, 'w') as output_file:
+        for result in results:
+            output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
                                                                 result[1]+1,
                                                                 ratio_x * result[2],
                                                                 ratio_y * result[3],
-                                                                -1,
-                                                                -1,
-                                                                1,
-                                                                -1,
-                                                                -1,
-                                                                -1))
+                                                                0,
+                                                                0,
+                                                                -1,-1,-1,-1))
 
-    output_file.close()
 
-    
+def read_tracking_results(input_file):
+    """ read the input filename and interpret it as tracklets
+    i.e. lists of lists
+    """
+    raw_results = np.loadtxt(input_file, delimiter=',')
+    if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
+    tracklets = defaultdict(list)
+    for result in raw_results:
+        frame_id = int(result[0])
+        track_id = int(result[1])
+        left, top, width, height = result[2:6]
+        center_x = left + width/2
+        center_y = top + height/2
+        tracklets[track_id].append((frame_id, center_x, center_y))
+
+    tracklets = list(tracklets.values())
+    return tracklets
+
+def gather_tracklets(tracklist):
+    """ Converts a list of flat tracklets into a list of lists
+    """
+    tracklets = defaultdict(list)
+    for track in tracklist:
+        frame_id = track[0]
+        track_id = track[1]
+        center_x = track[2]
+        center_y = track[3]
+        tracklets[track_id].append((frame_id, center_x, center_y))
+
+    tracklets = list(tracklets.values())
+    return tracklets
+
 class FramesWithInfo:
     def __init__(self, frames, output_shape=None):
         self.frames = frames
-        if output_shape is None: 
+        if output_shape is None:
             self.output_shape = frames[0].shape[:-1][::-1]
         else: self.output_shape = output_shape
         self.end = len(frames)
         self.read_head = 0
-    
+
     def __next__(self):
         if self.read_head < self.end:
             frame = self.frames[self.read_head]
             self.read_head+=1
             return frame
 
-        else: 
+        else:
             raise StopIteration
-    
+
     def __iter__(self):
         return self
-
