@@ -24,6 +24,9 @@ raw_annotations = cursor.fetchall()
 cursor.execute('SELECT * FROM "label".images_for_labelling')
 raw_images_info = cursor.fetchall()
 
+cursor.execute('SELECT * FROM "campaign".trash_type')
+raw_category_info = cursor.fetchall()
+
 conn.close()
 
 annotations = []
@@ -63,23 +66,21 @@ image_filename_to_image_coco_id = {image_filename:image_coco_id for image_coco_i
 coco_images = [{'id':image_coco_id, 'file_name':image_filename} \
 	for image_filename, image_coco_id in image_filename_to_image_coco_id.items()]
 
-coco_categories = [{'id':0,'name':'__background__','supercategory':'unknown'},
-                   {'id':1,'name':'trash','supercategory':'unknown'}]
+coco_categories = [{'id':0,'name':'__background__','supercategory':'unknown'}] \
+                + [{'id':raw_category[0],'name':raw_category[1],'supercategory':'trash'} for raw_category in raw_category_info]
 
 coco_annotations = list()
 
 for annotation_id, annotation in enumerate(annotations):
     image_db_id = annotation['id_ref_images_for_labelling']
-    bbox = [annotation['location_x'], annotation['location_y'], annotation['width'], annotation['height']]
-
     coco_annotations.append({'id':annotation_id,
                              'image_id':image_filename_to_image_coco_id[image_db_id_to_image_filename[image_db_id]],
-                             'bbox':bbox,
-                             'category_id':1})
+                             'bbox':[annotation['location_x'], annotation['location_y'], annotation['width'], annotation['height']],
+                             'category_id':annotation['id_ref_trash_type_fk']})
 
 coco = {'images':coco_images,'annotations':coco_annotations,'categories':coco_categories}
 
-with open('data/images/annotations/instances_remaining.json','w') as f:
+with open('data/images/annotations/instances_multiclass.json','w') as f:
     json.dump(coco, f)
 
 
