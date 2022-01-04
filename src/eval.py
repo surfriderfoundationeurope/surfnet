@@ -12,7 +12,7 @@ import math
 from scipy.spatial.distance import cdist
 from tools.misc import load_model, _calculate_euclidean_similarity
 from detection.coco_utils import get_surfrider
-from detection.transforms import TrainTransforms  
+from detection.transforms import TrainTransforms, ValTransforms  
 
 
 def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
@@ -163,7 +163,7 @@ def compute_model_outputs(arch):
 
     device = torch.device('cuda')
 
-    transforms = TrainTransforms(540, (544,960), 1, 4)
+    transforms = ValTransforms(540, (544,960), 1, 4)
     dataset = get_surfrider('data/images','val',transforms=transforms)
     loader = DataLoader(dataset, shuffle=False, batch_size=16)
 
