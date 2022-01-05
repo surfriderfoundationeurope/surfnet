@@ -99,7 +99,7 @@ By default, this runs tracking on the first riverbank sequence (T1). You can cha
 * `res_18`
 * `dla_34`
 
-The default harware used is the CPU, but you can change the `--device` parameter to `cuda` and PyTorch will automatically select a GPU if there is one. In this case you should set a higher `--detection_batch_size` to improve detection speed. You can also add `--preload_frames` if you want all video frames to be loaded into the RAM before detections and tracking. 
+The default harware used is the CPU, but you can change the `--device` parameter to `cuda` and PyTorch will automatically select a GPU if there is one. In this case you should set a higher `--detection_batch_size` to improve detection speed. You can also add `--preload_frames` if you want all video frames to be loaded into the RAM before detections and tracking.
 
 
 
@@ -109,12 +109,12 @@ The tracking and count results will be in [experiments/tracking](experiments/tra
 If you want to overlay the tracks on the video, run: 
 
 ```shell 
-python src/overlay_tracking_results_on_video.py \
-    --input_video <path-to-video> \
-    --input_mot_file <path-to-tracking-results-for-video> \
+python3 src/overlay_tracking_results_on_video.py \
+    --input_video data/validation_videos/T2/T2_trimmed.mp4 \
+    --input_mot_file experiments/tracking/test/T2_trimmed_tracks.txt \
     --write True \
-    --output_name <name-of-the-output-file> \
-    --skip_frames <nb-of-skipped-frames-when-tracking>
+    --output_name experiments/trimmed.mp4 \
+    --skip_frames 3
 ```
 
 Note that by default we set `skip_frames = 3` in [scripts/track.sh](scripts/track.sh) so that everything is read at 6fps. You must use the same number when generating the overlay.

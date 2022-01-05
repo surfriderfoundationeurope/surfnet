@@ -185,6 +185,7 @@ def load_model(arch, model_weights, device):
     heads = {'hm':1} if arch != 'dla_34' else {'hm':1, 'wh':2}       
     
     model = create_base(arch, heads=heads, head_conv=256).to(device)
+    # print(repr(model))
     model = load_checkpoint(model, model_weights)
     for param in model.parameters():
         param.requires_grad = False

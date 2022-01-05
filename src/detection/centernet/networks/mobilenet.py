@@ -1,3 +1,4 @@
+
 # ------------------------------------------------------------------------------
 # Copyright (c) Microsoft
 # Licensed under the MIT License.
@@ -17,6 +18,19 @@ import torchvision.models as models
 
 BN_MOMENTUM = 0.1
 
+def nms(heat, kernel:int=3):
+    pad = (kernel - 1) // 2
+
+    #Ajout d'un bruit pour gérer les cas d'égalité (à commenter si non necessaire) :
+    # heat[0][0] += torch.rand((heat[0][0].shape))*0.0001
+    
+    hmax = torch.nn.functional.max_pool2d(
+        heat, [kernel, kernel], stride=1, padding=pad)
+    keep = (hmax == heat).float()
+    
+    return heat * keep
+
+
 class MobiletNetHM(nn.Module):
 
     def __init__(self, heads, head_conv, **kwargs):
@@ -24,35 +38,64 @@ class MobiletNetHM(nn.Module):
         self.deconv_with_bias = False
         self.heads = heads
 
-        super(MobiletNetHM, self).__init__()
-        self.features = models.mobilenet_v3_small(pretrained=True).features
+        self.head_conv = head_conv
 
+        super(MobiletNetHM, self).__init__()
+
+        self.features = models.mobilenet_v3_small(pretrained=True).features
         # used for deconv layers
         self.deconv_layers = self._make_deconv_layer(
             3,
             [256, 256, 256],
             [4, 4, 4],
         )
+
+        self.hm = self._makeLayer_("hm")
         # self.final_layer = []
 
-        for head in sorted(self.heads):
-          num_output = self.heads[head]
-          if head_conv > 0:
-            fc = nn.Sequential(
-                nn.Conv2d(256, head_conv,
-                  kernel_size=3, padding=1, bias=True),
+
+        #Ancienne implémentation de la dernière couche
+        
+        # for head in sorted(self.heads):
+        #   num_output = self.heads[head]
+        #   if head_conv > 0:
+        #     fc = nn.Sequential(
+        #         nn.Conv2d(256, head_conv,
+        #           kernel_size=3, padding=1, bias=True),
+        #         nn.ReLU(inplace=True),
+        #         nn.Conv2d(head_conv, num_output, 
+        #           kernel_size=1, stride=1, padding=0))
+        #   else:
+        #     fc = nn.Conv2d(
+        #       in_channels=256,
+        #       out_channels=num_output,
+        #       kernel_size=1,
+        #       stride=1,
+        #       padding=0
+        #   )
+        #   self.__setattr__(head, fc)
+
+
+
+        #Définition des couches de quantification et dequantification (à commenter si non necessaire) :
+
+        # self.quant = torch.quantization.QuantStub()
+        # self.dequant = torch.quantization.DeQuantStub()
+
+
+
+    # Nouvelle implémentation de la dernière couches
+    def _makeLayer_(self,arg):
+        num_output = self.heads[arg]
+        fc = nn.Sequential(
+                nn.Conv2d(256, self.head_conv,
+                kernel_size=3, padding=1, bias=True),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(head_conv, num_output, 
-                  kernel_size=1, stride=1, padding=0))
-          else:
-            fc = nn.Conv2d(
-              in_channels=256,
-              out_channels=num_output,
-              kernel_size=1,
-              stride=1,
-              padding=0
-          )
-          self.__setattr__(head, fc)
+                nn.Conv2d(self.head_conv, num_output, 
+                kernel_size=1, stride=1, padding=0))
+
+        return fc
+
 
         # self.final_layer = nn.ModuleList(self.final_layer)
 
@@ -96,13 +139,28 @@ class MobiletNetHM(nn.Module):
 
         return nn.Sequential(*layers)
 
+ 
+
     def forward(self, x):
+
+        # couche de quantization (à commenter si non necessaire) :
+        # x = self.quant(x)
+
+
         x = self.features(x)
         x = self.deconv_layers(x)
         ret = {}
         for head in self.heads:
-            ret[head] = self.__getattr__(head)(x)
-        return [ret]
+            ret[head] = self.hm(x)
+
+        x = torch.sigmoid([ret][-1]['hm'])
+        
+        # couche de dequantization (à commenter si non necessaire) : 
+        # x  = self.dequant(x)
+
+        x = nms(x)
+
+        return x
 
     def init_weights(self):
         # print('=> init resnet deconv weights from normal distribution')
@@ -120,7 +178,10 @@ class MobiletNetHM(nn.Module):
                 nn.init.constant_(m.bias, 0)
         # print('=> init final conv weights from normal distribution')
         for head in self.heads:
-            final_layer = self.__getattr__(head)
+            # final_layer = self.__getattr__(head)
+            # final_layer = self.layers[head]
+            final_layer = self.hm
+            # print("final_layer", type(final_layer))
             for i, m in enumerate(final_layer.modules()):
                 if isinstance(m, nn.Conv2d):
                     # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')

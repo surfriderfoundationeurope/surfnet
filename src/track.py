@@ -162,9 +162,11 @@ def main(args):
 
     engine = get_tracker('EKF')
 
-    print('---Loading model...')            
-    model = load_model(arch=args.arch, model_weights=args.model_weights, device=device)
+    print('---Loading model...')   
+
+    model = load_model(arch=args.arch, model_weights=args.model_weights, device="cpu")
     print('Model loaded.')
+
 
     detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
 
@@ -174,7 +176,7 @@ def main(args):
     video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
     for video_filename in video_filenames: 
-        print(f'---Processing {video_filename}')        
+        # print(f'---Processing {video_filename}')        
         reader = IterableFrameReader(video_filename=os.path.join(args.data_dir, video_filename), 
                                      skip_frames=args.skip_frames, 
                                      output_shape=args.output_shape,

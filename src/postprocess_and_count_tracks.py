@@ -1,7 +1,6 @@
 import numpy as np 
 from collections import defaultdict 
 import argparse
-from torch import max_pool1d
 import torch
 from scipy.signal import convolve
 # import scipy.ndimage.filters as ndif

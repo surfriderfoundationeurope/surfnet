@@ -16,6 +16,14 @@ import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
 BN_MOMENTUM = 0.1
+def nms(heat, kernel:int=3):
+    pad = (kernel - 1) // 2
+
+    hmax = torch.nn.functional.max_pool2d(
+        heat, [kernel, kernel], stride=1, padding=pad)
+    keep = (hmax == heat).float()
+    return heat * keep
+
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -110,6 +118,7 @@ class PoseResNet(nn.Module):
         self.inplanes = 64
         self.deconv_with_bias = False
         self.heads = heads
+        self.head_conv = head_conv
 
         super(PoseResNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -129,25 +138,38 @@ class PoseResNet(nn.Module):
             [4, 4, 4],
         )
         # self.final_layer = []
+        self.hm = self._makeLayer_("hm")
+        # self.final_layer = []
 
-        for head in sorted(self.heads):
-          num_output = self.heads[head]
-          if head_conv > 0:
-            fc = nn.Sequential(
-                nn.Conv2d(256, head_conv,
-                  kernel_size=3, padding=1, bias=True),
+        # for head in sorted(self.heads):
+        #   num_output = self.heads[head]
+        #   if head_conv > 0:
+        #     fc = nn.Sequential(
+        #         nn.Conv2d(256, head_conv,
+        #           kernel_size=3, padding=1, bias=True),
+        #         nn.ReLU(inplace=True),
+        #         nn.Conv2d(head_conv, num_output, 
+        #           kernel_size=1, stride=1, padding=0))
+        #   else:
+        #     fc = nn.Conv2d(
+        #       in_channels=256,
+        #       out_channels=num_output,
+        #       kernel_size=1,
+        #       stride=1,
+        #       padding=0
+        #   )
+        #   self.__setattr__(head, fc)
+
+    def _makeLayer_(self,arg):
+        num_output = self.heads[arg]
+        fc = nn.Sequential(
+                nn.Conv2d(256, self.head_conv,
+                kernel_size=3, padding=1, bias=True),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(head_conv, num_output, 
-                  kernel_size=1, stride=1, padding=0))
-          else:
-            fc = nn.Conv2d(
-              in_channels=256,
-              out_channels=num_output,
-              kernel_size=1,
-              stride=1,
-              padding=0
-          )
-          self.__setattr__(head, fc)
+                nn.Conv2d(self.head_conv, num_output, 
+                kernel_size=1, stride=1, padding=0))
+
+        return fc
 
         # self.final_layer = nn.ModuleList(self.final_layer)
 
@@ -222,8 +244,14 @@ class PoseResNet(nn.Module):
         x = self.deconv_layers(x)
         ret = {}
         for head in self.heads:
-            ret[head] = self.__getattr__(head)(x)
-        return [ret]
+            ret[head] = self.hm(x)
+
+
+                
+        batch_result = nms(torch.sigmoid([ret][-1]['hm']))
+
+
+        return batch_result
 
     def init_weights(self, num_layers, pretrained=True):
         if pretrained:
