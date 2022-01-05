@@ -5,8 +5,8 @@ output_dir=experiments/tracking/${experiment_name}
 create_clean_directory $output_dir
 
 
-python src/track.py \
-    --data_dir data/validation_videos/T1 \
+python3 src/track.py \
+    --data_dir data/validation_videos/T2 \
     --output_dir ${output_dir} \
     --confidence_threshold 0.5 \
     --detection_threshold 0.3 \
@@ -22,7 +22,7 @@ python src/track.py \
 
 for f in ${output_dir}/*; 
 do 
-    python src/postprocess_and_count_tracks.py \
+    python3 src/postprocess_and_count_tracks.py \
         --input_file $f \
         --kappa 7  \
         --tau 4 \
