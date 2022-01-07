@@ -91,7 +91,9 @@ def handle_post_request(upload_folder = UPLOAD_FOLDER):
 
     # postprocess
     output_json = postprocess_for_api(filtered_results)
-    return jsonify(output_json)
+    response = jsonify(output_json)
+    response.status_code = 200
+    return response
 
 def track(args):
     if args.device is None:
@@ -136,8 +138,8 @@ def track(args):
     write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
     print('Filtering...')
 
-    #results = read_tracking_results("/tmp/vid_unfiltered.txt") # for testing purposes
-    results = gather_tracklets(results)
+    # read from the file
+    results = read_tracking_results(output_filename)
     filtered_results = filter_tracks(results, config_track.kappa, config_track.tau)
     # store filtered results
     output_filename = os.path.splitext(args.video_path)[0] +'_filtered.txt'
