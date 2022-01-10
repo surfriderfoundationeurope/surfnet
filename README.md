@@ -20,6 +20,7 @@ You can download MobileNetV3 model with the following script:
 ```shell
 cd models
 sh download_pretrained_base.sh
+cd ..
 ```
 The file will be downloaded into [models](models).
 
@@ -30,6 +31,7 @@ If you want to downlaod the 3 test videos on the 3 portions of the Auterrive riv
 ```
 cd data
 sh download_validation_videos.sh
+cd ..
 ```
 
 This will download the 3 videos in distinct folders of [data/validation_videos](data/validation_videos).
