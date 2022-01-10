@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 import datetime
 from flask import request, jsonify
 from werkzeug.utils import secure_filename
-
+import logging
 
 # imports for tracking
 import cv2
@@ -46,6 +46,7 @@ config_track = DotDict({
 
 
 UPLOAD_FOLDER = '/tmp'  # folder used to store images or videos when sending files
+logger = logging.getLogger()
 
 
 def create_unique_folder(base_folder, filename):
@@ -66,16 +67,17 @@ def handle_post_request(upload_folder = UPLOAD_FOLDER):
     Will create tmp folders for storing the file and intermediate results
     Outputs a json
     """
-    print("---recieving request")
+    logger.info("---recieving request")
     if "file" in request.files:
         file = request.files['file']
     else:
-        print("error no file in request")
+        logger.error("error no file in request")
+
         return None
 
     # file and folder handling
     filename = secure_filename(file.filename)
-    print("---filename: "+filename)
+    logger.info("---filename: "+filename)
     full_filepath = os.path.join(upload_folder, filename)
     output_dir = create_unique_folder(upload_folder, filename)
     if not os.path.isdir(upload_folder):
@@ -104,16 +106,16 @@ def track(args):
 
     engine = get_tracker('EKF')
 
-    print('---Loading model...')
+    logger.info('---Loading model...')
     model = load_model(arch=args.arch, model_weights=args.model_weights, device=device)
-    print('Model loaded.')
+    logger.info('---Model loaded.')
 
     detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
 
     transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
     observation_variance = np.load(os.path.join(args.noise_covariances_path, 'observation_variance.npy'))
 
-    print(f'---Processing {args.video_path}')
+    logger.info(f'---Processing {args.video_path}')
     reader = IterableFrameReader(video_filename=args.video_path,
                                  skip_frames=args.skip_frames,
                                  output_shape=args.output_shape,
@@ -126,23 +128,24 @@ def track(args):
     ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
     ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
-    print('Detecting...')
+    logger.info('---Detecting...')
     detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
 
-    print('Tracking...')
+    logger.info('---Tracking...')
     display = None
     results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance, display)
 
     # store unfiltered results
-    output_filename = os.path.splitext(args.video_path)[0] +'_unfiltered.txt'
+    datestr = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+    output_filename = os.path.splitext(args.video_path)[0] + "_" + datestr + '_unfiltered.txt'
     write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
-    print('Filtering...')
+    logger.info('---Filtering...')
 
     # read from the file
     results = read_tracking_results(output_filename)
     filtered_results = filter_tracks(results, config_track.kappa, config_track.tau)
     # store filtered results
-    output_filename = os.path.splitext(args.video_path)[0] +'_filtered.txt'
+    output_filename = os.path.splitext(args.video_path)[0] + "_" + datestr + '_filtered.txt'
     write_tracking_results_to_file(filtered_results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
     return filtered_results
