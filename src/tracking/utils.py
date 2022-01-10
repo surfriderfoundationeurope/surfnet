@@ -1,10 +1,12 @@
 from scipy.stats import multivariate_normal
 import numpy as np 
 import os
-from tqdm import tqdm
-
-from tools.optical_flow import compute_flow
-
+import cv2
+from torch.utils.data import DataLoader
+import torch
+from tools.video_readers import TorchIterableFromReader 
+from time import time 
+from detection.transforms import TransformFrames
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
@@ -59,15 +61,21 @@ def gather_filenames_for_video_in_annotations(video, images, data_dir):
     return [os.path.join(data_dir, image['file_name'])
                  for image in images_for_video]
 
-def get_detections_for_video(reader, detector):
+def get_detections_for_video(reader, detector, batch_size=16, device=None):
 
     detections = []
-    for frame in tqdm(reader):
-
-        detections_for_frame = detector(frame)
-        if len(detections_for_frame): detections.append(detections_for_frame)
-        else: detections.append(np.array([]))
-
+    dataset = TorchIterableFromReader(reader, TransformFrames())
+    loader = DataLoader(dataset, batch_size=batch_size)
+    average_times = []
+    with torch.no_grad():
+        for preprocessed_frames in loader:
+            time0 = time()
+            detections_for_frames = detector(preprocessed_frames.to(device))
+            average_times.append(time() - time0)
+            for detections_for_frame in detections_for_frames:
+                if len(detections_for_frame): detections.append(detections_for_frame)
+                else: detections.append(np.array([]))
+    print(f'Frame-wise inference time: {batch_size/np.mean(average_times)} fps')
     return detections
 
 def resize_external_detections(detections, ratio):
@@ -82,7 +90,7 @@ def resize_external_detections(detections, ratio):
     return detections
         
 def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
-    output_file = open(output_filename+'.txt', 'w')
+    output_file = open(output_filename, 'w')
 
     for result in results:
         output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,

@@ -12,8 +12,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
-
-from .DCNv2.dcn_v2 import DCN
+import torchvision.ops
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -342,17 +341,53 @@ def fill_up_weights(up):
         w[c, 0, :, :] = w[0, 0, :, :]
 
 
+# class DeformConv(nn.Module):
+#     def __init__(self, chi, cho):
+#         super(DeformConv, self).__init__()
+#         self.actf = nn.Sequential(
+#             nn.BatchNorm2d(cho, momentum=BN_MOMENTUM),
+#             nn.ReLU(inplace=True)
+#         )
+#         self.conv = torchvision.ops.DeformConv2d(in_channels = chi, 
+#                                                  out_channels = cho, 
+#                                                  kernel_size=3,
+#                                                  stride=1, 
+#                                                  padding=1, 
+#                                                  dilation=1, 
+#                                                  groups=1)
+
+#     def forward(self, x):
+#         x = self.conv(x)
+#         x = self.actf(x)
+#         return x
+
 class DeformConv(nn.Module):
-    def __init__(self, chi, cho):
+    def __init__(self, chi, cho, norm='BN'):
         super(DeformConv, self).__init__()
         self.actf = nn.Sequential(
             nn.BatchNorm2d(cho, momentum=BN_MOMENTUM),
             nn.ReLU(inplace=True)
         )
-        self.conv = DCN(chi, cho, kernel_size=(3,3), stride=1, padding=1, dilation=1, deformable_groups=1)
-
+        self.offset = torch.nn.Conv2d(
+            chi, 27, kernel_size=3, stride=1,
+            padding=1, dilation=1)
+        self.conv = torchvision.ops.DeformConv2d(in_channels = chi, 
+                                                 out_channels = cho, 
+                                                 kernel_size=3,
+                                                 stride=1, 
+                                                 padding=1, 
+                                                 dilation=1, 
+                                                 groups=1)
+        nn.init.constant_(self.offset.weight, 0)
+        nn.init.constant_(self.offset.bias, 0)
+        
     def forward(self, x):
-        x = self.conv(x)
+
+        offset_mask = self.offset(x)
+        offset_x, offset_y, mask = torch.chunk(offset_mask, 3, dim=1)
+        offset = torch.cat((offset_x, offset_y), dim=1)
+        mask = mask.sigmoid()
+        x = self.conv(x, offset, mask)
         x = self.actf(x)
         return x
 

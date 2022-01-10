@@ -1,18 +1,16 @@
 import cv2
 import numpy as np
 import os
-from tqdm import tqdm
 from detection.detect import detect
-from tracking.utils import in_frame, init_trackers, get_detections_for_video, FramesWithInfo, resize_external_detections, write_tracking_results_to_file
+from tracking.utils import in_frame, init_trackers, get_detections_for_video, write_tracking_results_to_file
 from tools.video_readers import IterableFrameReader
 from tools.optical_flow import compute_flow
 from tools.misc import load_model
 from tracking.trackers import get_tracker
 import matplotlib.pyplot as plt
-import pickle
 from scipy.spatial.distance import euclidean
 from scipy.optimize import linear_sum_assignment
-
+import torch 
 class Display:
 
     def __init__(self, on, interactive=True):
@@ -116,13 +114,12 @@ def associate_detections_to_trackers(detections_for_frame, trackers, flow01):
     return assigned_trackers
     
 def track_video(reader, detections, args, engine, transition_variance, observation_variance):
-
     init = False
     trackers = dict()
     frame_nb = 0
     frame0 = next(reader)
-    detections_for_frame = detections[frame_nb]
-    flow01 = None
+    detections_for_frame = next(detections)
+
     max_distance = euclidean(reader.output_shape, np.array([0,0]))
     delta = 0.05*max_distance
 
@@ -137,13 +134,9 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
     if display.on: display.display(trackers)
 
-    for frame_nb in tqdm(range(1,len(detections))):
+    for frame_nb, (frame1, detections_for_frame) in enumerate(zip(reader, detections), start=1):
 
-        detections_for_frame = detections[frame_nb]
-        frame1 = next(reader)
-        if display.on: 
-            display.update_detections_and_frame(detections_for_frame, frame1)
-            display.update_flow(flow01)
+        if display.on: display.update_detections_and_frame(detections_for_frame, frame1)
 
         if not init:
             if len(detections_for_frame):
@@ -189,80 +182,68 @@ def track_video(reader, detections, args, engine, transition_variance, observati
 
 def main(args):
 
+
+    if args.device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    else: 
+        device = args.device
+    device = torch.device(device)
+
+
+    engine = get_tracker('EKF')
+
+    print('---Loading model...')            
+    model = load_model(arch=args.arch, model_weights=args.model_weights, device=device)
+    print('Model loaded.')
+
+    detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
+
     transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
     observation_variance = np.load(os.path.join(args.noise_covariances_path, 'observation_variance.npy'))
 
-    engine = get_tracker(args.algorithm)
+    video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
 
-    if args.external_detections: 
-        print('USING EXTERNAL DETECTIONS')
-
-        sequence_names = next(os.walk(args.data_dir))[1]
-
-        for sequence_name in sequence_names: 
-            print(f'---Processing {sequence_name}')
-            with open(os.path.join(args.data_dir,sequence_name,'saved_detections.pickle'),'rb') as f: 
-                detections = pickle.load(f)
-            with open(os.path.join(args.data_dir,sequence_name,'saved_frames.pickle'),'rb') as f: 
-                frames = pickle.load(f)
-
-            ratio = 4
-            reader = FramesWithInfo(frames)
-            detections = resize_external_detections(detections, ratio)
-
-            print('Tracking...')
-            results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
-
-            output_filename = os.path.join(args.output_dir, sequence_name)
-            write_tracking_results_to_file(results, ratio_x=ratio, ratio_y=ratio, output_filename=output_filename)
-
-    else: 
-        print(f'USING INTERNAL DETECTOR, detection threshold at {args.detection_threshold}.')
-
-        print('---Loading model...')
-        model = load_model(args.model_weights)
-        print('Model loaded.')
-
-        def detector(frame): return detect(frame, threshold=args.detection_threshold,
-                                                model=model)
+    for video_filename in video_filenames: 
+        print(f'---Processing {video_filename}')        
+        reader = IterableFrameReader(video_filename=os.path.join(args.data_dir, video_filename), 
+                                     skip_frames=args.skip_frames, 
+                                     output_shape=args.output_shape,
+                                     progress_bar=True,
+                                     preload=args.preload_frames)
 
 
-        video_filenames = [video_filename for video_filename in os.listdir(args.data_dir) if video_filename.endswith('.mp4')]
+        input_shape = reader.input_shape
+        output_shape = reader.output_shape
+        ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
+        ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
-        for video_filename in video_filenames: 
-            print(f'---Processing {video_filename}')
-            reader = IterableFrameReader(os.path.join(args.data_dir,video_filename), skip_frames=args.skip_frames, output_shape=args.output_shape)
+        print('Detecting...')
+        detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
 
-            print('Detections...')
-            detections = get_detections_for_video(reader, detector)
-            reader.init()
+        print('Tracking...')
+        results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance)
 
-            print('Tracking...')
-            results = track_video(reader, detections, args, engine, transition_variance, observation_variance)
-
-            output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
-            input_shape = reader.input_shape
-            output_shape = reader.output_shape
-            ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
-            ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
-            write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
+        output_filename = os.path.join(args.output_dir, video_filename.split('.')[0] +'.txt')
+        write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
 if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser(description='Tracking')
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--detection_threshold', type=float, default=0.33)
+    parser.add_argument('--detection_threshold', type=float, default=0.3)
     parser.add_argument('--confidence_threshold', type=float, default=0.2)
-    parser.add_argument('--model_weights', type=str)
+    parser.add_argument('--model_weights', type=str, default=None)
     parser.add_argument('--output_dir', type=str)
     parser.add_argument('--downsampling_factor', type=int, default=1)
-    parser.add_argument('--algorithm', type=str, default='Kalman')
     parser.add_argument('--noise_covariances_path',type=str)
     parser.add_argument('--skip_frames',type=int,default=0)
     parser.add_argument('--output_shape',type=str,default='960,544')
-    parser.add_argument('--external_detections',action='store_true')
+    parser.add_argument('--arch', type=str, default='dla_34')
     parser.add_argument('--display', type=int, default=0)
+    parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--detection_batch_size',type=int,default=1)
+    parser.add_argument('--preload_frames', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.display == 0: 

@@ -5,18 +5,18 @@ alpha=2
 beta=4
 lr=1.25e-4
 lr_step=140
-model_name=dla_34
-dataset=surfrider
+model_name='mobilenetv3small'
+dataset='surfrider'
 batch_size=16
-experiment_name=test
+experiment_name='3500_images_mobilenet'
 
-output_dir=experiments/detection/${experiment_name}
+output_dir='experiments/detection/'${experiment_name}
 create_clean_directory $output_dir 
 
-trap "exit" INT TERM 
-trap "kill 0" EXIT
+# trap "exit" INT TERM 
+# trap "kill 0" EXIT
 
-tensorboard --logdir=${output_dir} & 
+# tensorboard --logdir=${output_dir} & 
 
 python src/train_detector.py \
     --model ${model_name} \
@@ -30,6 +30,6 @@ python src/train_detector.py \
     --beta ${beta} \
     --lr ${lr} \
     --epochs 290 \
-    --lr_step ${lr_step} 
+    --lr_step ${lr_step} &> ${output_dir}/logs.out &
 
 

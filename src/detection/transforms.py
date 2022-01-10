@@ -6,6 +6,8 @@ from tools.misc import blob_for_bbox
 import torch 
 ia.seed(1)
 from torchvision.transforms import functional as F
+import torchvision.transforms as T
+import cv2
 
 class Compose(object):
     def __init__(self, transforms):
@@ -117,3 +119,17 @@ class ValTransforms:
 
         img, bboxes_imgaug = self.seq(image=img, bounding_boxes=bboxes)
         return self.last_transforms(img, bboxes_imgaug)
+
+class TransformFrames:
+    def __init__(self):
+        transforms = []
+
+        transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+        transforms.append(T.ToTensor())
+        transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225]))
+
+        self.transforms = T.Compose(transforms)
+    
+    def __call__(self, img):
+        return self.transforms(img)

@@ -24,7 +24,7 @@ dir = 'data/images'
 
 ann_dir = os.path.join(dir,'annotations')
 data_dir = os.path.join(dir,'images')
-ann_file = os.path.join(ann_dir, 'instances_0607.json')
+ann_file = os.path.join(ann_dir, 'instances_train.json')
 coco = COCO(ann_file)
 
 imgIds = np.array(coco.getImgIds())

@@ -1,18 +1,6 @@
-import torch 
-import torchvision.transforms as T 
-import cv2 
+import torch
+from time import time
 
-def transform_for_test():
-
-    transforms = []
-
-    # transforms.append(ResizeForCenterNet(fix_res))
-    transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
-    transforms.append(T.ToTensor())
-    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
-                                  std=[0.229, 0.224, 0.225]))
-
-    return T.Compose(transforms)
 
 def nms(heat, kernel=3):
     pad = (kernel - 1) // 2
@@ -22,10 +10,9 @@ def nms(heat, kernel=3):
     keep = (hmax == heat).float()
     return heat * keep
 
-def detect(frame, threshold, model):
+def detect(preprocessed_frames, threshold, model):
 
-    frame = transform_for_test()(frame).to('cuda').unsqueeze(0)
-    result = torch.sigmoid(model(frame)[-1]['hm'])
-    detections = nms(result).gt(threshold).squeeze()
-
-    return torch.nonzero(detections).cpu().numpy()[:, ::-1]
+    batch_result = torch.sigmoid(model(preprocessed_frames)[-1]['hm'])
+    batch_peaks = nms(batch_result).gt(threshold).squeeze(dim=1)
+    detections = [torch.nonzero(peaks).cpu().numpy()[:,::-1] for peaks in batch_peaks]
+    return detections

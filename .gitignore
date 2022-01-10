@@ -10,5 +10,4 @@ scripts/shell_variables.sh
 *.png
 experiments/evaluations
 experiments/extension
-*.pdf
-archive/
+app_demo_livrable/

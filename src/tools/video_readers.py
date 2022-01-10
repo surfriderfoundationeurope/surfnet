@@ -1,6 +1,8 @@
 import cv2
-
-class AdvancedFrameReader():
+import torch 
+from tqdm import tqdm 
+from itertools import cycle
+class AdvancedFrameReader:
     def __init__(self, video_name, read_every, rescale_factor, init_time_min, init_time_s):
 
         self.cap = cv2.VideoCapture(video_name)
@@ -18,7 +20,7 @@ class AdvancedFrameReader():
 
         self.frame_skip = read_every -  1
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)/read_every
-        print('Reading at {} fps.'.format(self.fps))
+        print(f'Reading at {self.fps:.2f} fps')
 
         self.set_time_position(init_time_min, init_time_s)     
         self.init_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
@@ -79,10 +81,13 @@ class AdvancedFrameReader():
 
 class IterableFrameReader:
 
-    def __init__(self, video_filename, skip_frames=0, output_shape=None):
+    def __init__(self, video_filename, skip_frames=0, output_shape=None, progress_bar=False, preload=False):
+
         self.video = cv2.VideoCapture(video_filename)
         self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.skip_frames = skip_frames
+        self.preload = preload
+
         if output_shape is None: 
             w, h = self.input_shape
             new_h = (h | 31) + 1
@@ -90,28 +95,66 @@ class IterableFrameReader:
             self.output_shape = (new_w, new_h)
         else:
             self.output_shape = output_shape
+
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
-            
+
+        print(f'Reading video at {self.fps}fps.')
+        if progress_bar: 
+            self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)/(self.skip_frames+1)), leave=True)
+            self.progress_bar_update = self.progress_bar.update
+        else: 
+            self.progress_bar_update = lambda: None
+        
+        if self.preload: 
+            print('Preloading frames in RAM...')
+            self.frames = self._load_all_frames()
+            self.counter = 0 
+
+    def _load_all_frames(self): 
+        frames = []
+        while True:            
+            ret, frame = self._read_frame()
+            if ret: 
+                frames.append(frame)
+            else: break
+        if self.progress_bar: self.progress_bar.reset()
+        return frames
+
     def __next__(self):
-        ret, frame = self.video.read()
-        self._skip_frames()
-        if ret: 
-            return cv2.resize(frame, self.output_shape)
+        if self.preload: 
+            if self.counter < len(self.frames):
+                frame = self.frames[self.counter]
+                self.counter+=1
+                self.progress_bar_update()
+                return frame
+        else:
+            ret, frame = self._read_frame()
+            if ret: 
+                return frame 
+
+        self.counter=0
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        if self.progress_bar: self.progress_bar.reset()
         raise StopIteration
 
+    def _read_frame(self):
+        ret, frame = self.video.read()
+        self._skip_frames()
+        if ret:
+            self.progress_bar_update()
+            frame =  cv2.resize(frame, self.output_shape)
+        return ret, frame
+
     def __iter__(self):
-        return self
-    
-    def init(self):
-        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-    
+        return self 
+        
     def _skip_frames(self):
         for _ in range(self.skip_frames):
             self.video.read()        
 
 class SimpleVideoReader:
     def __init__(self, video_filename, skip_frames=0):
-        self.skip_frames = skip_frames 
+        self.skip_frames = skip_frames
         self.video = cv2.VideoCapture(video_filename)
         self.shape = (int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (skip_frames+1)
@@ -131,4 +174,20 @@ class SimpleVideoReader:
     def _skip_frames(self):
         for _ in range(self.skip_frames):
             self.video.read()
+
+class TorchIterableFromReader(torch.utils.data.IterableDataset):
+
+    def __init__(self, reader, transforms):
+        self.transforms = transforms
+        self.reader = reader
+
+    def __iter__(self):
+        for frame in self.reader:
+            yield self.transforms(frame)
+
+
+        
+        
+
+        
 
