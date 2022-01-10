@@ -63,6 +63,7 @@ image_db_id_to_image_filename = {k:v['filename'] for k,v in images_db_infos.item
 images_db_ids = list(set([annotation['id_ref_images_for_labelling'] for annotation in annotations]))
 image_filenames = list(set([image_db_id_to_image_filename[image_db_id] for image_db_id in images_db_ids]))
 image_filename_to_image_coco_id = {image_filename:image_coco_id for image_coco_id, image_filename in enumerate(image_filenames)}
+
 coco_images = [{'id':image_coco_id, 'file_name':image_filename} \
 	for image_filename, image_coco_id in image_filename_to_image_coco_id.items()]
 
