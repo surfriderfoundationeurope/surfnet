@@ -10,13 +10,9 @@ conda activate surfnet
 cd <folder-for-surfnet>
 pip install -r requirements.txt
 
-cd ..
-git clone git@github.com:pykalman/pykalman.git <folder-for-pykalman>
-cd <folder-for-pykalman>
-python setup.py install
-
 cd scripts
 sh init_shell_variables.sh
+cd ..
 ```
 ## Downloading pretrained models
 
