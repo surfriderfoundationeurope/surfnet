@@ -1,5 +1,26 @@
 # Automated object counting on riverbanks
 
+## TODO 
+- Final evaluations and hyperparameter selection:
+  - [ ] Step 0: redefine a proper test split for the image dataset where all images come from environments that are not seen during training. Currently, a random portion of all images is selected for testing and therefore some of the images depict objects already seen at training (e.g from a different angle), etc. Some images also correspond to scenes that are in the test videos (because volonteers also took pictures aside from the footage). Based on dates a practical solution is to:
+    - Remove all images that belong to the videos by finding the date of the corresponding expeditions in Auterrive 
+    - Select test images by restricting them to one expedition that is not seen for training (using dates)
+  - [ ] Step 1: check the evaluation code, e.g.:
+    - Preprocessing of the images in the test split (does the 'ValTransforms' class follow best practises for testing ?)
+    - Evaluation procedure at a given threshold: Hungarian algorithm + definition of TP/FP/FN (and definition of the threshold for accepting TP, small problem with image size and depth of view)
+    - Plotting of PR/F1 and distance to positives
+  - [ ] Step 2: evaluate all models (DLA34, ResNet18, MobileNetv3)
+    - Find best threshold for each model given PR curves
+    - Choose a final model 
+  - [ ] Step 3: if optimal detection threshold is significantly different from what was used in paper, calibrate the tracking/counting threshold accordingly. 
+
+- Multiclass version:
+  - [ ] Gather all newly labeled images and compute statistics then take decisions
+    - Proportion of images per class 
+    - Should some classes be merged/discarded/added ?
+  - [ ] Train one of the models with multiclass output 
+  - [ ] Quantify performance (for ex aggregate multiclass results to single class after forward pass and compare with single output network)
+
 ## Installation 
 
 Follow these steps in that order exactly:
