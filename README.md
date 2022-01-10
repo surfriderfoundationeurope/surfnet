@@ -1,4 +1,4 @@
-<h1 align="left">MOT</h1>
+<h1 align="left">Surfnet</h1>
 
 <a href="https://www.plasticorigins.eu/"><img width="80px" src="https://github.com/surfriderfoundationeurope/The-Plastic-Origins-Project/blob/master/assets/PlasticOrigins_logo.png" width="5%" height="5%" align="left" hspace="0" vspace="0"></a>
 
@@ -12,8 +12,8 @@ This repository will soon replace the *MOT* repository for tracking plastic litt
 
 ## Deploy  
 
-switch to `release` branch and follow the README.md there.
+switch to `release` branch and follow the [README.md](https://github.com/surfriderfoundationeurope/surfnet/tree/release) there.
 
 ## Dev & Train
 
-switch to `further_research` branch and follow the README.md there.
+switch to `further_research` branch and follow the [README.md](https://github.com/surfriderfoundationeurope/surfnet/tree/further_research) there.
