@@ -15,9 +15,9 @@
   - [ ] Step 3: if optimal detection threshold is significantly different from what was used in paper, calibrate the tracking/counting threshold accordingly. 
 
 - Multiclass version:
-  - [ ] Gather all newly labeled images and compute statistics then take decisions
+  - [x] Gather all newly labeled images and compute statistics then take decisions
     - Proportion of images per class 
-    - Should some classes be merged/discarded/added ?
+  - [ ] Decide of a strategy to mitigate imbalance: should some classes be merged/discarded/added ?
   - [ ] Train one of the models with multiclass output 
   - [ ] Quantify performance (for ex aggregate multiclass results to single class after forward pass and compare with single output network)
 
