@@ -8,16 +8,16 @@ from torch.utils.tensorboard import SummaryWriter
 
 from detection.coco_utils import get_surfrider
 from detection import transforms
-from detection.centernet.models import create_model 
+from detection.centernet.models import create_model
 from detection.losses import FocalLoss
 from detection import train_utils as utils
 
 
 def get_dataset(dir_path, name, image_set, args):
-    
+
 
     paths = {
-        "surfrider": (dir_path, get_surfrider, 1),
+        "surfrider": (dir_path, get_surfrider, args.num_classes),
     }
     p, ds_fn, num_classes = paths[name]
 
@@ -31,8 +31,8 @@ def get_transform(train, num_classes, args):
 
     base_size = 540
     crop_size = (544, 960)
-    if train: 
-        return transforms.TrainTransforms(base_size, crop_size, num_classes, args.downsampling_factor) 
+    if train:
+        return transforms.TrainTransforms(base_size, crop_size, num_classes, args.downsampling_factor)
     return transforms.ValTransforms(base_size, crop_size, num_classes, args.downsampling_factor)
 
 def evaluate(model, focal_loss, data_loader, device, num_classes):
@@ -161,7 +161,7 @@ def main(args):
 
         train_one_epoch(model, criterion_train, optimizer, data_loader,
                         lr_scheduler, device, epoch, args.print_freq, writer)
-                        
+
         class_wise_eval_focal_loss = evaluate(
             model, criterion_test, data_loader_test, device=device, num_classes=num_classes)
         writer.add_scalars(
@@ -197,6 +197,8 @@ def parse_args():
     parser.add_argument(
         '--model', default='deeplabv3__mobilenet_v3_large', help='model')
     parser.add_argument('--device', default='cuda', help='device')
+    parser.add_argument('--num-classes', default=1, type=int,
+                        help='number of classes (default: 1)')
     parser.add_argument('-b', '--batch-size', default=8, type=int)
     parser.add_argument('--epochs', default=140, type=int, metavar='N',
                         help='number of total epochs to run')
@@ -206,7 +208,7 @@ def parse_args():
     parser.add_argument('--lr', default=0.01, type=float,
                         help='initial learning rate')
     parser.add_argument('--lr_step', default=140, type=int,
-        help='when to decrease lr')     
+        help='when to decrease lr')
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                         help='momentum')
     parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,

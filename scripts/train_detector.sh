@@ -1,4 +1,4 @@
-. scripts/shell_variables.sh 
+. scripts/shell_variables.sh
 
 downsampling_factor='4'
 alpha='2'
@@ -8,17 +8,14 @@ lr_step=140
 model_name='mobilenetv3small'
 dataset='surfrider'
 batch_size=16
-experiment_name='3500_images_mobilenet'
+experiment_name='full_classes_cpu'
+num_classes=9
 
 output_dir='experiments/detection/'${experiment_name}
-create_clean_directory $output_dir 
+create_clean_directory $output_dir
 
-# trap "exit" INT TERM 
-# trap "kill 0" EXIT
 
-# tensorboard --logdir=${output_dir} & 
-
-nohup python src/train_detector.py \
+python src/train_detector.py \
     --model ${model_name} \
     --dataset ${dataset} \
     --data-path ${IMAGES} \
@@ -29,7 +26,9 @@ nohup python src/train_detector.py \
     --alpha ${alpha} \
     --beta ${beta} \
     --lr ${lr} \
-    --epochs 290 \
-    --lr_step ${lr_step} &> ${output_dir}/logs.out &
-
-
+    --device cpu \
+    --epochs 5 \
+    --batch-size 4 \
+    --workers 4 \
+    --num-classes ${num_classes}\
+    --lr_step ${lr_step}
