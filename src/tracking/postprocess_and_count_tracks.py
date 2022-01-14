@@ -32,7 +32,7 @@ def postprocess_for_api(results):
 
     for res in results:
         frame_number = res[0]
-        box = [res[2], res[3], res[2], res[3]]
+        box = [round(res[2],1), round(res[3],1), round(res[2],1), round(res[3],1)]
         id = res[1]
         # if the id is not already is the results, add a new jsonline
         if id not in id_list:
