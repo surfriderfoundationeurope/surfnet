@@ -48,6 +48,14 @@ Then, in order to test your local server, you may run:
 curl -X POST http://127.0.0.1:5000/ -F 'file=@/path/to/video.mp4'
 ```
 
+## Configuration
+
+`src/serving/inference.py` contains a Configuration dictionary that you may change:
+- `skip_frames` : `3` number of frames to skip. Increase to make the process faster and less accurate.
+- `kappa`: `7` the moving average window. `1` prevents the average, avoid `2` which is ill-defined.
+- `tau`: `4` the number of consecutive observations necessary to keep a track. If you increase `skip_frames`, you should lower `tau`.
+
+
 ## Datasets and Training
 
 Consider other branches for that!

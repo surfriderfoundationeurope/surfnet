@@ -67,6 +67,8 @@ def threshold(tracklets, tau):
 
 
 def compute_moving_average(tracklet, kappa):
+    if len(tracklet)==0 or len(tracklet[0])==0:
+        return tracklet
     pad = (kappa-1)//2
     observation_points = np.zeros(tracklet[-1][0] - tracklet[0][0] + 1)
     first_frame_id = tracklet[0][0] - 1
@@ -74,7 +76,7 @@ def compute_moving_average(tracklet, kappa):
         frame_id = observation[0] - 1
         observation_points[frame_id - first_frame_id] = 1
     density_fill = convolve(observation_points, np.ones(kappa)/kappa, mode='same')
-    if len(observation_points) >= kappa:
+    if pad>0 and len(observation_points) >= kappa:
         density_fill[:pad] = density_fill[pad:2*pad]
         density_fill[-pad:] = density_fill[-2*pad:-pad]
     density_fill = observation_points * density_fill
