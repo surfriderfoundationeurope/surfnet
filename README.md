@@ -23,7 +23,7 @@
 
 ## Installation
 
-## Release Branch - Installation
+## Dev Branch - Installation
 
 
 Follow these steps in that order exactly:
@@ -60,19 +60,37 @@ cd ..
 
 This will download the 3 videos in distinct folders of [data/validation_videos](data/validation_videos).
 
-## Serving
+## Run
 
-Setting up the server and testing; from the main directory, you may run a local flask test server with the following command:
+If you have custom videos, add them to [data/validation_videos](data/validation_videos) in a new subfolder. Then:
 
 ```shell
-export FLASK_APP=src/serving/app.py
-flask run
+sh scripts/track.sh
 ```
 
-Then, in order to test your local server, you may run:
+By default, this runs tracking on the first riverbank sequence (T1). You can change to the `--arch` parameter to:
+* `mobilenet_v3_small`
+* `res_18`
+* `dla_34`
+
+The default harware used is the CPU, but you can change the `--device` parameter to `cuda` and PyTorch will automatically select a GPU if there is one. In this case you should set a higher `--detection_batch_size` to improve detection speed. You can also add `--preload_frames` if you want all video frames to be loaded into the RAM before detections and tracking.
+
+The tracking and count results will be in [experiments/tracking](experiments/tracking) in the subfolder of your experiment (default="test").
+
+If you want to overlay the tracks on the video, run:
+
 ```shell
-curl -X POST http://127.0.0.1:5000/ -F 'file=@/path/to/video.mp4'
+python src/overlay_tracking_results_on_video.py \
+    --input_video <path-to-video> \
+    --input_mot_file <path-to-tracking-results-for-video> \
+    --write True \
+    --output_name <name-of-the-output-file> \
+    --skip_frames <nb-of-skipped-frames-when-tracking>
 ```
+
+Note that by default we set `skip_frames = 3` in [scripts/track.sh](scripts/track.sh) so that everything is read at 6fps. You must use the same number when generating the overlay.
+If you set `--write False` the overlay will be directly displayed without saving to a file and you must use the keyboard to step into the next frame.
+
 
 ## Datasets and Training
 
@@ -123,3 +141,21 @@ python src/datasets/coco_split_train_test.py
 if you have downloaded the small dataset, replace the `mv` command by a merge command: `python src/datasets/merge_coco_annotations.py`
 
 This will download the remaining annotations, merge them with the previous ones, and re-split into train and test.
+
+### training
+
+see `train_detector.py` to run training.
+
+## Serving (dev mode)
+
+From the main directory, you may run a local flask test server with the following command:
+
+```shell
+export FLASK_APP=src/serving/app.py
+flask run
+```
+
+Then, in order to test your local server, you may run:
+```shell
+curl -X POST http://127.0.0.1:5000/ -F 'file=@/path/to/video.mp4'
+```
