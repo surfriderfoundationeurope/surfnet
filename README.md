@@ -4,7 +4,7 @@
 
 Follow these steps in that order exactly:
 ```shell
-git clone https://github.com/mchagneux/surfnet.git <folder-for-surfnet> -b release
+git clone https://github.com/surfriderfoundationeurope/surfnet.git <folder-for-surfnet> -b release
 conda create -n surfnet pytorch torchvision -c pytorch
 conda activate surfnet
 cd <folder-for-surfnet>
