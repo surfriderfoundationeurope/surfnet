@@ -2,7 +2,6 @@
 *.MP4
 *.json
 __pycache__/
-*.pth
 *.pickle
 *.mp4
 *.pyc
