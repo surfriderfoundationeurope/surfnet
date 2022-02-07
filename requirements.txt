@@ -8,4 +8,5 @@ imgaug
 psycopg2-binary
 flask
 werkzeug
+gunicorn
 git+https://github.com/pykalman/pykalman.git
