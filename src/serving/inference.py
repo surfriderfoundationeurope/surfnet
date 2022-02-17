@@ -18,46 +18,26 @@ from tracking.utils import get_detections_for_video, write_tracking_results_to_f
 from tracking.track_video import track_video
 from tools.video_readers import IterableFrameReader
 from tools.misc import load_model
+from tools.files import download_model_from_url, create_unique_folder
 from tracking.trackers import get_tracker
 import torch
 
-
-class DotDict(dict):
-    """dot.notation access to dictionary attributes"""
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-
-config_track = DotDict({
-    "confidence_threshold": 0.5,
-    "detection_threshold": 0.3,
-    "downsampling_factor": 4,
-    "noise_covariances_path": "data/tracking_parameters",
-    "output_shape": (960,544),
-    "skip_frames": 3, #3
-    "arch": "mobilenet_v3_small",
-    "device": "cpu",
-    "detection_batch_size": 1,
-    "display": 0,
-    "kappa": 7, #7
-    "tau": 4 #4
-})
+from serving.config import id_categories, config_track
 
 
 UPLOAD_FOLDER = '/tmp'  # folder used to store images or videos when sending files
 logger = logging.getLogger()
+if config_track.device is None:
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+else:
+    device = config_track.device
+device = torch.device(device)
 
+engine = get_tracker('EKF')
 
-def create_unique_folder(base_folder, filename):
-    """Creates a unique folder based on the filename and timestamp
-    """
-    folder_name = os.path.splitext(os.path.basename(filename))[0] + "_out_"
-    folder_name += datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-    output_dir = os.path.join(base_folder, folder_name)
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-    return output_dir
+logger.info('---Loading model...')
+model = load_model(arch=config_track.arch, model_weights=config_track.model_weights, device=device)
+logger.info('---Model loaded.')
 
 
 def handle_post_request(upload_folder = UPLOAD_FOLDER):
@@ -92,23 +72,12 @@ def handle_post_request(upload_folder = UPLOAD_FOLDER):
     filtered_results = track(config_track)
 
     # postprocess
-    output_json = postprocess_for_api(filtered_results)
+    output_json = postprocess_for_api(filtered_results, id_categories)
     response = jsonify(output_json)
     response.status_code = 200
     return response
 
 def track(args):
-    if args.device is None:
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    else:
-        device = args.device
-    device = torch.device(device)
-
-    engine = get_tracker('EKF')
-
-    logger.info('---Loading model...')
-    model = load_model(arch=args.arch, model_weights=args.model_weights, device=device)
-    logger.info('---Model loaded.')
 
     detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
 
