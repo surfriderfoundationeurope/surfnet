@@ -75,6 +75,10 @@ def handle_post_request(upload_folder = UPLOAD_FOLDER):
     output_json = postprocess_for_api(filtered_results, id_categories)
     response = jsonify(output_json)
     response.status_code = 200
+
+    # Remove temp files (esp. the video):
+    os.remove(full_filepath)
+
     return response
 
 def track(args):
@@ -102,7 +106,7 @@ def track(args):
 
     logger.info('---Tracking...')
     display = None
-    
+
     results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance, display)
     reader.video.release()
     # store unfiltered results
