@@ -1,7 +1,8 @@
 import cv2
-import torch 
-from tqdm import tqdm 
+import torch
+from tqdm import tqdm
 from itertools import cycle
+
 class AdvancedFrameReader:
     def __init__(self, video_name, read_every, rescale_factor, init_time_min, init_time_s):
 
@@ -12,7 +13,7 @@ class AdvancedFrameReader:
 
         if rescale_factor != 1:
             self.set_rescale_factor(rescale_factor)
-        else: 
+        else:
             self.original_shape_mode = True
 
         self.init_rescale_factor = rescale_factor
@@ -22,23 +23,23 @@ class AdvancedFrameReader:
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)/read_every
         print(f'Reading at {self.fps:.2f} fps')
 
-        self.set_time_position(init_time_min, init_time_s)     
+        self.set_time_position(init_time_min, init_time_s)
         self.init_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
         self.total_num_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
 
     def post_process(self, ret, frame):
-        if ret: 
+        if ret:
             if self.original_shape_mode:
                 return ret, frame
             else:
                 return ret, cv2.resize(frame, self.new_shape)
         else:
-            return ret, [] 
+            return ret, []
 
     def skip(self):
         if not self.nb_frames_read:
-            return 
+            return
         else:
             for _ in range(self.frame_skip):
                 self.cap.read()
@@ -59,7 +60,7 @@ class AdvancedFrameReader:
 
     def reset_init_frame(self):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES,int(self.init_frame))
-        self.nb_frames_read = 0 
+        self.nb_frames_read = 0
 
     def set_init_frame(self, init_frame):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, int(init_frame))
@@ -79,16 +80,22 @@ class AdvancedFrameReader:
     def reset_init_rescale_factor(self):
         self.set_rescale_factor(self.init_rescale_factor)
 
-class IterableFrameReader:
 
-    def __init__(self, video_filename, skip_frames=0, output_shape=None, progress_bar=False, preload=False):
+class IterableFrameReader:
+    def __init__(self, video_filename, skip_frames=0, output_shape=None, progress_bar=False, preload=False, max_frame=0):
+        self.video_filename = video_filename
+        self.max_frame_arg = max_frame
 
         self.video = cv2.VideoCapture(video_filename)
         self.input_shape = (self.video.get(cv2.CAP_PROP_FRAME_WIDTH), self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.skip_frames = skip_frames
         self.preload = preload
+        self.total_num_frames = self.video.get(cv2.CAP_PROP_FRAME_COUNT)
 
-        if output_shape is None: 
+        self.max_num_frames = min(max_frame, self.total_num_frames) if max_frame!=0 else self.total_num_frames
+        self.counter = 0
+
+        if output_shape is None:
             w, h = self.input_shape
             new_h = (h | 31) + 1
             new_w = (w | 31) + 1
@@ -99,29 +106,38 @@ class IterableFrameReader:
         self.fps = self.video.get(cv2.CAP_PROP_FPS) / (self.skip_frames+1)
 
         print(f'Reading video at {self.fps}fps.')
-        if progress_bar: 
+        if progress_bar:
             self.progress_bar = tqdm(total=int(self.video.get(cv2.CAP_PROP_FRAME_COUNT)/(self.skip_frames+1)), leave=True)
             self.progress_bar_update = self.progress_bar.update
-        else: 
+        else:
             self.progress_bar_update = lambda: None
-        
-        if self.preload: 
+
+        if self.preload:
             print('Preloading frames in RAM...')
             self.frames = self._load_all_frames()
-            self.counter = 0 
+            self.counter = 0
 
-    def _load_all_frames(self): 
+
+    def reset_video(self):
+        """ This method is needed as cv2.CAP_PROP_POS_FRAMES
+        does not work on all backends
+        """
+        self.video.release()
+        self.__init__(self.video_filename, self.skip_frames, self.output_shape,
+                      self.progress_bar is not None, self.preload, self.max_frame_arg)
+
+    def _load_all_frames(self):
         frames = []
-        while True:            
+        while True:
             ret, frame = self._read_frame()
-            if ret: 
+            if ret:
                 frames.append(frame)
             else: break
         if self.progress_bar: self.progress_bar.reset()
         return frames
 
     def __next__(self):
-        if self.preload: 
+        if self.preload:
             if self.counter < len(self.frames):
                 frame = self.frames[self.counter]
                 self.counter+=1
@@ -129,12 +145,10 @@ class IterableFrameReader:
                 return frame
         else:
             ret, frame = self._read_frame()
-            if ret: 
-                return frame 
+            if ret:
+                return frame
 
-        self.counter=0
-        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        if self.progress_bar: self.progress_bar.reset()
+        self.reset_video()
         raise StopIteration
 
     def _read_frame(self):
@@ -146,11 +160,11 @@ class IterableFrameReader:
         return ret, frame
 
     def __iter__(self):
-        return self 
-        
+        return self
+
     def _skip_frames(self):
         for _ in range(self.skip_frames):
-            self.video.read()        
+            self.video.read()
 
 class SimpleVideoReader:
     def __init__(self, video_filename, skip_frames=0):
@@ -184,10 +198,3 @@ class TorchIterableFromReader(torch.utils.data.IterableDataset):
     def __iter__(self):
         for frame in self.reader:
             yield self.transforms(frame)
-
-
-        
-        
-
-        
-
