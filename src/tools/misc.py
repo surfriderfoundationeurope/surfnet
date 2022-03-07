@@ -173,7 +173,7 @@ def load_checkpoint(model, trained_model_weights_filename):
 
 def load_model(arch, model_weights, device):
 
-    if model_weights is None: 
+    if model_weights is None:
         if arch == 'mobilenet_v3_small':
             model_weights = 'models/mobilenet_v3_pretrained.pth'
             arch = 'mobilenetv3small'
@@ -182,14 +182,14 @@ def load_model(arch, model_weights, device):
         elif arch == 'dla_34':
             model_weights = 'models/dla_34_pretrained.pth'
 
-    heads = {'hm':1} if arch != 'dla_34' else {'hm':1, 'wh':2}       
-    
+    heads = {'hm':1} if arch != 'dla_34' else {'hm':1, 'wh':2}
+
     model = create_base(arch, heads=heads, head_conv=256).to(device)
     model = load_checkpoint(model, model_weights)
     for param in model.parameters():
         param.requires_grad = False
     model.eval()
-    
+
     return model
 
 def _calculate_euclidean_similarity(distances, zero_distance):

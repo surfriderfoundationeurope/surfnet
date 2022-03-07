@@ -119,6 +119,9 @@ def read_tracking_results(input_file):
     if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
     tracklets = defaultdict(list)
     for result in raw_results:
+        # Skip blank lines
+        if result is None or len(result)==0:
+            continue
         frame_id = int(result[0])
         track_id = int(result[1])
         left, top, width, height = result[2:6]

@@ -1,13 +1,13 @@
 .vscode/
 *.MP4
-*.json 
+*.json
 __pycache__/
-*.pth
 *.pickle
 *.mp4
 *.pyc
 scripts/shell_variables.sh
 *.png
+*.log
 experiments/evaluations
 experiments/extension
 app_demo_livrable/

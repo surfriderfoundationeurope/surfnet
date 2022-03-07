@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 from scipy.signal import convolve
 from tracking.utils import write_tracking_results_to_file, read_tracking_results
+from collections import defaultdict
 
 import json
 
@@ -16,15 +17,16 @@ def filter_tracks(tracklets, kappa, tau):
         tracks = filter_by_nb_consecutive_obs(tracklets, kappa, tau)
     else: tracks = tracklets
     results = []
-    for tracker_nb, associated_detections in enumerate(tracks):
-        for associated_detection in associated_detections:
-            results.append((associated_detection[0], tracker_nb, associated_detection[1], associated_detection[2]))
+    for tracker_nb, dets in enumerate(tracks):
+        for det in dets:
+            # Confidence: 1.0, class: 0 (fragment)
+            results.append((det[0], tracker_nb, det[1], det[2], 1.0, 0))
 
     results = sorted(results, key=lambda x: x[0])
     return results
 
 
-def postprocess_for_api(results):
+def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
     """ Converts tracking results into json object for API
     """
     result_list = []
@@ -32,19 +34,30 @@ def postprocess_for_api(results):
 
     for res in results:
         frame_number = res[0]
-        box = [res[2], res[3], res[2], res[3]]
+        box = [round(res[2],1), round(res[3],1), round(res[2],1), round(res[3],1)]
         id = res[1]
+        conf = round(res[4],2)
+        classname = class_dict[res[5]]
         # if the id is not already is the results, add a new jsonline
         if id not in id_list:
             id_list[id] = len(result_list)
-            result_list.append({"label":"fragments",
-                                "id": id,
-                                "frame_to_box": {str(frame_number): box}})
-        # otherwise, retrieve the jsonline and append the box
+            result_list.append({"label":classname, "id": id, "frame_to_box": {str(frame_number): box}})
+
+            # otherwise, retrieve the jsonline and append the box
         else:
             result_list[id_list[id]]["frame_to_box"][str(frame_number)] = box
+
     return {"detected_trash": result_list}
 
+
+def count_objects(input_json, class_dict):
+    results = {v:0 for v in class_dict.values()}
+    total = 0
+    for trash in input_json["detected_trash"]:
+        results[trash["label"]] += 1
+        total += 1
+
+    return {k+f": {str(v)}":v/total for k,v in results.items()}
 
 def write(results, output_name):
     """ Writes the results in two files:
@@ -67,6 +80,8 @@ def threshold(tracklets, tau):
 
 
 def compute_moving_average(tracklet, kappa):
+    if len(tracklet)==0 or len(tracklet[0])==0:
+        return tracklet
     pad = (kappa-1)//2
     observation_points = np.zeros(tracklet[-1][0] - tracklet[0][0] + 1)
     first_frame_id = tracklet[0][0] - 1
@@ -74,7 +89,7 @@ def compute_moving_average(tracklet, kappa):
         frame_id = observation[0] - 1
         observation_points[frame_id - first_frame_id] = 1
     density_fill = convolve(observation_points, np.ones(kappa)/kappa, mode='same')
-    if len(observation_points) >= kappa:
+    if pad>0 and len(observation_points) >= kappa:
         density_fill[:pad] = density_fill[pad:2*pad]
         density_fill[-pad:] = density_fill[-2*pad:-pad]
     density_fill = observation_points * density_fill
