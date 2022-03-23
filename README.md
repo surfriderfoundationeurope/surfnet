@@ -1,2 +1,2 @@
-# yolov5
-Train yolov5 object detection model 
+# YOLOv5 Train test
+/!\ Check train-1 branch to see all changes /!\ 
