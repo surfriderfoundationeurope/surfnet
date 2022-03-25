@@ -26,6 +26,16 @@ def filter_tracks(tracklets, kappa, tau):
     return results
 
 
+def process_class_and_confidences(class_confs):
+    ''' Finds the majority and most confident class from list [(classid, conf), ...]
+    '''
+    d = defaultdict(lambda: (0, 0.0))
+    for (cls, conf) in class_confs:
+        d[cls] = (d[cls][0] + 1, d[cls][1] + conf)
+    best_class = sorted(d.items(), key=lambda v: v[1][0]+v[1][1])[-1]
+    return best_class[0], round(best_class[1][1]/best_class[1][0],2)
+
+
 def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
     """ Converts tracking results into json object for API
     """
@@ -44,20 +54,18 @@ def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
             result_list.append({"label":classname,
                                 "id": id,
                                 "frame_to_box": {str(frame_number): box},
-                                "frame_to_conf": {str(frame_number): conf},
-                                "frame_to_classid": {str(frame_number): res[5]}})
+                                "frame_to_class_conf": {str(frame_number): (res[5], conf)}})
         # otherwise, retrieve the jsonline and append the box
         else:
             result_list[id_list[id]]["frame_to_box"][str(frame_number)] = box
-            result_list[id_list[id]]["frame_to_conf"][str(frame_number)] = conf
-            result_list[id_list[id]]["frame_to_classid"][str(frame_number)] = res[5]
+            result_list[id_list[id]]["frame_to_class_conf"][str(frame_number)] = (res[5], conf)
 
     # Finally, collapse the confidence and class
     for res in result_list:
-        avg_conf = np.mean(list(res.pop("frame_to_conf").values()))
-        res["avg_conf"] = round(avg_conf, 2)
-        majority_classid = mode(list(res.pop("frame_to_classid").values()))
-        res["label"] = class_dict[majority_classid]
+        classid, avg_conf = process_class_and_confidences(res.pop("frame_to_class_conf").values())
+        res["avg_conf"] = avg_conf
+        # update the label
+        res["label"] = class_dict[classid]
 
     return {"detected_trash": result_list}
 
