@@ -19,6 +19,7 @@ class DotDict(dict):
 
 
 config_track = DotDict({
+    "upload_folder": "/tmp",
     "confidence_threshold": 0.004,
     "detection_threshold": 0.3,
     "downsampling_factor": 4,
