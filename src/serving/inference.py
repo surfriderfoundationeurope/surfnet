@@ -21,6 +21,14 @@ from tools.misc import load_model
 from tools.files import download_model_from_url, create_unique_folder
 from tracking.trackers import get_tracker
 import torch
+# Optional Intel Deep Learning boost import
+try:
+    import intel_extension_for_pytorch as ipex
+    print('Intel Deep Learning Boost module imported')
+    intel_dl_boost = True
+except ImportError:
+    intel_dl_boost = False
+    pass
 
 from serving.config import id_categories, config_track
 
@@ -37,6 +45,8 @@ engine = get_tracker('EKF')
 
 logger.info('---Loading model...')
 model = load_model(arch=config_track.arch, model_weights=config_track.model_weights, device=device)
+if intel_dl_boost == True:
+    model = ipex.optimize(model)
 logger.info('---Model loaded.')
 
 
@@ -75,10 +85,6 @@ def handle_post_request(upload_folder = UPLOAD_FOLDER):
     output_json = postprocess_for_api(filtered_results, id_categories)
     response = jsonify(output_json)
     response.status_code = 200
-
-    # Remove temp files (esp. the video):
-    os.remove(full_filepath)
-
     return response
 
 def track(args):
@@ -106,9 +112,8 @@ def track(args):
 
     logger.info('---Tracking...')
     display = None
-
     results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance, display)
-    reader.video.release()
+
     # store unfiltered results
     datestr = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
     output_filename = os.path.splitext(args.video_path)[0] + "_" + datestr + '_unfiltered.txt'
