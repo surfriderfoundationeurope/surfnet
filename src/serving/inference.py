@@ -11,7 +11,7 @@ import logging
 import warnings
 
 # imports for tracking
-from detection.yolo import load_model, predict_yolo, DetectTorchScript
+from detection.yolo import load_model, predict_yolo
 from tracking.postprocess_and_count_tracks import filter_tracks, postprocess_for_api
 from tracking.utils import write_tracking_results_to_file, read_tracking_results
 from tracking.track_video import track_video
@@ -35,14 +35,6 @@ model_yolo = load_model(model_path, config_track.device,
                                     config_track.yolo_conf_thrld,
                                     config_track.yolo_iou_thrld)
 
-logger.info('---Yolo torchscript model...')
-URL_MODEL = "https://github.com/surfriderfoundationeurope/IA_Pau/releases/download/v0.2/yolov5.torchscript"
-FILE_MODEL = "yolov5.torchscript"
-model_path = download_model_from_url(URL_MODEL, FILE_MODEL, logger)
-model_yolo_ts = DetectTorchScript(model_path, config_track.device,
-                                    config_track.yolo_conf_thrld,
-                                    config_track.yolo_iou_thrld,
-                                    id_categories)
 
 engine = get_tracker('EKF')
 
@@ -94,7 +86,6 @@ def handle_post_request(upload_folder = UPLOAD_FOLDER):
 
 def track(args):
     detector = lambda frame: predict_yolo(model_yolo, frame, size=args.size, augment=False)
-    # detector = lambda frame: model_yolo_ts.detect(frame)
 
     logger.info(f'---Processing {args.video_path}')
     reader = IterableFrameReader(video_filename=args.video_path,
