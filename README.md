@@ -187,6 +187,19 @@ make surfnet-prod-build-docker # docker build
 make surfnet-prod-run-docker # docker run
 ```
 
+### Kubernetes
+To ease production operation, the surfnet API can be deployed on top of kubernetes (k8s) cluster. A pre-built Docker image is available on ghcr.io to be deployed using the surfnet.yaml k8s deployment file. To do so, change directory to k8s/, then once you are connected to your k8s cluster simply enter:
+```shell
+kubectl apply -y surfnet.yaml
+```
+Remark: we use a specific surfnet k8s node pool label for our Azure production environment on aks. If you want to test deployment on a default k8s cluster using system nodes, you have either to use default surfnet.yaml file or remove the nodeSelector section from others deployment files (aks, gke).
+
+After the deployment is done, create a service to expose the surfnet API to be publicly accessible over the Internet.
+```shell
+kubectl expose deployment surfnet --type=LoadBalancer --name=surfnet-api
+kubectl get service surfnet-api
+```
+
 ## Configuration
 
 `src/serving/inference.py` contains a Configuration dictionary that you may change:

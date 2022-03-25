@@ -19,7 +19,7 @@ class DotDict(dict):
 
 
 config_track = DotDict({
-    "confidence_threshold": 0.5,
+    "confidence_threshold": 0.004,
     "detection_threshold": 0.3,
     "downsampling_factor": 4,
     "noise_covariances_path": "data/tracking_parameters",
@@ -29,8 +29,8 @@ config_track = DotDict({
     "device": "cpu",
     "detection_batch_size": 1,
     "display": 0,
-    "kappa": 7, #7
-    "tau": 4 #4
+    "kappa": 5, #7
+    "tau": 3 #4
 })
 
 logging_config = {
