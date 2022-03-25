@@ -105,8 +105,7 @@ def track(args):
     results = track_video(reader, iter(detections), args, engine, transition_variance, observation_variance, display)
     reader.video.release()
     # store unfiltered results
-    datestr = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-    output_filename = os.path.splitext(args.video_path)[0] + "_" + datestr + '_unfiltered.txt'
+    output_filename = Path(args.output_dir) / 'results_unfiltered.txt'
     write_tracking_results_to_file(results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
     logger.info('---Filtering...')
 
@@ -114,7 +113,7 @@ def track(args):
     results = read_tracking_results(output_filename)
     filtered_results = filter_tracks(results, config_track.kappa, config_track.tau)
     # store filtered results
-    output_filename = os.path.splitext(args.video_path)[0] + "_" + datestr + '_filtered.txt'
+    output_filename = Path(args.output_dir) / 'results.txt'
     write_tracking_results_to_file(filtered_results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
     return filtered_results
