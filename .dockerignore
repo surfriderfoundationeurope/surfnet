@@ -1,0 +1,4 @@
+# do not take into account data
+data/images
+data/external_detections
+data/validation_videos

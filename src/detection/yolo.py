@@ -42,10 +42,11 @@ def voc2centerdims(bboxes):
     bboxes[..., 0:2] += bboxes[...,2:4]/2 # find center
     return bboxes
 
-def predict_yolo(model, img, size=768, augment=False):
+def predict_yolo(model, img, size=768, cvtColor=True, augment=False):
     """
     interpret yolo prediction object
     """
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     results = model(img, size=size, augment=augment)
     preds   = results.pandas().xyxy[0]
     bboxes  = preds[['xmin','ymin','xmax','ymax']].values # voc format
