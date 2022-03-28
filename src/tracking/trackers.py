@@ -193,7 +193,7 @@ class EKF(Tracker):
 
         filtered_state_mean, filtered_state_covariance = self.EKF_step(None, flow)
 
-        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance)
+        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance, allow_singular=True)
 
         return distribution
 

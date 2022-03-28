@@ -1,4 +1,5 @@
 scikit-image
+scikit-video
 opencv-python
 torch
 torchvision
@@ -14,4 +15,3 @@ werkzeug
 gunicorn
 git+https://github.com/pykalman/pykalman.git
 yolov5
-moviepy
