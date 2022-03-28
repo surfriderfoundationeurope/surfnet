@@ -8,8 +8,8 @@ from tools.video_readers import TorchIterableFromReader
 from time import time
 from detection.transforms import TransformFrames
 from collections import defaultdict
-from moviepy.editor import ImageSequenceClip
 from skimage.transform import downscale_local_mean
+from skvideo.io import FFmpegWriter
 import matplotlib.pyplot as plt
 
 
