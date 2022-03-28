@@ -11,3 +11,6 @@ scripts/shell_variables.sh
 experiments/evaluations
 experiments/extension
 app_demo_livrable/
+*.pth
+*.pt
+.ipynb_checkpoints/
