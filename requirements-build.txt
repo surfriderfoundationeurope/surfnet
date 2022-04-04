@@ -1,2 +1,2 @@
 git+https://github.com/pykalman/pykalman.git
-pip install plastic-origins==0.0.9
+plastic-origins==0.0.9
