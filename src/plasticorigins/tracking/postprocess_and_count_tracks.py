@@ -3,7 +3,6 @@ import argparse
 from scipy.signal import convolve
 from plasticorigins.tracking.utils import write_tracking_results_to_file, read_tracking_results
 from collections import defaultdict
-
 import json
 
 
@@ -19,11 +18,20 @@ def filter_tracks(tracklets, kappa, tau):
     results = []
     for tracker_nb, dets in enumerate(tracks):
         for det in dets:
-            # Confidence: 1.0, class: 0 (fragment)
-            results.append((det[0], tracker_nb, det[1], det[2], 1.0, 0))
+            results.append((det[0], tracker_nb, det[1], det[2], det[3], det[4]))
 
     results = sorted(results, key=lambda x: x[0])
     return results
+
+
+def process_class_and_confidences(class_confs):
+    ''' Finds the majority and most confident class from list [(classid, conf), ...]
+    '''
+    d = defaultdict(lambda: (0, 0.0))
+    for (cls, conf) in class_confs:
+        d[cls] = (d[cls][0] + 1, d[cls][1] + conf)
+    best_class = sorted(d.items(), key=lambda v: v[1][0]+v[1][1])[-1]
+    return best_class[0], round(best_class[1][1]/best_class[1][0],2)
 
 
 def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
@@ -41,11 +49,21 @@ def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
         # if the id is not already is the results, add a new jsonline
         if id not in id_list:
             id_list[id] = len(result_list)
-            result_list.append({"label":classname, "id": id, "frame_to_box": {str(frame_number): box}})
-
-            # otherwise, retrieve the jsonline and append the box
+            result_list.append({"label":classname,
+                                "id": id,
+                                "frame_to_box": {str(frame_number): box},
+                                "frame_to_class_conf": {str(frame_number): (res[5], conf)}})
+        # otherwise, retrieve the jsonline and append the box
         else:
             result_list[id_list[id]]["frame_to_box"][str(frame_number)] = box
+            result_list[id_list[id]]["frame_to_class_conf"][str(frame_number)] = (res[5], conf)
+
+    # Finally, collapse the confidence and class
+    for res in result_list:
+        classid, avg_conf = process_class_and_confidences(res.pop("frame_to_class_conf").values())
+        res["avg_conf"] = avg_conf
+        # update the label
+        res["label"] = class_dict[classid]
 
     return {"detected_trash": result_list}
 
@@ -57,7 +75,10 @@ def count_objects(input_json, class_dict):
         results[trash["label"]] += 1
         total += 1
 
+    if total==0:
+        total = 1
     return {k+f": {str(v)}":v/total for k,v in results.items()}
+
 
 def write(results, output_name):
     """ Writes the results in two files:

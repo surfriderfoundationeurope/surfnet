@@ -4,26 +4,25 @@ from plasticorigins.tracking.utils import in_frame, exp_and_normalise, GaussianM
 from pykalman import KalmanFilter, AdditiveUnscentedKalmanFilter
 import matplotlib.patches as mpatches
 
+
 class Tracker:
-
-    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
-
+    def __init__(self, frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta):
         self.transition_covariance = np.diag(transition_variance)
         self.observation_covariance = np.diag(observation_variance)
         self.updated = False
         self.steps_since_last_observation = 0
         self.enabled = True
-        self.tracklet = [(frame_nb, X0)]
+        self.tracklet = [(frame_nb, X0, confidence, class_id)]
         self.delta = delta
 
-    def store_observation(self, observation, frame_nb):
-        self.tracklet.append((frame_nb, observation))
+    def store_observation(self, observation, frame_nb, confidence, class_id):
+        self.tracklet.append((frame_nb, observation, confidence, class_id))
         self.updated = True
 
     def update_status(self, flow):
         if self.enabled and not self.updated:
             self.steps_since_last_observation += 1
-            self.enabled = self.update(None, flow)
+            self.enabled = self.update(None, None, None, flow)
         else:
             self.steps_since_last_observation = 0
         self.updated = False
@@ -48,25 +47,33 @@ class Tracker:
 
         return lambda coord: confidence_from_multivariate_distribution(coord, distribution)
 
+    def cls_score_function(self, conf, label):
+        """ generates a score based on classes associated with observation in this tracker
+        """
+        class_conf = sum([tr[2] for tr in self.tracklet if tr[3]==label])
+        other_conf = sum([tr[2] for tr in self.tracklet])
+        return (class_conf+conf) / (other_conf+conf)
+
     def get_display_colors(self, display, tracker_nb):
         colors = display.colors
         color = colors[tracker_nb % len(colors)]
         display.legends.append(mpatches.Patch(color=color, label=len(self.tracklet)))
         return colors[tracker_nb % len(colors)]
 
+
 class SMC(Tracker):
     def set_param(param):
         SMC.n_particles = int(param)
 
-    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
-        super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
+    def __init__(self, frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta):
+        super().__init__(frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta)
 
         self.particles = multivariate_normal(
             X0, cov=self.observation_covariance).rvs(SMC.n_particles)
         self.normalized_weights = np.ones(SMC.n_particles)/SMC.n_particles
 
-    def update(self, observation, flow, frame_nb=None):
-        if observation is not None: self.store_observation(observation, frame_nb)
+    def update(self, observation, confidence, class_id, flow, frame_nb=None):
+        if observation is not None: self.store_observation(observation, frame_nb, confidence, class_id)
         self.resample()
         enabled = self.move_particles(flow)
         if observation is not None:
@@ -143,8 +150,8 @@ class SMC(Tracker):
 
 class EKF(Tracker):
 
-    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
-            super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
+    def __init__(self, frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta):
+            super().__init__(frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta)
             self.filter = KalmanFilter(initial_state_mean=X0,
                                        initial_state_covariance=self.observation_covariance,
                                        transition_covariance=self.transition_covariance,
@@ -172,8 +179,8 @@ class EKF(Tracker):
                                         transition_offset=transition_offset,
                                         observation=observation)
 
-    def update(self, observation, flow, frame_nb=None):
-        if observation is not None: self.store_observation(observation, frame_nb)
+    def update(self, observation, confidence, class_id, flow, frame_nb=None):
+        if observation is not None: self.store_observation(observation, frame_nb, confidence, class_id)
 
         self.filtered_state_mean, self.filtered_state_covariance = self.EKF_step(observation, flow)
 
@@ -185,7 +192,7 @@ class EKF(Tracker):
 
         filtered_state_mean, filtered_state_covariance = self.EKF_step(None, flow)
 
-        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance)
+        distribution = multivariate_normal(filtered_state_mean, filtered_state_covariance + self.observation_covariance, allow_singular=True)
 
         return distribution
 
@@ -201,8 +208,8 @@ class EKF(Tracker):
 
 class UKF(Tracker):
 
-    def __init__(self, frame_nb, X0, transition_variance, observation_variance, delta):
-            super().__init__(frame_nb, X0, transition_variance, observation_variance, delta)
+    def __init__(self, frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta):
+            super().__init__(frame_nb, X0, confidence, class_id, transition_variance, observation_variance, delta)
             self.filter = AdditiveUnscentedKalmanFilter(initial_state_mean=X0,
                                         initial_state_covariance=self.observation_covariance,
                                         observation_functions = lambda z: np.eye(2).dot(z),
@@ -219,8 +226,8 @@ class UKF(Tracker):
                                         observation=observation)
 
 
-    def update(self, observation, flow, frame_nb=None):
-        if observation is not None: self.store_observation(observation, frame_nb)
+    def update(self, observation, confidence, class_id, flow, frame_nb=None):
+        if observation is not None: self.store_observation(observation, frame_nb, confidence, class_id)
 
         self.filtered_state_mean, self.filtered_state_covariance = self.UKF_step(observation, flow)
 
@@ -264,6 +271,3 @@ def get_tracker(algorithm_and_params):
         tracker = trackers[algorithm_name]
 
     return tracker
-
-
-
