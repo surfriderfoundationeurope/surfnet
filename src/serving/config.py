@@ -32,6 +32,7 @@ config_track = DotDict({
     "display": 0,
     "kappa": 4, #7
     "tau": 3, #4
+    "upload_folder": "/tmp"
 })
 
 logging_config = {
