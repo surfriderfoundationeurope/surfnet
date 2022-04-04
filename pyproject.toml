@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "plastic-origins"
+version = "0.0.9"
+description = "A package containing methods commonly used to make inferences"
+authors = ["Chayma Mesbahi <chayma.mesbahi@neoxia.com>"]
+license = "MIT"
+
+packages = [
+    { include = "plasticorigins", from = "src" },
+]
+
+[tool.poetry.dependencies]
+python = "3.7"
+opencv-python = "4.5.5.62"
+pycocotools = "2.0.4"
+debugpy = "1.5.1"
+scipy = "1.7.3"
+tqdm = "4.62.3"
+imgaug = "0.4.0"
+psycopg2-binary = "2.8.5"
+Flask = "2.0.3"
+Werkzeug = "2.0.3"
+gunicorn = "19.10.0"
+torch = "1.10.1"
+torchvision = "0.11.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

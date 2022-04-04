@@ -1,6 +1,6 @@
 .vscode/
 *.MP4
-*.json 
+*.json
 __pycache__/
 *.pth
 *.pickle
@@ -11,3 +11,5 @@ scripts/shell_variables.sh
 experiments/evaluations
 experiments/extension
 app_demo_livrable/
+.DS_Store
+dist/

@@ -10,4 +10,3 @@ werkzeug==2.0.3
 gunicorn==19.10.0
 torch==1.11.0
 torchvision==0.12.0
-git+https://github.com/pykalman/pykalman.git
