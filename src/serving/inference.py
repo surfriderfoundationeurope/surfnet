@@ -64,10 +64,14 @@ def handle_post_request():
     config_track.output_dir = working_dir.as_posix()
 
     # launch the tracking
-    filtered_results = track(config_track)
+    filtered_results, num_frames, fps = track(config_track)
 
     # postprocess
     output_json = postprocess_for_api(filtered_results, id_categories)
+    output_json["fps"] = round(fps, 2)
+    output_json["video_length"] = num_frames
+    output_json["video_id"] = filename
+
     response = jsonify(output_json)
     response.status_code = 200
 
@@ -90,6 +94,7 @@ def track(args):
                                  progress_bar=True,
                                  preload=args.preload_frames)
 
+    num_frames, fps = int(reader.max_num_frames / (args.skip_frames+1)), reader.fps
 
     input_shape = reader.input_shape
     output_shape = reader.output_shape
@@ -116,4 +121,4 @@ def track(args):
     output_filename = Path(args.output_dir) / 'results.txt'
     write_tracking_results_to_file(filtered_results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
 
-    return filtered_results
+    return filtered_results, num_frames, fps
