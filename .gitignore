@@ -13,3 +13,4 @@ experiments/extension
 app_demo_livrable/
 .DS_Store
 dist/
+*.log

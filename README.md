@@ -3,12 +3,29 @@
 ## Release Branch - Installation
 
 Follow these steps in that order exactly:
+
+### Clone the project
 ```shell
 git clone https://github.com/surfriderfoundationeurope/surfnet.git <folder-for-surfnet> -b release
 conda create -n surfnet pytorch torchvision -c pytorch
 conda activate surfnet
 cd <folder-for-surfnet>
 pip install -r requirements.txt
+```
+### Install Poetry
+```shell
+pip install poetry
+```
+
+### Create your virtual environment
+Here we use python version 3.8
+```shell
+poetry use 3.8
+```
+
+### Install dependencies
+```shell
+poetry install
 ```
 ## Downloading pretrained models
 
@@ -37,7 +54,7 @@ Setting up the server and testing: from surfnet/ directory, you may run a local 
 
 ```shell
 export FLASK_APP=src/serving/app.py
-flask run
+poetry run flask run
 ```
 
 ### Production
@@ -89,13 +106,39 @@ kubectl expose deployment surfnet --type=LoadBalancer --name=surfnet-api
 kubectl get service surfnet-api
 ```
 
+## Release plasticorigins to pypi:
+
+### Check or Bump version:
+
+Check the current version of the product:
+
+```shell
+poetry version
+```
+
+Bump the version to the product:
+
+```shell
+poetry version <bump-rule>
+```
+bump rules can be found in : https://python-poetry.org/docs/cli/#:~:text=with%20concrete%20examples.-,RULE,-BEFORE
+**choose carefully the one that corresponds to your bump (we usally will be using "patch" as a bump-rule**
+### Build the project
+```shell
+poetry build
+```
+
+### Publish the project to pypi:
+
+```shell
+poetry publish --username your_pypi_username --password your_pypi_password
+```
 ## Configuration
 
 `src/serving/inference.py` contains a Configuration dictionary that you may change:
 - `skip_frames` : `3` number of frames to skip. Increase to make the process faster and less accurate.
 - `kappa`: `7` the moving average window. `1` prevents the average, avoid `2` which is ill-defined.
 - `tau`: `4` the number of consecutive observations necessary to keep a track. If you increase `skip_frames`, you should lower `tau`.
-
 
 ## Datasets and Training
 
