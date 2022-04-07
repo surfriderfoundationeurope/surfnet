@@ -36,6 +36,12 @@ source = ["src"]
 [tool.coverage.run]
 branch = true
 source = ["plasticorigins","serving"]
+omit = ["src/plasticorigins/detection/centernet/networks/dlav0.py",
+        "src/plasticorigins/detection/centernet/networks/large_hourglass.py",
+        "src/plasticorigins/detection/centernet/networks/msra_resnet.py",
+        "src/plasticorigins/detection/centernet/networks/pose_dla_dcn.py",
+        "src/plasticorigins/detection/centernet/networks/resnet_dcn.py"
+        ]
 
 [tool.coverage.report]
 show_missing = true

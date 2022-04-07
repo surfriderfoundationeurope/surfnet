@@ -18,7 +18,7 @@ import os
 import math
 import numpy as np
 
-
+video_file = "tests/ressources/validation_videos/T1_trim.mp4"
 @pytest.fixture
 def client():
     return app.test_client()
@@ -26,7 +26,7 @@ def client():
 @pytest.mark.filterwarnings('ignore::DeprecationWarning') 
 def test_inference(client):
     
-    video = "tests/ressources/validation_videos/T1_720_px_converted_trim.mp4"
+    video = video_file
     file = FileStorage(
         stream=open(video, "rb"),
         filename="T1_720_px_converted_trim.mp4",
@@ -51,8 +51,8 @@ def test_inference(client):
         
 def test_track():
     
-    filename = "T1_720_px_converted_trim.mp4"
-    video = "tests/ressources/validation_videos/T1_720_px_converted_trim.mp4"
+    filename = video_file.split('/')[-1]
+    video = video_file
     file = FileStorage(
         stream=open(video, "rb"),
         filename="T1_720_px_converted_trim.mp4",
@@ -69,9 +69,9 @@ def test_track():
     # launch the tracking
     filtered_results, num_frames, fps = track(config_track)
     os.remove(full_filepath)
-    assert math.isclose(fps, 5.994,abs_tol=0.0001)
-    assert num_frames == 63
-    assert len(filtered_results) == 75 
+    assert math.isclose(fps, 5.921,abs_tol=0.01)
+    assert num_frames == 34
+    assert len(filtered_results) == 16 
     assert len(filtered_results[0]) == 6
     assert type(filtered_results[0][0]) == int
     assert type(filtered_results[0][1]) == int
