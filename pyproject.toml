@@ -26,6 +26,20 @@ torchvision = "0.11.2"
 pykalman = "0.9.5"
 
 [tool.poetry.dev-dependencies]
+pytest = "^7.1.1"
+coverage = "^6.3.2"
+
+# coverage configuration
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["plasticorigins","serving"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 10
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

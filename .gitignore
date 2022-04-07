@@ -14,3 +14,8 @@ app_demo_livrable/
 .DS_Store
 dist/
 *.log
+htmlcov/
+*.coverage
+.pytest_cache/
+
+!tests/ressources/validation_videos/T1_720_px_converted_trim.mp4

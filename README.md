@@ -7,10 +7,7 @@ Follow these steps in that order exactly:
 ### Clone the project
 ```shell
 git clone https://github.com/surfriderfoundationeurope/surfnet.git <folder-for-surfnet> -b release
-conda create -n surfnet pytorch torchvision -c pytorch
-conda activate surfnet
 cd <folder-for-surfnet>
-pip install -r requirements.txt
 ```
 ### Install Poetry
 ```shell
@@ -132,6 +129,12 @@ poetry build
 
 ```shell
 poetry publish --username your_pypi_username --password your_pypi_password
+```
+
+## Testing:
+To launch the tests you can run this command
+```shell
+poetry run coverage run -m pytest -s && poetry run coverage report -m
 ```
 ## Configuration
 
