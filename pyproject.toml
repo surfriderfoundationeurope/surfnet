@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "plastic-origins"
-version = "0.0.9"
+version = "1.0.0-alpha.0"
 description = "A package containing methods commonly used to make inferences"
 authors = ["Chayma Mesbahi <chayma.mesbahi@neoxia.com>"]
 license = "MIT"
@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = "3.8"
 opencv-python = "4.5.5.62"
 pycocotools = "2.0.4"
 debugpy = "1.5.1"
@@ -23,7 +23,8 @@ Werkzeug = "2.0.3"
 gunicorn = "19.10.0"
 torch = "1.10.1"
 torchvision = "0.11.2"
-pykalman = "0.9.5"
+scikit-video = "^1.1.11"
+pykalman = "^0.9.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
@@ -40,8 +41,7 @@ omit = ["src/plasticorigins/detection/centernet/networks/dlav0.py",
         "src/plasticorigins/detection/centernet/networks/large_hourglass.py",
         "src/plasticorigins/detection/centernet/networks/msra_resnet.py",
         "src/plasticorigins/detection/centernet/networks/pose_dla_dcn.py",
-        "src/plasticorigins/detection/centernet/networks/resnet_dcn.py"
-        ]
+        "src/plasticorigins/detection/centernet/networks/resnet_dcn.py"]
 
 [tool.coverage.report]
 show_missing = true
