@@ -9,10 +9,10 @@ import os
 
 
 def test_track_video():
-    config_track.video_path = 'tests/ressources/validation_videos/T1_trim.mp4'
+    config_track.video_path = 'tests/ressources/validation_videos/T1_720_px_converted_trim.mp4'
     detections = np.load('tests/ressources/detections.npy', allow_pickle=True)
     detections = list(detections)
-    
+
     transition_variance = np.load(os.path.join(config_track.noise_covariances_path, 'transition_variance.npy'))
     observation_variance = np.load(os.path.join(config_track.noise_covariances_path, 'observation_variance.npy'))
 
@@ -21,7 +21,7 @@ def test_track_video():
                                     output_shape=config_track.output_shape,
                                     progress_bar=True,
                                     preload=config_track.preload_frames)
-    
+
     results = track_video(reader, iter(detections), config_track, engine, transition_variance, observation_variance, None)
     assert len(results) == 16
     assert len(results[0]) == 4

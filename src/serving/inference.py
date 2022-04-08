@@ -18,7 +18,7 @@ from plasticorigins.tracking.utils import get_detections_for_video, write_tracki
 from plasticorigins.tracking.track_video import track_video
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tools.misc import load_model
-from plasticorigins.tools.files import download_model_from_url, create_unique_folder
+from plasticorigins.tools.files import create_unique_folder
 from plasticorigins.tracking.trackers import get_tracker
 
 from serving.config import id_categories, config_track
@@ -36,6 +36,10 @@ engine = get_tracker('EKF')
 logger.info('---Loading model...')
 model = load_model(arch=config_track.arch, model_weights=config_track.model_weights, device=device)
 logger.info('---Model loaded.')
+
+
+observation_variance = np.load(os.path.join(config_track.noise_covariances_path, 'observation_variance.npy'))
+transition_variance = np.load(os.path.join(config_track.noise_covariances_path, 'transition_variance.npy'))
 
 
 def handle_post_request():
@@ -84,9 +88,6 @@ def track(args):
 
     detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
 
-    transition_variance = np.load(os.path.join(args.noise_covariances_path, 'transition_variance.npy'))
-    observation_variance = np.load(os.path.join(args.noise_covariances_path, 'observation_variance.npy'))
-
     logger.info(f'---Processing {args.video_path}')
     reader = IterableFrameReader(video_filename=args.video_path,
                                  skip_frames=args.skip_frames,
@@ -116,7 +117,7 @@ def track(args):
 
     # read from the file
     results = read_tracking_results(output_filename)
-    filtered_results = filter_tracks(results, config_track.kappa, config_track.tau)
+    filtered_results = filter_tracks(results, args.kappa, args.tau)
     # store filtered results
     output_filename = Path(args.output_dir) / 'results.txt'
     write_tracking_results_to_file(filtered_results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename)
