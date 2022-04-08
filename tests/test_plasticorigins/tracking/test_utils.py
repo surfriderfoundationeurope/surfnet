@@ -11,7 +11,7 @@ results = np.load('tests/ressources/results.npy',allow_pickle=True)
 results = [tuple(res) for res in results]
 
 def test_get_detections_for_video():
-    config_track.video_path = 'tests/ressources/validation_videos/T1_720_px_converted_trim.mp4'
+    config_track.video_path = 'tests/ressources/validation_videos/T1_trim.mp4'
     detector = lambda frame: detect(frame, threshold=0.3, model=model)
     reader = IterableFrameReader(video_filename=config_track.video_path,
                                     skip_frames=config_track.skip_frames,

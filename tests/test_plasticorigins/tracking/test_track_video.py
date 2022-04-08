@@ -9,7 +9,7 @@ import os
 
 
 def test_track_video():
-    config_track.video_path = 'tests/ressources/validation_videos/T1_720_px_converted_trim.mp4'
+    config_track.video_path = 'tests/ressources/validation_videos/T1_trim.mp4'
     detections = np.load('tests/ressources/detections.npy', allow_pickle=True)
     detections = list(detections)
 
@@ -24,4 +24,4 @@ def test_track_video():
 
     results = track_video(reader, iter(detections), config_track, engine, transition_variance, observation_variance, None)
     assert len(results) == 16
-    assert len(results[0]) == 4
+    assert len(results[0]) == 6

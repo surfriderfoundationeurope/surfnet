@@ -218,7 +218,7 @@ def read_tracking_results(input_file):
         center_x = left + width/2
         center_y = top + height/2
         conf = result[6]
-        class_id = result[7]
+        class_id = int(result[7])
         tracklets[track_id].append((frame_id, center_x, center_y, conf, class_id))
 
     tracklets = list(tracklets.values())

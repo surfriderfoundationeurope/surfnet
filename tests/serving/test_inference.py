@@ -18,7 +18,7 @@ import os
 import math
 import numpy as np
 
-video_file = "tests/ressources/validation_videos/T1_720_px_converted_trim.mp4"
+video_file = "tests/ressources/validation_videos/T1_trim.mp4"
 @pytest.fixture
 def client():
     return app.test_client()
@@ -43,7 +43,7 @@ def test_inference(client):
     assert resp.status_code == 200
     assert list(resp_data.keys()) == ['detected_trash', 'fps', 'video_id', 'video_length']
     if len(resp_data['detected_trash']) > 0:
-        assert list(resp_data['detected_trash'][0].keys()) == ['frame_to_box', 'id', 'label']
+        assert set(resp_data['detected_trash'][0].keys()) == set(['frame_to_box', 'id', 'label', 'avg_conf'])
         assert type(resp_data['detected_trash'][0]['id']) == int
         assert type(resp_data['detected_trash'][0]['label']) == str
         assert type(resp_data['detected_trash'][0]['frame_to_box']) == dict
@@ -55,7 +55,7 @@ def test_track():
     video = video_file
     file = FileStorage(
         stream=open(video, "rb"),
-        filename="T1_720_px_converted_trim.mp4",
+        filename="T1_trim.mp4",
         content_type="video/mpeg")
 
     working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
