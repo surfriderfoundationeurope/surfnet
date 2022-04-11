@@ -29,7 +29,7 @@ def test_inference(client):
     video = video_file
     file = FileStorage(
         stream=open(video, "rb"),
-        filename="T1_720_px_converted_trim.mp4",
+        filename="T1_trim.mp4",
         content_type="video/mpeg")
 
     
@@ -47,6 +47,15 @@ def test_inference(client):
         assert type(resp_data['detected_trash'][0]['id']) == int
         assert type(resp_data['detected_trash'][0]['label']) == str
         assert type(resp_data['detected_trash'][0]['frame_to_box']) == dict
+
+def test_inference_no_file(client):  
+    data = {}
+    try:
+        resp = client.post('/', content_type="multipart/form-data",  data=data)
+    except:
+        assert True
+        
+
         
         
 def test_track():
@@ -55,7 +64,7 @@ def test_track():
     video = video_file
     file = FileStorage(
         stream=open(video, "rb"),
-        filename="T1_720_px_converted_trim.mp4",
+        filename="T1_trim.mp4",
         content_type="video/mpeg")
     
     working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
