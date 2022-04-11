@@ -1,2 +1,1 @@
-git+https://github.com/pykalman/pykalman.git
-plastic-origins==0.0.9
+plastic-origins==0.0.11
