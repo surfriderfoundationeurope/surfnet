@@ -1,11 +1,13 @@
 from flask import Flask, render_template, request
-import logging, logging.config
+import logging
+import logging.config
 from serving.config import logging_config
-logging.config.dictConfig(logging_config)
-
 from serving.inference import handle_post_request
 
+logging.config.dictConfig(logging_config)
+
 app = Flask(__name__)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():

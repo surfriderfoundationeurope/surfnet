@@ -30,6 +30,8 @@ pykalman = "^0.9.5"
 pytest = "^7.1.1"
 coverage = "^6.3.2"
 
+flake8 = "^4.0.1"
+black = "^22.3.0"
 # coverage configuration
 [tool.coverage.paths]
 source = ["src"]

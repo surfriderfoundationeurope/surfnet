@@ -1,14 +1,10 @@
-import json
 import os
 from pathlib import Path
-import datetime
-from typing import Dict, List, Tuple
 
 from werkzeug.utils import secure_filename
 from flask import request, jsonify
 import logging
 import numpy as np
-import cv2
 import torch
 
 # imports for tracking
@@ -84,8 +80,8 @@ def handle_post_request():
 
     return response
 
-def track(args):
 
+def track(args):
     detector = lambda frame: detect(frame, threshold=args.detection_threshold, model=model)
 
     logger.info(f'---Processing {args.video_path}')
@@ -95,7 +91,7 @@ def track(args):
                                  progress_bar=True,
                                  preload=args.preload_frames)
 
-    num_frames, fps = int(reader.max_num_frames / (args.skip_frames+1)), reader.fps
+    num_frames, fps = int(reader.max_num_frames / (args.skip_frames + 1)), reader.fps
 
     input_shape = reader.input_shape
     output_shape = reader.output_shape

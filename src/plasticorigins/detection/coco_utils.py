@@ -2,14 +2,16 @@ import copy
 import torch
 import torch.utils.data
 import torchvision
-from PIL import Image, ExifTags
+from PIL import Image
 from typing import Callable, Optional, Tuple, Any
 
 import os
 
 from pycocotools import mask as coco_mask
 from .transforms import Compose
-import imageio 
+import imageio
+
+
 class FilterAndRemapCocoCategories(object):
     def __init__(self, categories, remap=True):
         self.categories = categories
@@ -60,24 +62,22 @@ class ConvertCocoPolysToMask(object):
         target = Image.fromarray(target.numpy())
         return image, target
 
+
 class ConvertCocoPolysToBboxes(object):
     def __call__(self, image, anno):
         bboxes = [obj["bbox"] for obj in anno]
         cats = [obj["category_id"] for obj in anno]
         if bboxes:
-            target = {'bboxes':bboxes,'cats':cats}
+            target = {"bboxes": bboxes, "cats": cats}
         else:
-            target = {'bboxes':[],'cats':[]}
+            target = {"bboxes": [], "cats": []}
 
         return image, target
-
-
 
 
 class GroupInTensor(object):
     def __call__(self, frames, ground_truths):
         return torch.from_numpy(frames), torch.from_numpy(ground_truths)
-
 
 
 def _coco_remove_images_without_annotations(dataset, cat_list=None):
@@ -108,25 +108,51 @@ def get_coco(root, image_set, transforms):
         "val": ("val2017", os.path.join("annotations", "instances_val2017.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
-    CAT_LIST = [0, 5, 2, 16, 9, 44, 6, 3, 17, 62, 21, 67, 18, 19, 4,
-                1, 64, 20, 63, 7, 72]
+    CAT_LIST = [
+        0,
+        5,
+        2,
+        16,
+        9,
+        44,
+        6,
+        3,
+        17,
+        62,
+        21,
+        67,
+        18,
+        19,
+        4,
+        1,
+        64,
+        20,
+        63,
+        7,
+        72,
+    ]
 
-    transforms = Compose([
-        FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-        ConvertCocoPolysToMask(),
-        transforms
-    ])
+    transforms = Compose(
+        [
+            FilterAndRemapCocoCategories(CAT_LIST, remap=True),
+            ConvertCocoPolysToMask(),
+            transforms,
+        ]
+    )
 
     img_folder, ann_file = PATHS[image_set]
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = torchvision.datasets.CocoDetection(img_folder, ann_file, transforms=transforms)
+    dataset = torchvision.datasets.CocoDetection(
+        img_folder, ann_file, transforms=transforms
+    )
 
     if image_set == "train":
         dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
 
     return dataset
+
 
 def get_surfrider_old(root, image_set, transforms):
     PATHS = {
@@ -136,23 +162,28 @@ def get_surfrider_old(root, image_set, transforms):
     }
     # CAT_LIST = [0, 1, 2, 3]
 
-    transforms = Compose([
-        # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-        ConvertCocoPolysToMask(),
-        # ConvertCocoPolysToBboxes(),
-        transforms
-    ])
+    transforms = Compose(
+        [
+            # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
+            ConvertCocoPolysToMask(),
+            # ConvertCocoPolysToBboxes(),
+            transforms,
+        ]
+    )
 
     img_folder, ann_file = PATHS[image_set]
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = torchvision.datasets.CocoDetection(img_folder, ann_file, transforms=transforms)
+    dataset = torchvision.datasets.CocoDetection(
+        img_folder, ann_file, transforms=transforms
+    )
 
     # if image_set == "train":
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
 
     return dataset
+
 
 def get_surfrider(root, image_set, transforms):
     PATHS = {
@@ -162,12 +193,14 @@ def get_surfrider(root, image_set, transforms):
     }
     # CAT_LIST = [0, 1, 2, 3]
 
-    transforms = Compose([
-        # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-        # ConvertCocoPolysToMask(),
-        ConvertCocoPolysToBboxes(),
-        transforms
-    ])
+    transforms = Compose(
+        [
+            # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
+            # ConvertCocoPolysToMask(),
+            ConvertCocoPolysToBboxes(),
+            transforms,
+        ]
+    )
 
     img_folder, ann_file = PATHS[image_set]
     img_folder = os.path.join(root, img_folder)
@@ -180,6 +213,7 @@ def get_surfrider(root, image_set, transforms):
 
     return dataset
 
+
 def get_surfrider_video_frames(root, image_set, transforms):
     PATHS = {
         "train": ("data", os.path.join("annotations", "annotations_train.json")),
@@ -188,16 +222,15 @@ def get_surfrider_video_frames(root, image_set, transforms):
     }
     # CAT_LIST = [0, 1, 2, 3]
 
-    transforms = Compose([
-        ConvertCocoPolysToBboxes(),
-        transforms
-    ])
+    transforms = Compose([ConvertCocoPolysToBboxes(), transforms])
 
     img_folder, ann_file = PATHS[image_set]
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = torchvision.datasets.CocoDetection(img_folder, ann_file, transforms=transforms)
+    dataset = torchvision.datasets.CocoDetection(
+        img_folder, ann_file, transforms=transforms
+    )
 
     # if image_set == "train":
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
@@ -206,16 +239,17 @@ def get_surfrider_video_frames(root, image_set, transforms):
 
 
 class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
-
     def __init__(
-            self,
-            root: str,
-            annFile: str,
-            transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None,
-            transforms: Optional[Callable] = None,
+        self,
+        root: str,
+        annFile: str,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        transforms: Optional[Callable] = None,
     ):
-        super(CocoDetectionWithExif, self).__init__(root, annFile, transform, target_transform, transforms)
+        super(CocoDetectionWithExif, self).__init__(
+            root, annFile, transform, target_transform, transforms
+        )
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
@@ -230,7 +264,7 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
         ann_ids = coco.getAnnIds(imgIds=img_id)
         target = coco.loadAnns(ann_ids)
 
-        path = coco.loadImgs(img_id)[0]['file_name']
+        path = coco.loadImgs(img_id)[0]["file_name"]
         img = imageio.imread(os.path.join(self.root, path))
 
         # try:
@@ -238,7 +272,7 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
         #     for orientation in ExifTags.TAGS.keys():
         #         if ExifTags.TAGS[orientation]=='Orientation':
         #             break
-            
+
         #     exif = img._getexif()
         #     if exif is not None:
         #         if exif[orientation] == 3:

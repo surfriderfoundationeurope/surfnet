@@ -7,8 +7,6 @@ import torch
 from torch.utils.data import DataLoader
 from scipy.stats import multivariate_normal
 
-from skimage.transform import downscale_local_mean
-from skvideo.io import FFmpegWriter
 import matplotlib.pyplot as plt
 
 from plasticorigins.tools.video_readers import TorchIterableFromReader
@@ -18,14 +16,15 @@ from collections import defaultdict
 
 class GaussianMixture(object):
     def __init__(self, means, covariance, weights):
-        self.components = [multivariate_normal(
-            mean=mean, cov=covariance) for mean in means]
+        self.components = [
+            multivariate_normal(mean=mean, cov=covariance) for mean in means
+        ]
         self.weights = weights
 
     def pdf(self, x):
         result = 0
         for weight, component in zip(self.weights, self.components):
-            result += weight*component.pdf(x)
+            result += weight * component.pdf(x)
         return result
 
     def logpdf(self, x):
@@ -34,7 +33,7 @@ class GaussianMixture(object):
     def cdf(self, x):
         result = 0
         for weight, component in zip(self.weights, self.components):
-            result += weight*component.cdf(x)
+            result += weight * component.cdf(x)
         return result
 
 
@@ -49,17 +48,19 @@ def in_frame(position, shape, border=0.02):
     x = position[0]
     y = position[1]
 
-    return x > border*shape_x and x < (1-border)*shape_x and y > border*shape_y and y < (1-border)*shape_y
+    return (
+        x > border * shape_x
+        and x < (1 - border) * shape_x
+        and y > border * shape_y
+        and y < (1 - border) * shape_y
+    )
 
 
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
-    images_for_video = [image for image in images
-                        if image['video_id'] == video['id']]
-    images_for_video = sorted(
-        images_for_video, key=lambda image: image['frame_id'])
+    images_for_video = [image for image in images if image["video_id"] == video["id"]]
+    images_for_video = sorted(images_for_video, key=lambda image: image["frame_id"])
 
-    return [os.path.join(data_dir, image['file_name'])
-                 for image in images_for_video]
+    return [os.path.join(data_dir, image["file_name"]) for image in images_for_video]
 
 
 def get_detections_for_video(reader, detector, batch_size=16, device=None):
@@ -73,9 +74,11 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
             detections_for_frames = detector(preprocessed_frames.to(device))
             average_times.append(time() - time0)
             for detections_for_frame in detections_for_frames:
-                if len(detections_for_frame): detections.append(detections_for_frame)
-                else: detections.append(np.array([]))
-    print(f'Frame-wise inference time: {batch_size/np.mean(average_times)} fps')
+                if len(detections_for_frame):
+                    detections.append(detections_for_frame)
+                else:
+                    detections.append(np.array([]))
+    print(f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps")
     return detections
 
 
@@ -102,15 +105,18 @@ def overlay_transparent(background, overlay, x, y):
         overlay = np.concatenate(
             [
                 overlay,
-                np.ones((overlay.shape[0], overlay.shape[1], 1), dtype = overlay.dtype) * 255
+                np.ones((overlay.shape[0], overlay.shape[1], 1), dtype=overlay.dtype)
+                * 255,
             ],
-            axis = 2,
+            axis=2,
         )
 
     overlay_image = overlay[..., :3]
     mask = overlay[..., 3:] / 255.0
 
-    background[y:y+h, x:x+w] = (1.0 - mask) * background[y:y+h, x:x+w] + mask * overlay_image
+    background[y: y + h, x: x + w] = (1.0 - mask) * background[
+        y: y + h, x: x + w
+    ] + mask * overlay_image
     return background
 
 
@@ -190,33 +196,41 @@ def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
     - x_tl, y_tl, w=0, h=0
     - 4x unused=-1
     """
-    with open(output_filename, 'w') as output_file:
+    with open(output_filename, "w") as output_file:
         for result in results:
-            output_file.write('{},{},{},{},{},{},{},{},{},{}\n'.format(result[0]+1,
-                                                                result[1]+1,
-                                                                round(ratio_x * result[2],2),
-                                                                round(ratio_y * result[3],2),
-                                                                0, #width
-                                                                0, #height
-                                                                round(result[4],2),result[5],-1,-1))
+            output_file.write(
+                "{},{},{},{},{},{},{},{},{},{}\n".format(
+                    result[0] + 1,
+                    result[1] + 1,
+                    round(ratio_x * result[2], 2),
+                    round(ratio_y * result[3], 2),
+                    0,  # width
+                    0,  # height
+                    round(result[4], 2),
+                    result[5],
+                    -1,
+                    -1,
+                )
+            )
 
 
 def read_tracking_results(input_file):
     """ read the input filename and interpret it as tracklets
     i.e. lists of lists
     """
-    raw_results = np.loadtxt(input_file, delimiter=',')
-    if raw_results.ndim == 1: raw_results = np.expand_dims(raw_results,axis=0)
+    raw_results = np.loadtxt(input_file, delimiter=",")
+    if raw_results.ndim == 1:
+        raw_results = np.expand_dims(raw_results, axis=0)
     tracklets = defaultdict(list)
     for result in raw_results:
         # Skip blank lines
-        if result is None or len(result)==0:
+        if result is None or len(result) == 0:
             continue
         frame_id = int(result[0])
         track_id = int(result[1])
         left, top, width, height = result[2:6]
-        center_x = left + width/2
-        center_y = top + height/2
+        center_x = left + width / 2
+        center_y = top + height / 2
         conf = result[6]
         class_id = int(result[7])
         tracklets[track_id].append((frame_id, center_x, center_y, conf, class_id))
@@ -245,14 +259,15 @@ class FramesWithInfo:
         self.frames = frames
         if output_shape is None:
             self.output_shape = frames[0].shape[:-1][::-1]
-        else: self.output_shape = output_shape
+        else:
+            self.output_shape = output_shape
         self.end = len(frames)
         self.read_head = 0
 
     def __next__(self):
         if self.read_head < self.end:
             frame = self.frames[self.read_head]
-            self.read_head+=1
+            self.read_head += 1
             return frame
         else:
             raise StopIteration
@@ -264,13 +279,14 @@ class FramesWithInfo:
 class Display:
     """ Display tracking
     """
+
     def __init__(self, on, interactive=True):
         self.on = on
         self.fig, self.ax = plt.subplots()
         self.interactive = interactive
         if interactive:
             plt.ion()
-        self.colors =  plt.rcParams['axes.prop_cycle'].by_key()['color']
+        self.colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         self.legends = []
         self.plot_count = 0
 
@@ -285,7 +301,9 @@ class Display:
         self.ax.imshow(self.latest_frame_to_show)
 
         if len(self.latest_detections):
-            self.ax.scatter(self.latest_detections[:, 0], self.latest_detections[:, 1], c='r', s=40)
+            self.ax.scatter(
+                self.latest_detections[:, 0], self.latest_detections[:, 1], c="r", s=40
+            )
 
         if something_to_show:
             self.ax.xaxis.tick_top()
@@ -296,11 +314,13 @@ class Display:
                 while not plt.waitforbuttonpress():
                     continue
             else:
-                plt.savefig(os.path.join('plots',str(self.plot_count)))
+                plt.savefig(os.path.join("plots", str(self.plot_count)))
             self.ax.cla()
             self.legends = []
-            self.plot_count+=1
+            self.plot_count += 1
 
     def update_detections_and_frame(self, latest_detections, frame):
         self.latest_detections = latest_detections
-        self.latest_frame_to_show = cv2.cvtColor(cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB)
+        self.latest_frame_to_show = cv2.cvtColor(
+            cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB
+        )
