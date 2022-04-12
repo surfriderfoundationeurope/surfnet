@@ -4,16 +4,13 @@ import json
 from pathlib import Path
 from werkzeug.datastructures import FileStorage
 
-from serving.config import id_categories, config_track
-from plasticorigins.tracking.trackers import get_tracker
-from plasticorigins.tools.misc import load_model
-from serving.inference import track, engine, device, model
+from serving.config import config_track
+from serving.inference import track
 from plasticorigins.tools.files import create_unique_folder
 from serving.app import app
 
 
 
-import torch
 import os
 import math
 import numpy as np

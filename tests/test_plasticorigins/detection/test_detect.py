@@ -1,4 +1,3 @@
-from array import array
 from serving.inference import model, device
 from plasticorigins.detection.detect import detect
 
@@ -6,7 +5,6 @@ import torch
 import numpy as np
 
 preprocessed_frames = torch.load('tests/ressources/pf.pt')
-
 def test_detect():
     res = detect(preprocessed_frames=preprocessed_frames.to(device),
                  threshold=0.3,

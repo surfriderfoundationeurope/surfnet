@@ -34,7 +34,11 @@ jobs:
           poetry install
       - name: Run tests
         run: |
+          cd models/
+          sh download_pretrained_base.sh 
+          cd ..
           poetry run coverage run -m pytest
           poetry run coverage xml
+          rm models/mobilenet_v3_pretrained.pth
       - name: Upload coverage report
         uses: codecov/codecov-action@v2.0.2
