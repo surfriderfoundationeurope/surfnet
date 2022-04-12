@@ -114,73 +114,73 @@ def overlay_transparent(background, overlay, x, y):
     return background
 
 
-def generate_video_with_annotations(reader, output_detected, output_filename, skip_frames,
-                                    maxframes, downscale, logger, gps_data=None, labels2icons=None):
-    """ Generates output video at 24 fps, with optional gps_data
-    """
-    fps = 24
-    logger.info("---Intepreting json")
-    results = defaultdict(list)
-    for trash in output_detected["detected_trash"]:
-        for k, v in trash["frame_to_box"].items():
-            frame_nb = int(k) - 1
-            object_nb = trash["id"] + 1
-            object_class = trash["label"]
-            center_x = v[0]
-            center_y = v[1]
-            results[frame_nb * (skip_frames+1)].append((object_nb, center_x, center_y, object_class))
-            # append next skip_frames
-            if str(frame_nb + 2) in trash["frame_to_box"]:
-                next_trash = trash["frame_to_box"][str(frame_nb + 2)]
-                next_x = next_trash[0]
-                next_y = next_trash[1]
-                for i in range(1, skip_frames+1):
-                    new_x = center_x + (next_x - center_x) * i/(skip_frames+1)
-                    new_y = center_y + (next_y - center_y) * i/(skip_frames+1)
-                    results[frame_nb * (skip_frames+1) + i].append((object_nb, new_x, new_y, object_class))
-    logger.info("---Writing video")
+# def generate_video_with_annotations(reader, output_detected, output_filename, skip_frames,
+#                                     maxframes, downscale, logger, gps_data=None, labels2icons=None):
+#     """ Generates output video at 24 fps, with optional gps_data
+#     """
+#     fps = 24
+#     logger.info("---Intepreting json")
+#     results = defaultdict(list)
+#     for trash in output_detected["detected_trash"]:
+#         for k, v in trash["frame_to_box"].items():
+#             frame_nb = int(k) - 1
+#             object_nb = trash["id"] + 1
+#             object_class = trash["label"]
+#             center_x = v[0]
+#             center_y = v[1]
+#             results[frame_nb * (skip_frames+1)].append((object_nb, center_x, center_y, object_class))
+#             # append next skip_frames
+#             if str(frame_nb + 2) in trash["frame_to_box"]:
+#                 next_trash = trash["frame_to_box"][str(frame_nb + 2)]
+#                 next_x = next_trash[0]
+#                 next_y = next_trash[1]
+#                 for i in range(1, skip_frames+1):
+#                     new_x = center_x + (next_x - center_x) * i/(skip_frames+1)
+#                     new_y = center_y + (next_y - center_y) * i/(skip_frames+1)
+#                     results[frame_nb * (skip_frames+1) + i].append((object_nb, new_x, new_y, object_class))
+#     logger.info("---Writing video")
 
-    writer = FFmpegWriter(filename = output_filename,
-                          outputdict={"-pix_fmt": "rgb24",
-                                      "-r":"%.02f" % fps,
-                                      '-vcodec': 'libx264',
-                                      '-b': '5000000'})
+#     writer = FFmpegWriter(filename = output_filename,
+#                           outputdict={"-pix_fmt": "rgb24",
+#                                       "-r":"%.02f" % fps,
+#                                       '-vcodec': 'libx264',
+#                                       '-b': '5000000'})
 
-    font = cv2.FONT_HERSHEY_TRIPLEX
-    for frame_nb, frame in enumerate(reader):
-        detections_for_frame = results[frame_nb]
-        for detection in detections_for_frame:
-            if labels2icons is None:
-                # write name of class
-                cv2.putText(frame, f'{detection[0]}/{detection[3]}', (int(detection[1]), int(detection[2])+5), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
-            else:
-                # icons
-                overlay_transparent(frame, labels2icons[detection[3]], int(detection[1])+5, int(detection[2]))
-                cv2.putText(frame, f'{detection[0]}', (int(detection[1]+46+5), int(detection[2])+42), font, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+#     font = cv2.FONT_HERSHEY_TRIPLEX
+#     for frame_nb, frame in enumerate(reader):
+#         detections_for_frame = results[frame_nb]
+#         for detection in detections_for_frame:
+#             if labels2icons is None:
+#                 # write name of class
+#                 cv2.putText(frame, f'{detection[0]}/{detection[3]}', (int(detection[1]), int(detection[2])+5), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
+#             else:
+#                 # icons
+#                 overlay_transparent(frame, labels2icons[detection[3]], int(detection[1])+5, int(detection[2]))
+#                 cv2.putText(frame, f'{detection[0]}', (int(detection[1]+46+5), int(detection[2])+42), font, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
 
-            if gps_data is not None:
-                latitude  = gps_data[frame_nb//fps]['Latitude']
-                longitude  = gps_data[frame_nb//fps]['Longitude']
-                cv2.putText(frame, f'GPS:{latitude},{longitude}', (10,frame.shape[0]-30), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+#             if gps_data is not None:
+#                 latitude  = gps_data[frame_nb//fps]['Latitude']
+#                 longitude  = gps_data[frame_nb//fps]['Longitude']
+#                 cv2.putText(frame, f'GPS:{latitude},{longitude}', (10,frame.shape[0]-30), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
 
-        frame = downscale_local_mean(frame, (downscale,downscale,1)).astype(np.uint8)
-        writer.writeFrame(frame[:,:,::-1])
+#         frame = downscale_local_mean(frame, (downscale,downscale,1)).astype(np.uint8)
+#         writer.writeFrame(frame[:,:,::-1])
 
-    writer.close()
-    reader.video.release()
+#     writer.close()
+#     reader.video.release()
 
-    logger.info("---finished writing video")
+#     logger.info("---finished writing video")
 
 
-def resize_external_detections(detections, ratio):
-    for detection_nb in range(len(detections)):
-        detection = detections[detection_nb]
-        if len(detection):
-            detection = np.array(detection)[:,:-1]
-            detection[:,0] = (detection[:,0] + detection[:,2])/2
-            detection[:,1] = (detection[:,1] + detection[:,3])/2
-            detections[detection_nb] = detection[:,:2]/ratio
-    return detections
+# def resize_external_detections(detections, ratio):
+#     for detection_nb in range(len(detections)):
+#         detection = detections[detection_nb]
+#         if len(detection):
+#             detection = np.array(detection)[:,:-1]
+#             detection[:,0] = (detection[:,0] + detection[:,2])/2
+#             detection[:,1] = (detection[:,1] + detection[:,3])/2
+#             detections[detection_nb] = detection[:,:2]/ratio
+#     return detections
 
 
 def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
@@ -225,19 +225,19 @@ def read_tracking_results(input_file):
     return tracklets
 
 
-def gather_tracklets(tracklist):
-    """ Converts a list of flat tracklets into a list of lists
-    """
-    tracklets = defaultdict(list)
-    for track in tracklist:
-        frame_id = track[0]
-        track_id = track[1]
-        center_x = track[2]
-        center_y = track[3]
-        tracklets[track_id].append((frame_id, center_x, center_y))
+# def gather_tracklets(tracklist):
+#     """ Converts a list of flat tracklets into a list of lists
+#     """
+#     tracklets = defaultdict(list)
+#     for track in tracklist:
+#         frame_id = track[0]
+#         track_id = track[1]
+#         center_x = track[2]
+#         center_y = track[3]
+#         tracklets[track_id].append((frame_id, center_x, center_y))
 
-    tracklets = list(tracklets.values())
-    return tracklets
+#     tracklets = list(tracklets.values())
+#     return tracklets
 
 
 class FramesWithInfo:

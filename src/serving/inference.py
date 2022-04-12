@@ -14,7 +14,7 @@ import torch
 # imports for tracking
 from plasticorigins.detection.detect import detect
 from plasticorigins.tracking.postprocess_and_count_tracks import filter_tracks, postprocess_for_api
-from plasticorigins.tracking.utils import get_detections_for_video, write_tracking_results_to_file, read_tracking_results, gather_tracklets
+from plasticorigins.tracking.utils import get_detections_for_video, write_tracking_results_to_file, read_tracking_results
 from plasticorigins.tracking.track_video import track_video
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tools.misc import load_model
