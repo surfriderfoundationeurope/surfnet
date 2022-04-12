@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "3.8"
+python = ">=3.8,<3.11"
 opencv-python = "4.5.5.62"
 pycocotools = "2.0.4"
 debugpy = "1.5.1"
