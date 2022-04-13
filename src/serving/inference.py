@@ -71,7 +71,7 @@ def handle_post_request():
 
     # file and folder handling
     filename = secure_filename(file.filename)
-    logger.info("--- received filename: ", filename)
+    logger.info("--- received filename: " + filename)
     working_dir = Path(
         create_unique_folder(config_track.upload_folder, filename)
     )
