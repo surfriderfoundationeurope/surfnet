@@ -1,9 +1,10 @@
-from serving.inference import config_track, engine
-from plasticorigins.tools.video_readers import IterableFrameReader
-from plasticorigins.tracking.track_video import track_video
+import os
 
 import numpy as np
-import os
+
+from plasticorigins.tools.video_readers import IterableFrameReader
+from plasticorigins.tracking.track_video import track_video
+from serving.inference import config_track, engine
 
 
 def test_track_video():
@@ -12,10 +13,14 @@ def test_track_video():
     detections = list(detections)
 
     transition_variance = np.load(
-        os.path.join(config_track.noise_covariances_path, "transition_variance.npy")
+        os.path.join(
+            config_track.noise_covariances_path, "transition_variance.npy"
+        )
     )
     observation_variance = np.load(
-        os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
+        os.path.join(
+            config_track.noise_covariances_path, "observation_variance.npy"
+        )
     )
 
     reader = IterableFrameReader(

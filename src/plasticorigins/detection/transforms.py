@@ -1,17 +1,18 @@
+import cv2
 import imgaug as ia
+import numpy as np
+import torch
+import torchvision.transforms as T
 from imgaug import augmenters as iaa
 from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
-import numpy as np
-from plasticorigins.tools.misc import blob_for_bbox
-import torch
 from torchvision.transforms import functional as F
-import torchvision.transforms as T
-import cv2
+
+from plasticorigins.tools.misc import blob_for_bbox
 
 ia.seed(1)
 
 
-class Compose(object):
+class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
 
@@ -21,7 +22,7 @@ class Compose(object):
         return image, target
 
 
-class ToTensorBboxes(object):
+class ToTensorBboxes:
     def __init__(self, num_classes, downsampling_factor):
         self.num_classes = num_classes
         self.downsampling_factor = downsampling_factor
@@ -72,7 +73,7 @@ class ToTensorBboxes(object):
         return image, target
 
 
-class Normalize(object):
+class Normalize:
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std
@@ -98,15 +99,25 @@ class TrainTransforms:
         self.base_size = base_size
         self.crop_height, self.crop_width = crop_size
         self.hflip_prob = hflip_prob
-        self.random_size_range = (int(self.base_size), int(2.0 * self.base_size))
+        self.random_size_range = (
+            int(self.base_size),
+            int(2.0 * self.base_size),
+        )
         self.seq = iaa.Sequential(
             [
                 iaa.Resize(
-                    {"height": self.random_size_range, "width": "keep-aspect-ratio"}
+                    {
+                        "height": self.random_size_range,
+                        "width": "keep-aspect-ratio",
+                    }
                 ),
                 iaa.Fliplr(p=self.hflip_prob),
-                iaa.PadToFixedSize(width=self.crop_width, height=self.crop_height),
-                iaa.CropToFixedSize(width=self.crop_width, height=self.crop_height),
+                iaa.PadToFixedSize(
+                    width=self.crop_width, height=self.crop_height
+                ),
+                iaa.CropToFixedSize(
+                    width=self.crop_width, height=self.crop_height
+                ),
             ]
         )
         self.last_transforms = Compose(
@@ -151,7 +162,10 @@ class ValTransforms:
         self.seq = iaa.Sequential(
             [
                 iaa.Resize(
-                    {"height": int(self.base_size), "width": "keep-aspect-ratio"}
+                    {
+                        "height": int(self.base_size),
+                        "width": "keep-aspect-ratio",
+                    }
                 ),
                 # iaa.Rotate((-45,45)),
                 iaa.CenterPadToFixedSize(
@@ -191,7 +205,9 @@ class TransformFrames:
     def __init__(self):
         transforms = []
 
-        transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+        transforms.append(
+            T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        )
         transforms.append(T.ToTensor())
         transforms.append(
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

@@ -1,18 +1,18 @@
 import copy
+import os
+from typing import Any, Callable, Optional, Tuple
+
+import imageio
 import torch
 import torch.utils.data
 import torchvision
 from PIL import Image
-from typing import Callable, Optional, Tuple, Any
-
-import os
-
 from pycocotools import mask as coco_mask
+
 from .transforms import Compose
-import imageio
 
 
-class FilterAndRemapCocoCategories(object):
+class FilterAndRemapCocoCategories:
     def __init__(self, categories, remap=True):
         self.categories = categories
         self.remap = remap
@@ -44,7 +44,7 @@ def convert_coco_poly_to_mask(segmentations, height, width):
     return masks
 
 
-class ConvertCocoPolysToMask(object):
+class ConvertCocoPolysToMask:
     def __call__(self, image, anno):
         w, h = image.size
         segmentations = [obj["segmentation"] for obj in anno]
@@ -63,7 +63,7 @@ class ConvertCocoPolysToMask(object):
         return image, target
 
 
-class ConvertCocoPolysToBboxes(object):
+class ConvertCocoPolysToBboxes:
     def __call__(self, image, anno):
         bboxes = [obj["bbox"] for obj in anno]
         cats = [obj["category_id"] for obj in anno]
@@ -75,7 +75,7 @@ class ConvertCocoPolysToBboxes(object):
         return image, target
 
 
-class GroupInTensor(object):
+class GroupInTensor:
     def __call__(self, frames, ground_truths):
         return torch.from_numpy(frames), torch.from_numpy(ground_truths)
 
@@ -104,8 +104,14 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
 
 def get_coco(root, image_set, transforms):
     PATHS = {
-        "train": ("train2017", os.path.join("annotations", "instances_train2017.json")),
-        "val": ("val2017", os.path.join("annotations", "instances_val2017.json")),
+        "train": (
+            "train2017",
+            os.path.join("annotations", "instances_train2017.json"),
+        ),
+        "val": (
+            "val2017",
+            os.path.join("annotations", "instances_val2017.json"),
+        ),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     CAT_LIST = [
@@ -156,8 +162,14 @@ def get_coco(root, image_set, transforms):
 
 def get_surfrider_old(root, image_set, transforms):
     PATHS = {
-        "train": ("Images_md5", os.path.join("annotations", "instances_train.json")),
-        "val": ("Images_md5", os.path.join("annotations", "instances_val.json")),
+        "train": (
+            "Images_md5",
+            os.path.join("annotations", "instances_train.json"),
+        ),
+        "val": (
+            "Images_md5",
+            os.path.join("annotations", "instances_val.json"),
+        ),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     # CAT_LIST = [0, 1, 2, 3]
@@ -187,7 +199,10 @@ def get_surfrider_old(root, image_set, transforms):
 
 def get_surfrider(root, image_set, transforms):
     PATHS = {
-        "train": ("images", os.path.join("annotations", "instances_train.json")),
+        "train": (
+            "images",
+            os.path.join("annotations", "instances_train.json"),
+        ),
         "val": ("images", os.path.join("annotations", "instances_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
@@ -206,7 +221,9 @@ def get_surfrider(root, image_set, transforms):
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = CocoDetectionWithExif(img_folder, ann_file, transforms=transforms)
+    dataset = CocoDetectionWithExif(
+        img_folder, ann_file, transforms=transforms
+    )
 
     # if image_set == "train":
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
@@ -216,7 +233,10 @@ def get_surfrider(root, image_set, transforms):
 
 def get_surfrider_video_frames(root, image_set, transforms):
     PATHS = {
-        "train": ("data", os.path.join("annotations", "annotations_train.json")),
+        "train": (
+            "data",
+            os.path.join("annotations", "annotations_train.json"),
+        ),
         "val": ("data", os.path.join("annotations", "annotations_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
@@ -247,7 +267,7 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
         target_transform: Optional[Callable] = None,
         transforms: Optional[Callable] = None,
     ):
-        super(CocoDetectionWithExif, self).__init__(
+        super().__init__(
             root, annFile, transform, target_transform, transforms
         )
 

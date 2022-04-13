@@ -1,8 +1,9 @@
 import numpy as np
-from plasticorigins.tracking.utils import in_frame
-from plasticorigins.tools.optical_flow import compute_flow
-from scipy.spatial.distance import euclidean
 from scipy.optimize import linear_sum_assignment
+from scipy.spatial.distance import euclidean
+
+from plasticorigins.tools.optical_flow import compute_flow
+from plasticorigins.tracking.utils import in_frame
 
 
 def init_trackers(
@@ -38,7 +39,9 @@ def build_confidence_function_for_trackers(trackers, flow01):
     for tracker_nb, tracker in enumerate(trackers):
         if tracker.enabled:
             tracker_nbs.append(tracker_nb)
-            confidence_functions.append(tracker.build_confidence_function(flow01))
+            confidence_functions.append(
+                tracker.build_confidence_function(flow01)
+            )
     return tracker_nbs, confidence_functions
 
 
@@ -50,15 +53,23 @@ def associate_detections_to_trackers(
     )
     assigned_trackers = [None] * len(detections_for_frame)
     if len(tracker_nbs):
-        cost_matrix = np.zeros(shape=(len(detections_for_frame), len(tracker_nbs)))
+        cost_matrix = np.zeros(
+            shape=(len(detections_for_frame), len(tracker_nbs))
+        )
         for detection_nb, (detection, conf, label) in enumerate(
             zip(detections_for_frame, confs, labels)
         ):
-            for tracker_id, confidence_function in enumerate(confidence_functions):
+            for tracker_id, confidence_function in enumerate(
+                confidence_functions
+            ):
                 score = confidence_function(detection)
-                cls_score = trackers[tracker_id].cls_score_function(conf, label)
+                cls_score = trackers[tracker_id].cls_score_function(
+                    conf, label
+                )
                 if cls_score < 0.5:
-                    score = score * 0.1  # if wrong class, reduce the score, to tweak
+                    score = (
+                        score * 0.1
+                    )  # if wrong class, reduce the score, to tweak
                 if score > confidence_threshold:
                     cost_matrix[detection_nb, tracker_id] = score
                 else:
@@ -71,7 +82,9 @@ def associate_detections_to_trackers(
     return assigned_trackers
 
 
-def interpret_detection(detections_for_frame, downsampling_factor, is_yolo=False):
+def interpret_detection(
+    detections_for_frame, downsampling_factor, is_yolo=False
+):
     """ normalizes the detections depending whether they come from centernet or yolo
     """
     if not is_yolo:
@@ -81,7 +94,9 @@ def interpret_detection(detections_for_frame, downsampling_factor, is_yolo=False
     else:
         detections_for_frame, confs, labels = detections_for_frame
         # get center
-        detections_for_frame = detections_for_frame[..., 0:2] / downsampling_factor
+        detections_for_frame = (
+            detections_for_frame[..., 0:2] / downsampling_factor
+        )
         return detections_for_frame, confs, labels
 
 
@@ -206,7 +221,9 @@ def track_video(
 
     for tracker_nb, dets in enumerate(tracklets):
         for det in dets:
-            results.append((det[0], tracker_nb, det[1][0], det[1][1], det[2], det[3]))
+            results.append(
+                (det[0], tracker_nb, det[1][0], det[1][1], det[2], det[3])
+            )
 
     results = sorted(results, key=lambda x: x[0])
 

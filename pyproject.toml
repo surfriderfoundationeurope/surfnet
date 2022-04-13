@@ -33,6 +33,7 @@ coverage = "^6.3.2"
 flake8 = "^4.0.1"
 black = "^22.3.0"
 pre-commit = "^2.18.1"
+pyupgrade = "^2.32.0"
 # coverage configuration
 [tool.coverage.paths]
 source = ["src"]

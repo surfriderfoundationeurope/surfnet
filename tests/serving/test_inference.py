@@ -1,16 +1,15 @@
-import pytest
 import json
+import math
+import os
 from pathlib import Path
+
+import pytest
 from werkzeug.datastructures import FileStorage
 
-from serving.config import config_track
-from serving.inference import track
 from plasticorigins.tools.files import create_unique_folder
 from serving.app import app
-
-
-import os
-import math
+from serving.config import config_track
+from serving.inference import track
 
 video_file = "tests/ressources/validation_videos/T1_trim.mp4"
 
@@ -25,7 +24,9 @@ def test_inference(client):
 
     video = video_file
     file = FileStorage(
-        stream=open(video, "rb"), filename="T1_trim.mp4", content_type="video/mpeg"
+        stream=open(video, "rb"),
+        filename="T1_trim.mp4",
+        content_type="video/mpeg",
     )
 
     data = {"file": file}
@@ -41,9 +42,12 @@ def test_inference(client):
         "video_length",
     ]
     if len(resp_data["detected_trash"]) > 0:
-        assert set(resp_data["detected_trash"][0].keys()) == set(
-            ["frame_to_box", "id", "label", "avg_conf"]
-        )
+        assert set(resp_data["detected_trash"][0].keys()) == {
+            "frame_to_box",
+            "id",
+            "label",
+            "avg_conf",
+        }
         assert type(resp_data["detected_trash"][0]["id"]) == int
         assert type(resp_data["detected_trash"][0]["label"]) == str
         assert type(resp_data["detected_trash"][0]["frame_to_box"]) == dict
@@ -62,10 +66,14 @@ def test_track():
     filename = video_file.split("/")[-1]
     video = video_file
     file = FileStorage(
-        stream=open(video, "rb"), filename="T1_trim.mp4", content_type="video/mpeg"
+        stream=open(video, "rb"),
+        filename="T1_trim.mp4",
+        content_type="video/mpeg",
     )
 
-    working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
+    working_dir = Path(
+        create_unique_folder(config_track.upload_folder, filename)
+    )
     full_filepath = working_dir / filename
     if os.path.isfile(full_filepath):
         os.remove(full_filepath)

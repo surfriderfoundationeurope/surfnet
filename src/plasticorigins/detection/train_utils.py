@@ -1,14 +1,13 @@
-from collections import defaultdict, deque
 import datetime
-import time
-import torch
-import torch.distributed as dist
 import errno
 import os
-from torch.nn.functional import affine_grid, grid_sample
-
-from collections import namedtuple
+import time
+from collections import defaultdict, deque, namedtuple
 from typing import Any
+
+import torch
+import torch.distributed as dist
+from torch.nn.functional import affine_grid, grid_sample
 
 
 # pylint: disable = abstract-method
@@ -40,7 +39,7 @@ class ModelWrapper(torch.nn.Module):
         return data
 
 
-class SmoothedValue(object):
+class SmoothedValue:
     """Track a series of values and provide access to smoothed values over a
     window or the global series average.
     """
@@ -64,7 +63,9 @@ class SmoothedValue(object):
         """
         if not is_dist_avail_and_initialized():
             return
-        t = torch.tensor([self.count, self.total], dtype=torch.float64, device="cuda")
+        t = torch.tensor(
+            [self.count, self.total], dtype=torch.float64, device="cuda"
+        )
         dist.barrier()
         dist.all_reduce(t)
         t = t.tolist()
@@ -103,7 +104,7 @@ class SmoothedValue(object):
         )
 
 
-class ConfusionMatrix(object):
+class ConfusionMatrix:
     def __init__(self, num_classes):
         self.num_classes = num_classes
         self.mat = None
@@ -144,8 +145,8 @@ class ConfusionMatrix(object):
             "mean IoU: {:.1f}"
         ).format(
             acc_global.item() * 100,
-            ["{:.1f}".format(i) for i in (acc * 100).tolist()],
-            ["{:.1f}".format(i) for i in (iu * 100).tolist()],
+            [f"{i:.1f}" for i in (acc * 100).tolist()],
+            [f"{i:.1f}" for i in (iu * 100).tolist()],
             iu.mean().item() * 100,
         )
 
@@ -159,7 +160,7 @@ class ConfusionMatrix(object):
         ]
 
 
-class MetricLogger(object):
+class MetricLogger:
     def __init__(self, delimiter="\t"):
         self.meters = defaultdict(SmoothedValue)
         self.delimiter = delimiter
@@ -177,13 +178,15 @@ class MetricLogger(object):
         if attr in self.__dict__:
             return self.__dict__[attr]
         raise AttributeError(
-            "'{}' object has no attribute '{}'".format(type(self).__name__, attr)
+            "'{}' object has no attribute '{}'".format(
+                type(self).__name__, attr
+            )
         )
 
     def __str__(self):
         loss_str = []
         for name, meter in self.meters.items():
-            loss_str.append("{}: {}".format(name, str(meter)))
+            loss_str.append(f"{name}: {str(meter)}")
         return self.delimiter.join(loss_str)
 
     def synchronize_between_processes(self):
@@ -262,7 +265,7 @@ class MetricLogger(object):
             end = time.time()
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        print("{} Total time: {}".format(header, total_time_str))
+        print(f"{header} Total time: {total_time_str}")
 
 
 def cat_list(images, fill_value=0):
@@ -355,7 +358,7 @@ def init_distributed_mode(args):
     torch.cuda.set_device(args.gpu)
     args.dist_backend = "nccl"
     print(
-        "| distributed init (rank {}): {}".format(args.rank, args.dist_url), flush=True
+        f"| distributed init (rank {args.rank}): {args.dist_url}", flush=True,
     )
     torch.distributed.init_process_group(
         backend=args.dist_backend,

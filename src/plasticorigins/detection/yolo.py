@@ -1,13 +1,13 @@
-import numpy as np
 import json
+
+import cv2
+import numpy as np
 import torch
 import torch.nn as nn
-import cv2
 import yaml
-
 import yolov5
-from yolov5.utils.general import non_max_suppression
 from yolov5.models.common import Detections
+from yolov5.utils.general import non_max_suppression
 
 # This has to be kept for now as this depends on the model training
 id_categories = {
@@ -92,7 +92,10 @@ class DetectTorchScript(nn.Module):
         self.iou_thres = iou
 
         self.size = 640
-        stride, names = 64, [f"class{i}" for i in range(1000)]  # assign defaults
+        stride, names = (
+            64,
+            [f"class{i}" for i in range(1000)],
+        )  # assign defaults
         if data:  # data.yaml path (optional)
             with open(data, errors="ignore") as f:
                 names = yaml.safe_load(f)["names"]  # class names

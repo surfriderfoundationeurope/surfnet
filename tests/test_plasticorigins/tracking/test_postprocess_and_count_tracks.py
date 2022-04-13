@@ -1,4 +1,5 @@
 import numpy as np
+
 from plasticorigins.tracking.postprocess_and_count_tracks import (
     filter_tracks,
     postprocess_for_api,
@@ -33,9 +34,12 @@ def test_post_process_for_api():
     resp_data = postprocess_for_api(filtered_results, id_categories)
     assert list(resp_data.keys()) == ["detected_trash"]
     if len(resp_data["detected_trash"]) > 0:
-        assert set(resp_data["detected_trash"][0].keys()) == set(
-            ["label", "id", "frame_to_box", "avg_conf"]
-        )
+        assert set(resp_data["detected_trash"][0].keys()) == {
+            "label",
+            "id",
+            "frame_to_box",
+            "avg_conf",
+        }
         assert type(resp_data["detected_trash"][0]["id"]) == int
         assert type(resp_data["detected_trash"][0]["label"]) == str
         assert type(resp_data["detected_trash"][0]["frame_to_box"]) == dict

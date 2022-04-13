@@ -11,21 +11,10 @@ repos:
         files: ''
         minimum_pre_commit_version: 0.15.0
         args: ['--py38-plus']
-    -   id: isort
-        name: isort
-        entry: isort
-        require_serial: true
-        language: python
-        types: [python]
-        args: ['--filter-files', '--profile=black']
-        files: '.*'
     -   id: black
         name: black
         description: "Black: The uncompromising Python code formatter"
-        entry: |
-          poetry run black src/serving/
-          poetry run black src/plasticorigins/
-          poetry run black tests
+        entry: black
         language: python
         language_version: python3
         require_serial: true
@@ -34,10 +23,7 @@ repos:
     -   id: flake8
         name: flake8
         description: '`flake8` is a command-line utility for enforcing style consistency across Python projects.'
-        entry: |
-          poetry run flake8 src/serving/
-          poetry run flake8 src/plasticorigins/
-          poetry run flake8 tests
+        entry: flake8
         language: python
         types: [python]
         additional_dependencies:
@@ -48,4 +34,8 @@ repos:
           - flake8-print
 #          - flake8-docstrings
 #          - flake8-mypy
+        args: ['--max-line-length=100',
+               '--ignore=W503,E203,T001,E501,RST201,RST203,RST301,S301,S403,D212,D200,C901,E731,G004',
+               '--max-complexity=10',
+               '--select=B,B9,C,D,DAR,E,F,N,RST,S,W,C4']
        

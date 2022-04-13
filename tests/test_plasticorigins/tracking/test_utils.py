@@ -1,21 +1,20 @@
-from serving.inference import model, config_track, device
+import os
+
+import numpy as np
+from scipy.stats._multivariate import multivariate_normal_frozen
+
 from plasticorigins.detection.detect import detect
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tracking.utils import (
-    get_detections_for_video,
-    write_tracking_results_to_file,
     GaussianMixture,
     exp_and_normalise,
     gather_filenames_for_video_in_annotations,
-    read_tracking_results,
+    get_detections_for_video,
     overlay_transparent,
+    read_tracking_results,
+    write_tracking_results_to_file,
 )
-
-
-import numpy as np
-import os
-from scipy.stats._multivariate import multivariate_normal_frozen
-
+from serving.inference import config_track, device, model
 
 results = np.load("tests/ressources/results.npy", allow_pickle=True)
 results = [tuple(res) for res in results]
@@ -33,7 +32,10 @@ def test_get_detections_for_video():
     )
 
     detections = get_detections_for_video(
-        reader, detector, batch_size=config_track.detection_batch_size, device=device
+        reader,
+        detector,
+        batch_size=config_track.detection_batch_size,
+        device=device,
     )
 
     assert len(detections) == 9
@@ -42,8 +44,12 @@ def test_get_detections_for_video():
 def test_write_tracking_results_to_file():
     input_shape = (640, 360)
     output_shape = (960, 544)
-    ratio_y = input_shape[0] / (output_shape[0] // config_track.downsampling_factor)
-    ratio_x = input_shape[1] / (output_shape[1] // config_track.downsampling_factor)
+    ratio_y = input_shape[0] / (
+        output_shape[0] // config_track.downsampling_factor
+    )
+    ratio_x = input_shape[1] / (
+        output_shape[1] // config_track.downsampling_factor
+    )
 
     tmp_folder = "tests/ressources/tmp"
     output_filename = os.path.join(tmp_folder, "results.txt")
@@ -51,7 +57,10 @@ def test_write_tracking_results_to_file():
         os.mkdir(tmp_folder)
 
     write_tracking_results_to_file(
-        results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename
+        results,
+        ratio_x=ratio_x,
+        ratio_y=ratio_y,
+        output_filename=output_filename,
     )
 
     assert os.path.exists(output_filename)
@@ -63,8 +72,12 @@ def test_write_tracking_results_to_file():
 def test_read_tracking_results():
     input_shape = (640, 360)
     output_shape = (960, 544)
-    ratio_y = input_shape[0] / (output_shape[0] // config_track.downsampling_factor)
-    ratio_x = input_shape[1] / (output_shape[1] // config_track.downsampling_factor)
+    ratio_y = input_shape[0] / (
+        output_shape[0] // config_track.downsampling_factor
+    )
+    ratio_x = input_shape[1] / (
+        output_shape[1] // config_track.downsampling_factor
+    )
 
     tmp_folder = "tests/ressources/tmp"
     output_filename = os.path.join(tmp_folder, "results.txt")
@@ -72,7 +85,10 @@ def test_read_tracking_results():
         os.mkdir(tmp_folder)
 
     write_tracking_results_to_file(
-        results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename
+        results,
+        ratio_x=ratio_x,
+        ratio_y=ratio_y,
+        output_filename=output_filename,
     )
 
     results_read = read_tracking_results(output_filename)
@@ -80,7 +96,7 @@ def test_read_tracking_results():
 
     os.rmdir(tmp_folder)
 
-    assert 1 + int(max([r[1] for r in results])) == len(results_read)
+    assert 1 + int(max(r[1] for r in results)) == len(results_read)
 
 
 def test_gaussian_mixture():
@@ -114,19 +130,27 @@ def test_exp_and_normalise():
 def test_gather_filename_for_video_annotations():
 
     images = [
-        {"frame_id": i, "video_id": 1, "file_name": f"1_{i}_.mp4"} for i in range(10)
+        {"frame_id": i, "video_id": 1, "file_name": f"1_{i}_.mp4"}
+        for i in range(10)
     ]
     images.extend(
-        [{"frame_id": i, "video_id": 2, "file_name": f"2_{i}_.mp4"} for i in range(10)]
+        [
+            {"frame_id": i, "video_id": 2, "file_name": f"2_{i}_.mp4"}
+            for i in range(10)
+        ]
     )
     video = {
         "id": 1,
     }
     data_dir = "ressources"
 
-    file_paths = gather_filenames_for_video_in_annotations(video, images, data_dir)
+    file_paths = gather_filenames_for_video_in_annotations(
+        video, images, data_dir
+    )
     dir_ = np.unique([p.split("/")[0] for p in file_paths])[0]
-    video_id = np.unique([p.split("/")[1].split("_")[0] for p in file_paths])[0]
+    video_id = np.unique([p.split("/")[1].split("_")[0] for p in file_paths])[
+        0
+    ]
     assert len(file_paths) == 10
     assert dir_ == data_dir
     assert int(video_id) == video.get("id")

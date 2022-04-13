@@ -5,9 +5,6 @@
 # Modified by Xingyi Zhou
 # ------------------------------------------------------------------------------
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import torch.nn as nn
 import torchvision.models as models
@@ -21,21 +18,29 @@ class MobiletNetHM(nn.Module):
         self.deconv_with_bias = False
         self.heads = heads
 
-        super(MobiletNetHM, self).__init__()
+        super().__init__()
         self.features = models.mobilenet_v3_small(pretrained=True).features
 
         # used for deconv layers
-        self.deconv_layers = self._make_deconv_layer(3, [256, 256, 256], [4, 4, 4],)
+        self.deconv_layers = self._make_deconv_layer(
+            3, [256, 256, 256], [4, 4, 4],
+        )
         # self.final_layer = []
 
         for head in sorted(self.heads):
             num_output = self.heads[head]
             if head_conv > 0:
                 fc = nn.Sequential(
-                    nn.Conv2d(256, head_conv, kernel_size=3, padding=1, bias=True),
+                    nn.Conv2d(
+                        256, head_conv, kernel_size=3, padding=1, bias=True
+                    ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
-                        head_conv, num_output, kernel_size=1, stride=1, padding=0
+                        head_conv,
+                        num_output,
+                        kernel_size=1,
+                        stride=1,
+                        padding=0,
                     ),
                 )
             else:
@@ -73,7 +78,9 @@ class MobiletNetHM(nn.Module):
 
         layers = []
         for i in range(num_layers):
-            kernel, padding, output_padding = self._get_deconv_cfg(num_kernels[i], i)
+            kernel, padding, output_padding = self._get_deconv_cfg(
+                num_kernels[i], i
+            )
 
             planes = num_filters[i]
             layers.append(

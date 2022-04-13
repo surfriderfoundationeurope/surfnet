@@ -1,20 +1,19 @@
-from time import time
 import os
-
-import numpy as np
-import cv2
-import torch
-from torch.utils.data import DataLoader
-from scipy.stats import multivariate_normal
-
-import matplotlib.pyplot as plt
-
-from plasticorigins.tools.video_readers import TorchIterableFromReader
-from plasticorigins.detection.transforms import TransformFrames
 from collections import defaultdict
+from time import time
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from scipy.stats import multivariate_normal
+from torch.utils.data import DataLoader
+
+from plasticorigins.detection.transforms import TransformFrames
+from plasticorigins.tools.video_readers import TorchIterableFromReader
 
 
-class GaussianMixture(object):
+class GaussianMixture:
     def __init__(self, means, covariance, weights):
         self.components = [
             multivariate_normal(mean=mean, cov=covariance) for mean in means
@@ -57,10 +56,17 @@ def in_frame(position, shape, border=0.02):
 
 
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
-    images_for_video = [image for image in images if image["video_id"] == video["id"]]
-    images_for_video = sorted(images_for_video, key=lambda image: image["frame_id"])
+    images_for_video = [
+        image for image in images if image["video_id"] == video["id"]
+    ]
+    images_for_video = sorted(
+        images_for_video, key=lambda image: image["frame_id"]
+    )
 
-    return [os.path.join(data_dir, image["file_name"]) for image in images_for_video]
+    return [
+        os.path.join(data_dir, image["file_name"])
+        for image in images_for_video
+    ]
 
 
 def get_detections_for_video(reader, detector, batch_size=16, device=None):
@@ -78,7 +84,9 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
                     detections.append(detections_for_frame)
                 else:
                     detections.append(np.array([]))
-    print(f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps")
+    print(
+        f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps"
+    )
     return detections
 
 
@@ -105,7 +113,10 @@ def overlay_transparent(background, overlay, x, y):
         overlay = np.concatenate(
             [
                 overlay,
-                np.ones((overlay.shape[0], overlay.shape[1], 1), dtype=overlay.dtype)
+                np.ones(
+                    (overlay.shape[0], overlay.shape[1], 1),
+                    dtype=overlay.dtype,
+                )
                 * 255,
             ],
             axis=2,
@@ -114,8 +125,8 @@ def overlay_transparent(background, overlay, x, y):
     overlay_image = overlay[..., :3]
     mask = overlay[..., 3:] / 255.0
 
-    background[y: y + h, x: x + w] = (1.0 - mask) * background[
-        y: y + h, x: x + w
+    background[y : y + h, x : x + w] = (1.0 - mask) * background[
+        y : y + h, x : x + w
     ] + mask * overlay_image
     return background
 
@@ -233,7 +244,9 @@ def read_tracking_results(input_file):
         center_y = top + height / 2
         conf = result[6]
         class_id = int(result[7])
-        tracklets[track_id].append((frame_id, center_x, center_y, conf, class_id))
+        tracklets[track_id].append(
+            (frame_id, center_x, center_y, conf, class_id)
+        )
 
     tracklets = list(tracklets.values())
     return tracklets
@@ -302,7 +315,10 @@ class Display:
 
         if len(self.latest_detections):
             self.ax.scatter(
-                self.latest_detections[:, 0], self.latest_detections[:, 1], c="r", s=40
+                self.latest_detections[:, 0],
+                self.latest_detections[:, 1],
+                c="r",
+                s=40,
             )
 
         if something_to_show:

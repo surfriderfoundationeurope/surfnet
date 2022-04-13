@@ -1,8 +1,13 @@
-import numpy as np
-from scipy.stats import multivariate_normal
-from plasticorigins.tracking.utils import in_frame, exp_and_normalise, GaussianMixture
-from pykalman import KalmanFilter, AdditiveUnscentedKalmanFilter
 import matplotlib.patches as mpatches
+import numpy as np
+from pykalman import AdditiveUnscentedKalmanFilter, KalmanFilter
+from scipy.stats import multivariate_normal
+
+from plasticorigins.tracking.utils import (
+    GaussianMixture,
+    exp_and_normalise,
+    in_frame,
+)
 
 
 class Tracker:
@@ -62,14 +67,16 @@ class Tracker:
     def cls_score_function(self, conf, label):
         """ generates a score based on classes associated with observation in this tracker
         """
-        class_conf = sum([tr[2] for tr in self.tracklet if tr[3] == label])
-        other_conf = sum([tr[2] for tr in self.tracklet])
+        class_conf = sum(tr[2] for tr in self.tracklet if tr[3] == label)
+        other_conf = sum(tr[2] for tr in self.tracklet)
         return (class_conf + conf) / (other_conf + conf)
 
     def get_display_colors(self, display, tracker_nb):
         colors = display.colors
         color = colors[tracker_nb % len(colors)]
-        display.legends.append(mpatches.Patch(color=color, label=len(self.tracklet)))
+        display.legends.append(
+            mpatches.Patch(color=color, label=len(self.tracklet))
+        )
         return colors[tracker_nb % len(colors)]
 
 
@@ -97,9 +104,9 @@ class SMC(Tracker):
             delta,
         )
 
-        self.particles = multivariate_normal(X0, cov=self.observation_covariance).rvs(
-            SMC.n_particles
-        )
+        self.particles = multivariate_normal(
+            X0, cov=self.observation_covariance
+        ).rvs(SMC.n_particles)
         self.normalized_weights = np.ones(SMC.n_particles) / SMC.n_particles
 
     def update(self, observation, confidence, class_id, flow, frame_nb=None):
@@ -110,7 +117,9 @@ class SMC(Tracker):
         if observation is not None:
             self.importance_reweighting(observation)
         else:
-            self.normalized_weights = np.ones(len(self.particles)) / len(self.particles)
+            self.normalized_weights = np.ones(len(self.particles)) / len(
+                self.particles
+            )
 
         return enabled
 
@@ -141,14 +150,16 @@ class SMC(Tracker):
     def importance_reweighting(self, observation):
         log_weights_unnormalized = np.zeros(len(self.particles))
         for particle_nb, particle in enumerate(self.particles):
-            log_weights_unnormalized[particle_nb] = self.observation(particle).logpdf(
-                observation
-            )
+            log_weights_unnormalized[particle_nb] = self.observation(
+                particle
+            ).logpdf(observation)
         self.normalized_weights = exp_and_normalise(log_weights_unnormalized)
 
     def resample(self):
         resampling_indices = np.random.choice(
-            a=len(self.particles), p=self.normalized_weights, size=len(self.particles)
+            a=len(self.particles),
+            p=self.normalized_weights,
+            size=len(self.particles),
         )
         self.particles = self.particles[resampling_indices]
 
@@ -156,10 +167,12 @@ class SMC(Tracker):
         new_particles = []
         new_weights = []
 
-        for particle, normalized_weight in zip(self.particles, self.normalized_weights):
-            new_particles_for_particle = self.state_transition(particle, flow).rvs(
-                nb_new_particles
-            )
+        for particle, normalized_weight in zip(
+            self.particles, self.normalized_weights
+        ):
+            new_particles_for_particle = self.state_transition(
+                particle, flow
+            ).rvs(nb_new_particles)
 
             new_particles_for_particle = [
                 particle
@@ -176,11 +189,15 @@ class SMC(Tracker):
 
         new_particles = np.array(new_particles)
 
-        return GaussianMixture(new_particles, self.observation_covariance, new_weights)
+        return GaussianMixture(
+            new_particles, self.observation_covariance, new_weights
+        )
 
     def fill_display(self, display, tracker_nb):
         color = self.get_display_colors(display, tracker_nb)
-        display.ax.scatter(self.particles[:, 0], self.particles[:, 1], s=5, c=color)
+        display.ax.scatter(
+            self.particles[:, 0], self.particles[:, 1], s=5, c=color
+        )
 
 
 class EKF(Tracker):
@@ -217,12 +234,19 @@ class EKF(Tracker):
     def get_update_parameters(self, flow):
 
         flow_value = flow[
-            int(self.filtered_state_mean[1]), int(self.filtered_state_mean[0]), :
+            int(self.filtered_state_mean[1]),
+            int(self.filtered_state_mean[0]),
+            :,
         ]
 
         grad_flow_value = np.array(
             [np.gradient(flow[:, :, 0]), np.gradient(flow[:, :, 1])]
-        )[:, :, int(self.filtered_state_mean[1]), int(self.filtered_state_mean[0])]
+        )[
+            :,
+            :,
+            int(self.filtered_state_mean[1]),
+            int(self.filtered_state_mean[0]),
+        ]
         return (
             np.eye(2) + grad_flow_value,
             flow_value - grad_flow_value.dot(self.filtered_state_mean),
@@ -243,19 +267,24 @@ class EKF(Tracker):
         if observation is not None:
             self.store_observation(observation, frame_nb, confidence, class_id)
 
-        self.filtered_state_mean, self.filtered_state_covariance = self.EKF_step(
-            observation, flow
-        )
+        (
+            self.filtered_state_mean,
+            self.filtered_state_covariance,
+        ) = self.EKF_step(observation, flow)
 
         enabled = (
-            False if not in_frame(self.filtered_state_mean, flow.shape[:-1]) else True
+            False
+            if not in_frame(self.filtered_state_mean, flow.shape[:-1])
+            else True
         )
 
         return enabled
 
     def predictive_distribution(self, flow):
 
-        filtered_state_mean, filtered_state_covariance = self.EKF_step(None, flow)
+        filtered_state_mean, filtered_state_covariance = self.EKF_step(
+            None, flow
+        )
 
         distribution = multivariate_normal(
             filtered_state_mean,
@@ -267,7 +296,7 @@ class EKF(Tracker):
 
     def fill_display(self, display, tracker_nb):
         yy, xx = np.mgrid[
-            0: display.display_shape[1]: 1, 0: display.display_shape[0]: 1
+            0 : display.display_shape[1] : 1, 0 : display.display_shape[0] : 1
         ]
         pos = np.dstack((xx, yy))
         distribution = multivariate_normal(
@@ -329,29 +358,35 @@ class UKF(Tracker):
         if observation is not None:
             self.store_observation(observation, frame_nb, confidence, class_id)
 
-        self.filtered_state_mean, self.filtered_state_covariance = self.UKF_step(
-            observation, flow
-        )
+        (
+            self.filtered_state_mean,
+            self.filtered_state_covariance,
+        ) = self.UKF_step(observation, flow)
 
         enabled = (
-            False if not in_frame(self.filtered_state_mean, flow.shape[:-1]) else True
+            False
+            if not in_frame(self.filtered_state_mean, flow.shape[:-1])
+            else True
         )
 
         return enabled
 
     def predictive_distribution(self, flow):
 
-        filtered_state_mean, filtered_state_covariance = self.UKF_step(None, flow)
+        filtered_state_mean, filtered_state_covariance = self.UKF_step(
+            None, flow
+        )
 
         distribution = multivariate_normal(
-            filtered_state_mean, filtered_state_covariance + self.observation_covariance
+            filtered_state_mean,
+            filtered_state_covariance + self.observation_covariance,
         )
 
         return distribution
 
     def fill_display(self, display, tracker_nb):
         yy, xx = np.mgrid[
-            0: display.display_shape[1]: 1, 0: display.display_shape[0]: 1
+            0 : display.display_shape[1] : 1, 0 : display.display_shape[0] : 1
         ]
         pos = np.dstack((xx, yy))
         distribution = multivariate_normal(
