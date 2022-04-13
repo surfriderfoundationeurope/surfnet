@@ -5,7 +5,12 @@ from tqdm import tqdm
 
 class AdvancedFrameReader:
     def __init__(
-        self, video_name, read_every, rescale_factor, init_time_min, init_time_s
+        self,
+        video_name,
+        read_every,
+        rescale_factor,
+        init_time_min,
+        init_time_s,
     ):
 
         self.cap = cv2.VideoCapture(video_name)
@@ -140,7 +145,7 @@ class IterableFrameReader:
                 )
 
     def reset_video(self):
-        """ This method is needed as cv2.CAP_PROP_POS_FRAMES
+        """This method is needed as cv2.CAP_PROP_POS_FRAMES
         does not work on all backends
         """
         self.video.release()

@@ -52,11 +52,11 @@ class FocalLoss(nn.Module):
         )
 
     def _focal_loss(self, pred_hm, gt_hm, pos_inds, neg_inds):
-        """ Modified focal loss. Exactly the same as CornerNet.
-            Runs faster and costs a little bit more memory
-            Arguments:
-            pred (batch x c x h x w)
-            gt_regr (batch x c x h x w)
+        """Modified focal loss. Exactly the same as CornerNet.
+        Runs faster and costs a little bit more memory
+        Arguments:
+        pred (batch x c x h x w)
+        gt_regr (batch x c x h x w)
         """
 
         pred_hm = _sigmoid(pred_hm)
@@ -87,11 +87,11 @@ class FocalLoss(nn.Module):
         return loss
 
     def _focal_loss_class_wise(self, pred_hm, gt_hm, pos_inds, neg_inds):
-        """ Modified focal loss. Exactly the same as CornerNet.
-            Runs faster and costs a little bit more memory
-            Arguments:
-            pred (batch x c x h x w)
-            gt_regr (batch x c x h x w)
+        """Modified focal loss. Exactly the same as CornerNet.
+        Runs faster and costs a little bit more memory
+        Arguments:
+        pred (batch x c x h x w)
+        gt_regr (batch x c x h x w)
         """
 
         pred_hm = _sigmoid(pred_hm)

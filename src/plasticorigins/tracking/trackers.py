@@ -65,8 +65,7 @@ class Tracker:
         )
 
     def cls_score_function(self, conf, label):
-        """ generates a score based on classes associated with observation in this tracker
-        """
+        """generates a score based on classes associated with observation in this tracker"""
         class_conf = sum(tr[2] for tr in self.tracklet if tr[3] == label)
         other_conf = sum(tr[2] for tr in self.tracklet)
         return (class_conf + conf) / (other_conf + conf)

@@ -220,7 +220,7 @@ def load_model(arch, model_weights, device):
 
 
 def _calculate_euclidean_similarity(distances, zero_distance):
-    """ Calculates the euclidean distance between two sets of detections, and then converts this into a similarity
+    """Calculates the euclidean distance between two sets of detections, and then converts this into a similarity
     measure with values between 0 and 1 using the following formula: sim = max(0, 1 - dist/zero_distance).
     The default zero_distance of 2.0, corresponds to the default used in MOT15_3D, such that a 0.5 similarity
     threshold corresponds to a 1m distance threshold for TPs.

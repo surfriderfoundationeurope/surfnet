@@ -8,8 +8,7 @@ import cv2
 
 
 def create_unique_folder(base_folder, filename):
-    """Creates a unique folder based on the filename and timestamp
-    """
+    """Creates a unique folder based on the filename and timestamp"""
     folder_name = op.splitext(op.basename(filename))[0] + "_out_"
     folder_name += datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
     output_dir = op.join(base_folder, folder_name)
@@ -33,8 +32,7 @@ def download_from_url(url, filename, folder, logger):
 
 
 def load_trash_icons(folder_path):
-    """ loads all icons using cv2 format and returns a dict class -> opened icon
-    """
+    """loads all icons using cv2 format and returns a dict class -> opened icon"""
     folder_path = Path(folder_path)
     id_path = {
         "Fragment": folder_path

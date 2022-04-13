@@ -91,8 +91,7 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
 
 
 def overlay_transparent(background, overlay, x, y):
-    """ Overlays a transparent image over a background at topleft corner (x,y)
-    """
+    """Overlays a transparent image over a background at topleft corner (x,y)"""
     background_width = background.shape[1]
     background_height = background.shape[0]
 
@@ -201,7 +200,7 @@ def overlay_transparent(background, overlay, x, y):
 
 
 def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
-    """ writes the output result of a tracking the following format:
+    """writes the output result of a tracking the following format:
     - frame
     - id
     - x_tl, y_tl, w=0, h=0
@@ -226,7 +225,7 @@ def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
 
 
 def read_tracking_results(input_file):
-    """ read the input filename and interpret it as tracklets
+    """read the input filename and interpret it as tracklets
     i.e. lists of lists
     """
     raw_results = np.loadtxt(input_file, delimiter=",")
@@ -290,8 +289,7 @@ class FramesWithInfo:
 
 
 class Display:
-    """ Display tracking
-    """
+    """Display tracking"""
 
     def __init__(self, on, interactive=True):
         self.on = on

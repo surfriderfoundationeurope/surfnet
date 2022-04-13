@@ -16,8 +16,7 @@ def init_trackers(
     observation_variance,
     delta,
 ):
-    """ Initializes the trackers based on detections
-    """
+    """Initializes the trackers based on detections"""
     trackers = []
     for detection, conf, label in zip(detections, confs, labels):
         tracker_for_detection = engine(
@@ -85,8 +84,7 @@ def associate_detections_to_trackers(
 def interpret_detection(
     detections_for_frame, downsampling_factor, is_yolo=False
 ):
-    """ normalizes the detections depending whether they come from centernet or yolo
-    """
+    """normalizes the detections depending whether they come from centernet or yolo"""
     if not is_yolo:
         confs = [1.0] * len(detections_for_frame)
         labels = [0] * len(detections_for_frame)

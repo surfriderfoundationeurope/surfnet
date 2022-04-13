@@ -66,8 +66,7 @@ def predict_yolo(model, img, size=768, cvtColor=True, augment=False):
 
 
 class DetectTorchScript(nn.Module):
-    """ Torch script yolo class
-    """
+    """Torch script yolo class"""
 
     max_det = 1000
     agnostic_nms = True
@@ -108,7 +107,7 @@ class DetectTorchScript(nn.Module):
         self.__dict__.update(locals())  # assign all variables to self
 
     def forward(self, im):
-        """ expects im as np array of shape BHWC or HWC
+        """expects im as np array of shape BHWC or HWC
         in practice B=1
         HW=size=640
         """
@@ -128,8 +127,7 @@ class DetectTorchScript(nn.Module):
         return np.array(list(map(get_id, preds_names)))
 
     def detect(self, ims):
-        """Assumes batch size = 1 for now
-        """
+        """Assumes batch size = 1 for now"""
         pred = self.forward(ims)
         pred2 = non_max_suppression(
             pred,

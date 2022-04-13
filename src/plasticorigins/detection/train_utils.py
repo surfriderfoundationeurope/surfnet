@@ -178,9 +178,7 @@ class MetricLogger:
         if attr in self.__dict__:
             return self.__dict__[attr]
         raise AttributeError(
-            "'{}' object has no attribute '{}'".format(
-                type(self).__name__, attr
-            )
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
 
     def __str__(self):

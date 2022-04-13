@@ -12,7 +12,7 @@ from plasticorigins.tracking.utils import (
 
 
 def filter_tracks(tracklets, kappa, tau):
-    """ filters the tracks depending on params
+    """filters the tracks depending on params
     kappa: size of the moving average window
     tau: minimum length of tracklet
     returns raw filtered tracks
@@ -33,8 +33,7 @@ def filter_tracks(tracklets, kappa, tau):
 
 
 def process_class_and_confidences(class_confs):
-    """ Finds the majority and most confident class from list [(classid, conf), ...]
-    """
+    """Finds the majority and most confident class from list [(classid, conf), ...]"""
     d = defaultdict(lambda: (0, 0.0))
     for (cls, conf) in class_confs:
         d[cls] = (d[cls][0] + 1, d[cls][1] + conf)
@@ -43,8 +42,7 @@ def process_class_and_confidences(class_confs):
 
 
 def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
-    """ Converts tracking results into json object for API
-    """
+    """Converts tracking results into json object for API"""
     result_list = []
     id_list = {}
 
@@ -105,7 +103,7 @@ def count_objects(input_json, class_dict):
 
 
 def write(results, output_name):
-    """ Writes the results in two files:
+    """Writes the results in two files:
     - tracking in a Mathis format xxx_track.txt (frame, id, box_x, box_y, ...)
     - the number of detected objects in a separate file xxx_count.txt
     """
