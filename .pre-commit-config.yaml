@@ -1,0 +1,51 @@
+repos:
+  - repo: local
+    hooks:
+    -   id: pyupgrade
+        name: pyupgrade
+        description: Automatically upgrade syntax for newer versions.
+        entry: pyupgrade
+        language: python
+        types: [python]
+        # for backward compatibility
+        files: ''
+        minimum_pre_commit_version: 0.15.0
+        args: ['--py38-plus']
+    -   id: isort
+        name: isort
+        entry: isort
+        require_serial: true
+        language: python
+        types: [python]
+        args: ['--filter-files', '--profile=black']
+        files: '.*'
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: |
+          poetry run black src/serving/
+          poetry run black src/plasticorigins/
+          poetry run black tests
+        language: python
+        language_version: python3
+        require_serial: true
+        types: [python]
+        args: ['--line-length=79']
+    -   id: flake8
+        name: flake8
+        description: '`flake8` is a command-line utility for enforcing style consistency across Python projects.'
+        entry: |
+          poetry run flake8 src/serving/
+          poetry run flake8 src/plasticorigins/
+          poetry run flake8 tests
+        language: python
+        types: [python]
+        additional_dependencies:
+          - flake8-broken-line
+          - flake8-blind-except
+          - flake8-builtins
+          - flake8-logging-format
+          - flake8-print
+#          - flake8-docstrings
+#          - flake8-mypy
+       

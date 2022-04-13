@@ -17,7 +17,7 @@ debugpy = "1.5.1"
 scipy = "1.7.3"
 tqdm = "4.62.3"
 imgaug = "0.4.0"
-psycopg2-binary = "2.8.5"
+psycopg2-binary = "2.9.3"
 Flask = "2.0.3"
 Werkzeug = "2.0.3"
 gunicorn = "19.10.0"
@@ -32,6 +32,7 @@ coverage = "^6.3.2"
 
 flake8 = "^4.0.1"
 black = "^22.3.0"
+pre-commit = "^2.18.1"
 # coverage configuration
 [tool.coverage.paths]
 source = ["src"]
