@@ -8,6 +8,8 @@ import numpy as np
 import torch
 from scipy.stats import multivariate_normal
 from torch.utils.data import DataLoader
+from skvideo.io import FFmpegWriter
+from skimage.transform import downscale_local_mean
 
 from plasticorigins.detection.transforms import TransformFrames
 from plasticorigins.tools.video_readers import TorchIterableFromReader
@@ -56,17 +58,10 @@ def in_frame(position, shape, border=0.02):
 
 
 def gather_filenames_for_video_in_annotations(video, images, data_dir):
-    images_for_video = [
-        image for image in images if image["video_id"] == video["id"]
-    ]
-    images_for_video = sorted(
-        images_for_video, key=lambda image: image["frame_id"]
-    )
+    images_for_video = [image for image in images if image["video_id"] == video["id"]]
+    images_for_video = sorted(images_for_video, key=lambda image: image["frame_id"])
 
-    return [
-        os.path.join(data_dir, image["file_name"])
-        for image in images_for_video
-    ]
+    return [os.path.join(data_dir, image["file_name"]) for image in images_for_video]
 
 
 def get_detections_for_video(reader, detector, batch_size=16, device=None):
@@ -84,9 +79,7 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
                     detections.append(detections_for_frame)
                 else:
                     detections.append(np.array([]))
-    print(
-        f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps"
-    )
+    print(f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps")
     return detections
 
 
@@ -130,10 +123,18 @@ def overlay_transparent(background, overlay, x, y):
     return background
 
 
-def generate_video_with_annotations(reader, output_detected, output_filename, skip_frames,
-                                    maxframes, downscale, logger, gps_data=None, labels2icons=None):
-    """ Generates output video at 24 fps, with optional gps_data
-    """
+def generate_video_with_annotations(
+    reader,
+    output_detected,
+    output_filename,
+    skip_frames,
+    maxframes,
+    downscale,
+    logger,
+    gps_data=None,
+    labels2icons=None,
+):
+    """Generates output video at 24 fps, with optional gps_data"""
     fps = 24
     logger.info("---Intepreting json")
     results = defaultdict(list)
@@ -144,23 +145,31 @@ def generate_video_with_annotations(reader, output_detected, output_filename, sk
             object_class = trash["label"]
             center_x = v[0]
             center_y = v[1]
-            results[frame_nb * (skip_frames+1)].append((object_nb, center_x, center_y, object_class))
+            results[frame_nb * (skip_frames + 1)].append(
+                (object_nb, center_x, center_y, object_class)
+            )
             # append next skip_frames
             if str(frame_nb + 2) in trash["frame_to_box"]:
                 next_trash = trash["frame_to_box"][str(frame_nb + 2)]
                 next_x = next_trash[0]
                 next_y = next_trash[1]
-                for i in range(1, skip_frames+1):
-                    new_x = center_x + (next_x - center_x) * i/(skip_frames+1)
-                    new_y = center_y + (next_y - center_y) * i/(skip_frames+1)
-                    results[frame_nb * (skip_frames+1) + i].append((object_nb, new_x, new_y, object_class))
+                for i in range(1, skip_frames + 1):
+                    new_x = center_x + (next_x - center_x) * i / (skip_frames + 1)
+                    new_y = center_y + (next_y - center_y) * i / (skip_frames + 1)
+                    results[frame_nb * (skip_frames + 1) + i].append(
+                        (object_nb, new_x, new_y, object_class)
+                    )
     logger.info("---Writing video")
 
-    writer = FFmpegWriter(filename = output_filename,
-                          outputdict={"-pix_fmt": "rgb24",
-                                      "-r":"%.02f" % fps,
-                                      '-vcodec': 'libx264',
-                                      '-b': '5000000'})
+    writer = FFmpegWriter(
+        filename=output_filename,
+        outputdict={
+            "-pix_fmt": "rgb24",
+            "-r": "%.02f" % fps,
+            "-vcodec": "libx264",
+            "-b": "5000000",
+        },
+    )
 
     font = cv2.FONT_HERSHEY_TRIPLEX
     for frame_nb, frame in enumerate(reader):
@@ -168,19 +177,51 @@ def generate_video_with_annotations(reader, output_detected, output_filename, sk
         for detection in detections_for_frame:
             if labels2icons is None:
                 # write name of class
-                cv2.putText(frame, f'{detection[0]}/{detection[3]}', (int(detection[1]), int(detection[2])+5), font, 2, (0, 0, 255), 3, cv2.LINE_AA)
+                cv2.putText(
+                    frame,
+                    f"{detection[0]}/{detection[3]}",
+                    (int(detection[1]), int(detection[2]) + 5),
+                    font,
+                    2,
+                    (0, 0, 255),
+                    3,
+                    cv2.LINE_AA,
+                )
             else:
                 # icons
-                overlay_transparent(frame, labels2icons[detection[3]], int(detection[1])+5, int(detection[2]))
-                cv2.putText(frame, f'{detection[0]}', (int(detection[1]+46+5), int(detection[2])+42), font, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+                overlay_transparent(
+                    frame,
+                    labels2icons[detection[3]],
+                    int(detection[1]) + 5,
+                    int(detection[2]),
+                )
+                cv2.putText(
+                    frame,
+                    f"{detection[0]}",
+                    (int(detection[1] + 46 + 5), int(detection[2]) + 42),
+                    font,
+                    1.2,
+                    (0, 0, 0),
+                    2,
+                    cv2.LINE_AA,
+                )
 
             if gps_data is not None:
-                latitude  = gps_data[frame_nb//fps]['Latitude']
-                longitude  = gps_data[frame_nb//fps]['Longitude']
-                cv2.putText(frame, f'GPS:{latitude},{longitude}', (10,frame.shape[0]-30), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+                latitude = gps_data[frame_nb // fps]["Latitude"]
+                longitude = gps_data[frame_nb // fps]["Longitude"]
+                cv2.putText(
+                    frame,
+                    f"GPS:{latitude},{longitude}",
+                    (10, frame.shape[0] - 30),
+                    font,
+                    2,
+                    (0, 255, 0),
+                    3,
+                    cv2.LINE_AA,
+                )
 
-        frame = downscale_local_mean(frame, (downscale,downscale,1)).astype(np.uint8)
-        writer.writeFrame(frame[:,:,::-1])
+        frame = downscale_local_mean(frame, (downscale, downscale, 1)).astype(np.uint8)
+        writer.writeFrame(frame[:, :, ::-1])
 
     writer.close()
     reader.video.release()
@@ -192,10 +233,10 @@ def resize_external_detections(detections, ratio):
     for detection_nb in range(len(detections)):
         detection = detections[detection_nb]
         if len(detection):
-            detection = np.array(detection)[:,:-1]
-            detection[:,0] = (detection[:,0] + detection[:,2])/2
-            detection[:,1] = (detection[:,1] + detection[:,3])/2
-            detections[detection_nb] = detection[:,:2]/ratio
+            detection = np.array(detection)[:, :-1]
+            detection[:, 0] = (detection[:, 0] + detection[:, 2]) / 2
+            detection[:, 1] = (detection[:, 1] + detection[:, 3]) / 2
+            detections[detection_nb] = detection[:, :2] / ratio
     return detections
 
 
@@ -243,9 +284,7 @@ def read_tracking_results(input_file):
         center_y = top + height / 2
         conf = result[6]
         class_id = int(result[7])
-        tracklets[track_id].append(
-            (frame_id, center_x, center_y, conf, class_id)
-        )
+        tracklets[track_id].append((frame_id, center_x, center_y, conf, class_id))
 
     tracklets = list(tracklets.values())
     return tracklets
