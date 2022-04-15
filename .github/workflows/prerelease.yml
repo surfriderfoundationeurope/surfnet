@@ -22,9 +22,10 @@ jobs:
           python-version: "${{ matrix.python-version }}"
       - name: Read bump rule
         id: bump-rule
-        uses: juliangruber/read-file-action@v1
+        uses: andstor/file-reader-action@v1
         with:
-          path: ./bump.json
-      - name: Echo bump.txt
-        run: echo "${{ steps.package.outputs.content }}"
+          path: "./bump.json"
+      - name: File contents
+        run: echo "${ steps.read_file.outputs.contents }"
+
 
