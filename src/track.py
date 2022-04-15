@@ -1,13 +1,13 @@
 import numpy as np
 import os
-from detection.detect import detect
-from tracking.utils import get_detections_for_video, write_tracking_results_to_file
-from tools.video_readers import IterableFrameReader
-from tools.misc import load_model
-from tracking.trackers import get_tracker
 import torch
 
-from tracking.track_video import track_video, Display
+from plasticorigins.detection.detect import detect
+from plasticorigins.tracking.utils import get_detections_for_video, write_tracking_results_to_file
+from plasticorigins.tools.video_readers import IterableFrameReader
+from plasticorigins.tools.misc import load_model
+from plasticorigins.tracking.trackers import get_tracker
+from plasticorigins.tracking.track_video import track_video, Display
 
 def main(args, display):
 

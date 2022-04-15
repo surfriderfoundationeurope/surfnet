@@ -1,6 +1,6 @@
 import cv2 
 from collections import defaultdict
-from tools.video_readers import SimpleVideoReader
+from plasticorigins.tools.video_readers import SimpleVideoReader
 
 def main(args):
 

@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  tests:
+    name: "${{ matrix.python-version }} / ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { python-version: 3.8, os: ubuntu-latest }
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2.3.4
+
+      - name: Set up Python {{ "${{ matrix.python-version }}" }}
+        uses: actions/setup-python@v2.2.2
+        with:
+          python-version: "${{ matrix.python-version }}"
+
+      - name: Upgrade pip
+        run: |
+          pip install --upgrade pip
+          pip --version
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry --version
+          poetry install
+      - name: Run lint
+        run: |
+          poetry run flake8 src/plasticorigins/
+          poetry run flake8 src/serving/
+      - name: Run tests
+        run: |
+          cd models/
+          sh download_pretrained_base.sh 
+          cd ..
+          poetry run coverage run -m pytest
+          poetry run coverage xml
+          rm models/mobilenet_v3_pretrained.pth

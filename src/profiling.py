@@ -1,12 +1,14 @@
 from torch.utils.data.dataloader import DataLoader
-from detection.transforms import TransformFrames
-from tools.misc import load_model
-from tools.video_readers import IterableFrameReader, TorchIterableFromReader
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
-from detection.detect import nms
 import torch 
 import numpy as np 
 import time
+
+from plasticorigins.detection.transforms import TransformFrames
+from plasticorigins.tools.misc import load_model
+from plasticorigins.tools.video_readers import IterableFrameReader, TorchIterableFromReader
+from plasticorigins.detection.detect import nms
+
 
 # def trace_handler(prof):
 #     print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=-1))

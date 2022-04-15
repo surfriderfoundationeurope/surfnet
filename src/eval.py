@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import os
-from detection.detect import nms
+from plasticorigins.detection.detect import nms
 from tqdm import tqdm
 import math
 from scipy.spatial.distance import cdist
-from tools.misc import load_model, _calculate_euclidean_similarity
-from detection.coco_utils import get_surfrider
-from detection.transforms import TrainTransforms, ValTransforms  
+from plasticorigins.tools.misc import load_model, _calculate_euclidean_similarity
+from plasticorigins.detection.coco_utils import get_surfrider
+from plasticorigins.detection.transforms import TrainTransforms, ValTransforms  
 
 
 def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):

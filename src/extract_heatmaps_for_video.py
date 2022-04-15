@@ -1,8 +1,8 @@
-from tools.misc import load_model 
+from plasticorigins.tools.misc import load_model 
 import os 
-from tools.video_readers import IterableFrameReader
-from detection.detect import transform_for_test, nms
-from tools.optical_flow import compute_flow
+from plasticorigins.tools.video_readers import IterableFrameReader
+from plasticorigins.detection.detect import transform_for_test, nms
+from plasticorigins.tools.optical_flow import compute_flow
 from warp_flow import warp_flow
 import cv2
 import torch 

@@ -1,0 +1,12 @@
+opencv-python==4.5.5.62
+pycocotools==2.0.4
+debugpy==1.5.1
+scipy==1.4.1
+tqdm==4.62.3
+imgaug==0.4.0
+psycopg2-binary==2.8.5
+flask==1.1.1
+werkzeug==2.0.3
+gunicorn==19.10.0
+torch==1.11.0
+torchvision==0.12.0

@@ -3,12 +3,9 @@ from torch.nn.modules.activation import ReLU
 from torch.nn.modules.conv import Conv2d
 from torch.nn.modules.loss import MSELoss
 from torchvision.models.densenet import _load_state_dict
-from tools.misc import load_model
 import os 
 
 from torch.utils.tensorboard import SummaryWriter
-from detection.coco_utils import get_surfrider
-from detection.transforms import TrainTransforms  
 from torch.utils.data import DataLoader
 import torchvision.models as models
 import torch 
@@ -21,8 +18,12 @@ import torch
 from torch import nn
 from torch.utils.data import random_split
 import pytorch_lightning as pl
-
 import matplotlib.pyplot as plt 
+
+from plasticorigins.tools.misc import load_model
+from plasticorigins.detection.coco_utils import get_surfrider
+from plasticorigins.detection.transforms import TrainTransforms  
+
 
     
 def extract_features():

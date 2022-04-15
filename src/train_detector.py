@@ -6,11 +6,11 @@ import torch
 import torch.utils.data
 from torch.utils.tensorboard import SummaryWriter
 
-from detection.coco_utils import get_surfrider
-from detection import transforms
-from detection.centernet.models import create_model 
-from detection.losses import FocalLoss
-from detection import train_utils as utils
+from plasticorigins.detection.coco_utils import get_surfrider
+from plasticorigins.detection import transforms
+from plasticorigins.detection.centernet.models import create_model 
+from plasticorigins.detection.losses import FocalLoss
+from plasticorigins.detection import train_utils as utils
 
 
 def get_dataset(dir_path, name, image_set, args):

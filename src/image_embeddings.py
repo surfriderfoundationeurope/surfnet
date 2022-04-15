@@ -1,14 +1,13 @@
+import os 
+
 from pytorch_lightning.accelerators import accelerator
 from torch.nn.modules.activation import ReLU
 from torch.nn.modules.conv import Conv2d
 from torch.nn.modules.loss import MSELoss
 from torchvision.models.densenet import _load_state_dict
-from tools.misc import load_model
-import os 
 
 from torch.utils.tensorboard import SummaryWriter
-from detection.coco_utils import get_surfrider
-from detection.transforms import TrainTransforms, ValTransforms  
+
 from torch.utils.data import DataLoader
 import torchvision.models as models
 import torch 
@@ -23,6 +22,10 @@ from torch.utils.data import random_split
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt 
 from pl_bolts.models.vision import UNet, unet
+
+from plasticorigins.tools.misc import load_model
+from plasticorigins.detection.coco_utils import get_surfrider
+from plasticorigins.detection.transforms import TrainTransforms, ValTransforms  
 
 def extract_features():
     device = torch.device('cuda')
