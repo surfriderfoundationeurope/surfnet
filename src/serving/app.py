@@ -1,15 +1,19 @@
-from flask import Flask, render_template, request
-import logging, logging.config
-from serving.config import logging_config
-logging.config.dictConfig(logging_config)
+import logging
+import logging.config
 
+from flask import Flask, render_template, request
+
+from serving.config import logging_config
 from serving.inference import handle_post_request
+
+logging.config.dictConfig(logging_config)
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
+
+@app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == 'POST':
+    if request.method == "POST":
         return handle_post_request()
     return render_template("upload.html")
 

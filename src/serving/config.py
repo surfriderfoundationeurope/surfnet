@@ -1,15 +1,16 @@
 id_categories = {
-    0: 'Fragment',    #'Sheet / tarp / plastic bag / fragment',
-    1: 'Insulating',  #'Insulating material',
-    2: 'Bottle',      #'Bottle-shaped',
-    3: 'Can',         #'Can-shaped',
+    0: 'Fragment',     # 'Sheet / tarp / plastic bag / fragment',
+    1: 'Insulating',   # 'Insulating material',
+    2: 'Bottle',       # 'Bottle-shaped',
+    3: 'Can',          # 'Can-shaped',
     4: 'Drum',
-    5: 'Packaging',   #'Other packaging',
+    5: 'Packaging',    # 'Other packaging',
     6: 'Tire',
-    7: 'Fishing net', #'Fishing net / cord',
+    7: 'Fishing net',  # 'Fishing net / cord',
     8: 'Easily namable',
     9: 'Unclear'
 }
+
 
 class DotDict(dict):
     """dot.notation access to dictionary attributes"""
@@ -24,14 +25,14 @@ config_track = DotDict({
     "detection_threshold": 0.3,
     "downsampling_factor": 4,
     "noise_covariances_path": "data/tracking_parameters",
-    "output_shape": (960,544),
-    "skip_frames": 3, #3
+    "output_shape": (960, 544),
+    "skip_frames": 3,  # 3
     "arch": "mobilenet_v3_small",
     "device": "cpu",
     "detection_batch_size": 1,
     "display": 0,
-    "kappa": 5, #7
-    "tau": 3 #4
+    "kappa": 5,  # 7
+    "tau": 3  # 4
 })
 
 logging_config = {
@@ -51,6 +52,6 @@ logging_config = {
     },
     'root': {
         'level': 'INFO',
-        'handlers': ['wsgi','file']
+        'handlers': ['wsgi', 'file']
     }
 }
