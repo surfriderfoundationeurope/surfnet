@@ -24,6 +24,23 @@ poetry use 3.8
 ```shell
 poetry install
 ```
+
+### Code Linting and Formatting:
+
+pre-commits have been added to format and check the linting of the code before any commit. This process will run:
+- PyUpgrade: to make sure that the code syntax is up to date with the latest python versions
+- Black: which is a code formatter 
+- Flake8: to check that the code is properly formatted.
+
+All this process is automatic to ensure the commited code quality. So as a good measure, prior to committing any code it is highly recommended to run:
+```shell
+poetry run black path/to/the/changed/code/directory(ies)
+```
+This will format the code that has been written and:
+```shell
+poetry run flake8 path/to/the/changed/code/directory(ies)
+```
+to check if there is any other issues to fix.
 ## Downloading pretrained models
 
 You can download MobileNetV3 model with the following script:
