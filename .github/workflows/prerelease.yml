@@ -20,11 +20,10 @@ jobs:
         uses: actions/setup-python@v2.2.2
         with:
           python-version: "${{ matrix.python-version }}"
-      - name: Read bump rule
-        id: bump-rule
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: "./bump.json"
-      - name: Echo bump.json
-        run: echo "${{ steps.package.outputs.content }}"
+      - name: Set env var
+        id: vars
+        run: python bump.py
+      - name: Check env var
+        run: |
+          echo $BUMP
 
