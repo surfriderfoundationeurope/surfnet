@@ -32,4 +32,5 @@ jobs:
           echo "${{steps.check-version.outputs.branch}}"
           echo "${{steps.check-version.outputs.tag}}"
           echo "${{steps.check-version.outputs.prerelease}}"
+          echo "$(poetry version --short)"
 
