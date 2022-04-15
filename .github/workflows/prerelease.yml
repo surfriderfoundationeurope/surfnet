@@ -36,18 +36,12 @@ jobs:
           echo "${{steps.check-version.outputs.tag}}"
           echo "${{steps.check-version.outputs.prerelease}}"
           echo "$(poetry version --short)"
-      - name: Parse semver string
-        id: semver_parser 
-        uses: booxmedialtd/ws-action-parse-semver@v1
-        with:
-          input_string: '1.0.0-alpha.0'
-          version_extractor_regex: '\/v(.*)$'
-      - name: Use parsed semver
+      - name: get-version
         run: |
-              echo "v${{ steps.semver_parser.outputs.major }}"
-              echo "v${{ steps.semver_parser.outputs.minor }}"
-              echo "v${{ steps.semver_parser.outputs.patch }}"
-              echo "v${{ steps.semver_parser.outputs.prerelease }}"
-              echo "v${{ steps.semver_parser.outputs.build }}"
-              echo "v${{ steps.semver_parser.outputs.fullversion }}"
+          v=$(echo ${{steps.check-version.outputs.tag}} | cut -d- -f1)
+          echo "::set-output name=version::$v"
+      - name: print version
+        run: |
+          echo "${{steps.get-version.outputs.version}}"
+        
 
