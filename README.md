@@ -126,6 +126,7 @@ kubectl get service surfnet-api
 
 Check the current version of the product:
 
+Docker Build:
 ```shell
 poetry version
 ```

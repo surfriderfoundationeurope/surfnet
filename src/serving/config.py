@@ -11,7 +11,6 @@ id_categories = {
     9: 'Unclear'
 }
 
-
 class DotDict(dict):
     """dot.notation access to dictionary attributes"""
     __getattr__ = dict.get
