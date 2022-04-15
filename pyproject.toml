@@ -2,6 +2,9 @@
 name = "plastic-origins"
 version = "1.0.0-alpha.0"
 description = "A package containing methods commonly used to make inferences"
+repository = "https://github.com/surfriderfoundationeurope/surfnet"
+homepage = "https://www.plasticorigins.eu/"
+readme = "README.md"
 authors = ["Chayma Mesbahi <chayma.mesbahi@neoxia.com>"]
 license = "MIT"
 
