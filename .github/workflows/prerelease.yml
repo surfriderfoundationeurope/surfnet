@@ -24,7 +24,7 @@ jobs:
         id: bump-rule
         uses: juliangruber/read-file-action@v1
         with:
-          path: ./bump.txt
+          path: ./bump.json
       - name: Echo bump.txt
         run: echo "${{ steps.package.outputs.content }}"
 

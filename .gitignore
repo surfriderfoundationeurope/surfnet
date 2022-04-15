@@ -19,3 +19,4 @@ htmlcov/
 .pytest_cache/
 
 !tests/ressources/validation_videos/T1_trim.mp4
+!bump.json
