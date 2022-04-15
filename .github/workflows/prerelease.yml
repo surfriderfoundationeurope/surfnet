@@ -38,7 +38,7 @@ jobs:
           echo "$(poetry version --short)"
       - name: get-version
         run: |
-          v=$(echo ${{steps.check-version.outputs.tag}} | cut -d- -f1)
+          v=$(echo ${{steps.check-version.outputs.tag}} | cut -d'-' -f 1)
           echo "::set-output name=version::$v"
       - name: get-version2
         uses: actions/github-script@0.9.0
