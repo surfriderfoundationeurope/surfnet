@@ -40,7 +40,7 @@ jobs:
         id: semver_parser 
         uses: booxmedialtd/ws-action-parse-semver@v1
         with:
-          input_string: ${{steps.check-version.outputs.tag}}
+          input_string: '1.0.0-alpha.0'
           version_extractor_regex: '\/v(.*)$'
       - name: Use parsed semver
         run: |
