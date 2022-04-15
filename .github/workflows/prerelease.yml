@@ -1,0 +1,23 @@
+name: Prerelease
+
+on:
+  push
+
+jobs:
+  tests:
+    name: "${{ matrix.python-version }} / ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { python-version: 3.8, os: ubuntu-latest }
+    steps:
+      - name: Read bump rule
+        id: bump-rule
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./bump.txt
+      - name: Echo bump.txt
+        run: echo "${{ steps.package.outputs.content }}"
+
