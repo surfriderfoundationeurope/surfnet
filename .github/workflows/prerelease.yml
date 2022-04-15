@@ -24,6 +24,9 @@ jobs:
         id: vars
         run: python bump.py
       - name: Check env var
+        env:
+            RELEASE_VERSION: "major"
         run: |
           echo $BUMP
+          echo $RELEASE_VERSION
 
