@@ -1,14 +1,7 @@
-import argparse
+import json 
+import os
 
-
-def main(new_bump):
-    with open("bump.txt", "w") as f:
-        f.write(new_bump)
-    f.close()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--bump", type=str)
-    args = parser.parse_args()
-    main(args.bump)
+with open("bump.json","rb") as f:
+    bump_json = json.load(f)
+    
+os.environ['BUMP'] = bump_json['bump_rule']
