@@ -38,10 +38,13 @@ jobs:
           echo "$(poetry version --short)"
       - name: get-version
         run: |
-          echo "::set-output name=version::$(echo ${{steps.check-version.outputs.tag}} | cut -d'-' -f 1)"
+          echo "::set-output name=version::$(echo ${{steps.check-version.outputs.tag}} | cut -d '-' -f 0)"
       - name: print version
         run: |
+          echo "${{steps.check-version.outputs.tag}}"
           echo $VERSION_FULL
+          VERSION=${VERSION_FULL%-*}
+          echo $VERSION
         env:
           VERSION_FULL: ${{ steps.check-version.outputs.tag }}
         
