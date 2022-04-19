@@ -1,5 +1,21 @@
 # Automated object counting on riverbanks
 
+## Project Branches:
+
+- **release**: is the main/production branch (DO NOT PUSH DIRECTLY TO RELEASE)
+- **dev**: is the developpement branch (DO NOT PUSH DIRECTLY TO DEV)
+- **Feature Branches**: These are the branches where you can develop new features for the project. In order to create a feature branch:
+    - Make sure that your **dev** branch is up to date
+        ```shell
+        git checkout dev
+        git pull dev
+        ```
+    - Create a new branch from **dev** with the name **feature/name_of_your_feature**
+        ```shell
+        git checkout -b feature/name_of_your_feature
+        ```
+    - Once your feature developpement is complete, make a Pull Request of your feature branch to **dev**
+- **Research Branches**: These are branches made for research purposes and they are named **research/name_of_your_subject**
 ## Release Branch - Installation
 
 Follow these steps in that order exactly:
@@ -122,7 +138,8 @@ kubectl get service surfnet-api
 
 ## Release plasticorigins to pypi:
 
-### Check or Bump version:
+### Prerelease: (Pull Request to Dev branch)
+#### Check or Bump version:
 
 Check the current version of the product:
 
@@ -137,17 +154,18 @@ Bump the version to the product:
 poetry version <bump-rule>
 ```
 bump rules can be found in : https://python-poetry.org/docs/cli/#:~:text=with%20concrete%20examples.-,RULE,-BEFORE
-**choose carefully the one that corresponds to your bump (we usally will be using "patch" as a bump-rule**
-### Build the project
-```shell
-poetry build
-```
+**choose carefully the one that corresponds to your bump: for the prerelease we will use:**
+- **prepatch**
+- **preminor**
+- **premajor**
+make sure that in you pyproject.toml your version ends with **-alpha.0**
 
-### Publish the project to pypi:
+#### Publish the prerelease to pypi:
 
-```shell
-poetry publish --username your_pypi_username --password your_pypi_password
-```
+In order to publish your prerelease to PyPi, all you need to do is open a Pull Request of your current branch to **Dev** branch. Once the PR is approved and merged, the Prerelease will be done automatically with a github workflow.
+
+### Release: (Pull Request to Release branch):
+In order to publish a release version to PyPi, all you have to do is open a Pull Request of the **Dev** branch into the **Release** branch. Once the PR is approved and merged, the Release will be done automatically with a github workflow.
 
 ## Testing:
 To launch the tests you can run this command
