@@ -50,6 +50,6 @@ jobs:
           echo $VERSION
           echo "${{steps.get-version.outputs.version}}"
         env:
-          VERSION: ${{s teps.get-version.outputs.version }}
+          VERSION: ${{ steps.get-version.outputs.version }}
         
 
