@@ -38,8 +38,7 @@ jobs:
           echo "$(poetry version --short)"
       - name: get-version
         run: |
-          v=$(echo ${{steps.check-version.outputs.tag}} | cut -d'-' -f 1)
-          echo "::set-output name=version::$v"
+          echo "::set-output name=version::$(echo ${{steps.check-version.outputs.tag}} | cut -d'-' -f 1)"
       - name: print version
         run: |
           echo "${{steps.get-version.outputs.version}}"
