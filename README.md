@@ -2,20 +2,29 @@
 
 ## Project Branches:
 
-- **release**: is the main/production branch (DO NOT PUSH DIRECTLY TO RELEASE)
-- **dev**: is the developpement branch (DO NOT PUSH DIRECTLY TO DEV)
-- **Feature Branches**: These are the branches where you can develop new features for the project. In order to create a feature branch:
-    - Make sure that your **dev** branch is up to date
-        ```shell
-        git checkout dev
-        git pull dev
-        ```
-    - Create a new branch from **dev** with the name **feature/name_of_your_feature**
-        ```shell
-        git checkout -b feature/name_of_your_feature
-        ```
-    - Once your feature developpement is complete, make a Pull Request of your feature branch to **dev**
-- **Research Branches**: These are branches made for research purposes and they are named **research/name_of_your_subject**
+### release:
+
+This is the main/production branch (DO NOT PUSH DIRECTLY TO RELEASE)
+### dev: 
+
+This is the developpement branch (DO NOT PUSH DIRECTLY TO DEV)
+### Feature Branches
+
+These are the branches where you can develop new features for the project. In order to create a feature branch:
+
+- Make sure that your **dev** branch is up to date
+    ```shell
+    git checkout dev
+    git pull dev
+    ```
+- Create a new branch from **dev** with the name **feature/name_of_your_feature**
+    ```shell
+    git checkout -b feature/name_of_your_feature
+    ```
+- Once your feature developpement is complete, make a Pull Request of your feature branch to **dev**
+### Research Branches: 
+
+These are branches made for research purposes and they are named **research/name_of_your_subject**
 ## Release Branch - Installation
 
 Follow these steps in that order exactly:
@@ -158,6 +167,7 @@ bump rules can be found in : https://python-poetry.org/docs/cli/#:~:text=with%20
 - **prepatch**
 - **preminor**
 - **premajor**
+
 make sure that in you pyproject.toml your version ends with **-alpha.0**
 
 #### Publish the prerelease to pypi:
