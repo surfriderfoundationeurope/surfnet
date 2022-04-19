@@ -41,9 +41,12 @@ jobs:
           echo "::set-output name=version::$(echo ${{steps.check-version.outputs.tag}} | cut -d'-' -f 1)"
       - name: print version
         run: |
-          v=${{steps.get-version.outputs.version}}
-          echo $v
-          version=${v%-*}
-          echo $version
+          VERSION_SHORT=${VERSION_FULL%-*}
+          echo "::VERSION=${VERSION_FULL%-*}"
+          echo $VERSION_FULL
+          echo $VERSION_SHORT
+          echo $VERSION
+        env:
+          VERSION_FULL: ${{steps.get-version.outputs.version}}
         
 
