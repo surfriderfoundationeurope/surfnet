@@ -49,6 +49,6 @@ jobs:
           VERSION_FULL: ${{ steps.check-version.outputs.tag }}
       - name: print version
         run: |
-          echo "${{step.version.outputs.version}}"
+          echo "${{steps.version.outputs.version}}"
         
 
