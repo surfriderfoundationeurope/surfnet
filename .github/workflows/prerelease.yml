@@ -79,10 +79,6 @@ jobs:
           echo "::set-output name=tag::$(poetry version --short)"
           echo "::set-output name=branch::$(echo $GITHUB_REF | cut -d'/' -f 3)"
 
-      - name: Validate Version
-        run: |
-          test "${{steps.check-version.outputs.prerelease}}" = "true"
-
       - name: Build project for distribution
         run: poetry build
 
