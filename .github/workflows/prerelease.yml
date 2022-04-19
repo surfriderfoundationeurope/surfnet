@@ -36,10 +36,8 @@ jobs:
           echo "${{steps.check-version.outputs.tag}}"
           echo "${{steps.check-version.outputs.prerelease}}"
           echo "$(poetry version --short)"
-      - name: get-version
-        run: |
-          echo "::set-output name=version::$(echo ${{steps.check-version.outputs.tag}} | cut -d '-' -f 0)"
-      - name: version
+      - name: Get Version
+        id: get-version
         run: |
           echo $VERSION_FULL
           VERSION=${VERSION_FULL%-*}
@@ -49,6 +47,9 @@ jobs:
           VERSION_FULL: ${{ steps.check-version.outputs.tag }}
       - name: print version
         run: |
-          echo "${{steps.version.outputs.version}}"
+          echo $VERSION
+          echo "${{steps.get-version.outputs.version}}"
+        env:
+          VERSION: ${{s teps.get-version.outputs.version }}
         
 
