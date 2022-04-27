@@ -92,7 +92,7 @@ This will download the 3 videos in distinct folders of [data/validation_videos](
 Setting up the server and testing: from surfnet/ directory, you may run a local flask developement server with the following command:
 
 ```shell
-export FLASK_APP=src/serving/app.py
+export FLASK_APP=src/plasticorigins/serving/app.py
 poetry run flask run
 ```
 
