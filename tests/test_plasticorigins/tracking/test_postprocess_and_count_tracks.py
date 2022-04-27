@@ -4,7 +4,7 @@ from plasticorigins.tracking.postprocess_and_count_tracks import (
     filter_tracks,
     postprocess_for_api,
 )
-from serving.config import id_categories
+from plasticorigins.serving.config import id_categories
 
 results = np.load("tests/ressources/results_to_filter.npy", allow_pickle=True)
 

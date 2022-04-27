@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from plasticorigins.detection.detect import detect
-from serving.inference import device, model
+from plasticorigins.serving.inference import device, model
 
 preprocessed_frames = torch.load("tests/ressources/pf.pt")
 
