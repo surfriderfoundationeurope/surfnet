@@ -7,9 +7,9 @@ import pytest
 from werkzeug.datastructures import FileStorage
 
 from plasticorigins.tools.files import create_unique_folder
-from serving.app import app
-from serving.config import config_track
-from serving.inference import track
+from plasticorigins.serving.app import app
+from plasticorigins.serving.config import config_track
+from plasticorigins.serving.inference import track
 
 video_file = "tests/ressources/validation_videos/T1_trim.mp4"
 
