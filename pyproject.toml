@@ -43,7 +43,7 @@ source = ["src"]
 
 [tool.coverage.run]
 branch = true
-source = ["plasticorigins","serving"]
+source = ["plasticorigins"]
 omit = ["src/plasticorigins/detection/centernet/networks/dlav0.py",
         "src/plasticorigins/detection/centernet/networks/large_hourglass.py",
         "src/plasticorigins/detection/centernet/networks/msra_resnet.py",

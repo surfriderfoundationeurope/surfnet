@@ -35,7 +35,6 @@ jobs:
       - name: Run lint
         run: |
           poetry run flake8 src/plasticorigins/
-          poetry run flake8 src/serving/
       - name: Run tests
         run: |
           cd models/

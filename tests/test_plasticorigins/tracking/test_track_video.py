@@ -4,7 +4,7 @@ import numpy as np
 
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tracking.track_video import track_video
-from serving.inference import config_track, engine
+from plasticorigins.serving.inference import config_track, engine
 
 
 def test_track_video():
