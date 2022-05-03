@@ -13,5 +13,5 @@ def coco2yolo(bbox, image_height=1080, image_width=1080):
     
     return bbox
 
-# Function to normalize the representation of the bounding box, 
-# such that there are in the yolo format  =? 
+# Function to normalize the representation of the bounding box, such that there are in the yolo format
+# Takes as input : an array describing the coordinates of the bounding box, with the bbox_x, bbox_y, bbox_w, bbox_h coordinates. 
