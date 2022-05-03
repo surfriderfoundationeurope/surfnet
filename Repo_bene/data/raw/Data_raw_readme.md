@@ -8,12 +8,7 @@ Two csvs, one for the bounding boxes and one for the images.
 
 ### II. Instances Files
 
-Contains information on the images, the annotations (labels) as well as the categories of the labels. 
-There are three files. 
-
-    - instances file: whole instances dataset
-    - train:
-    - validation: 
+Contains information on the images, the annotations (labels) as well as the categories of the labels. There are three files : whole, train and validation. 
 
 - For the images we have an ID number and a filename for each image
     - ex: {"id": 3526, "file_name": "img1269.jpg"} 
