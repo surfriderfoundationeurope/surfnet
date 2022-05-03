@@ -1,5 +1,23 @@
 # local package
 -e .
+cocotools               
+matplotlib              
+notebook                
+numpy                   
+opencv-python          	
+pandas                  
+Pillow                  
+pip                     
+pycocotools             
+scikit-learn            
+scipy                   
+seaborn                 
+sklearn                 
+torch                   
+torchvision             
+wandb                   
+shapely
+tensorboard
 
 # external requirements
 click
