@@ -11,14 +11,15 @@ ADD models /models
 
 RUN chmod +x  /models/download_pretrained_base.sh
 
-ADD src/ /src
 
-ADD data/tracking_parameters/ /src/serving/data/tracking_parameters
+ADD data/tracking_parameters/ /serve/data/tracking_parameters
 
-RUN cp -r /models /src/serving/models 
+RUN cp -r /models /serve/models
 
 RUN /models/download_pretrained_base.sh \
-&& mv mobilenet_v3_pretrained.pth /src/serving/models/
+&& mv mobilenet_v3_pretrained.pth /serve/models/
+
+
 
 ADD scripts/serving_prod.sh /scripts/serving_prod.sh
 
