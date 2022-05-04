@@ -10,5 +10,8 @@ def plot_image_and_bboxes(img, anns, ratio):
     
     plt.show()
 
-# Creation of the bounding boxes. 
-#
+# Creation of the bounding boxes on an image. 
+# Takes as arguments : an image, annotations and a ratio. 
+# Obtains the bbox coordinates via the ratio and anns for all the annotations of said image. 
+# It prints out a 12 * 10 image with a bounding box. 
+
