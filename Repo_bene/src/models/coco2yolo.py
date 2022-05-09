@@ -7,7 +7,7 @@ def coco2yolo(bbox:list, image_height:int=1080, image_width:int=1080):
         image_width (int, optional): Width of the image. Defaults to 1080.
 
     Returns: Normalized bounding box coordinates : values between 0-1
-        _type_: 
+        _type_: array 
     """
     
     bbox = bbox.copy().astype(float) # otherwise all value will be 0 as voc_pascal dtype is np.int
