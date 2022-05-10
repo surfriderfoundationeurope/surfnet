@@ -1,13 +1,21 @@
-def path_existance(img_ids) :
+def path_existance(img_ids, data_dir:file=images2labels) :
+
     """_summary_
 
     Args:
         img_ids (_type_): _description_
+        data_dir (file, optional): _description_. Defaults to images2labels.
+
+    Returns:
+        my_df (data frame): 
     """
+
     for img_id in img_ids:
         image_infos = coco.loadImgs(ids=[img_id])[0]
 
         if os.path.exists(os.path.join(data_dir, image_infos['file_name'])):
+            
+            # concatenate the data directory path and the files from the coco transformation ; if it exists, we compute the if loop.
 
             date_creation  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["createdon"].values[0]
             view           = df_images.loc[df_images["filename"] == image_infos["file_name"]]["view"].values[0]
@@ -21,6 +29,8 @@ def path_existance(img_ids) :
             views.append(view)
             images_quality.append(image_quality)
             contexts.append(context)
+
+            # in the loop we put the info of the image corresponding to the date, the type of view, the quality and the context to the empty lists created in previous function.
 
             image = Image.open(os.path.join(data_dir,image_infos['file_name']))
             try:

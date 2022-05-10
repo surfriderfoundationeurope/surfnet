@@ -27,7 +27,3 @@ def get_df_train_val(annotation_file):
     img_ids = np.array(coco.getImgIds()) # creates an array with the images IDs processed by coco
 
     path_existance(img_ids)
-    
-
-df_train = get_df_train_val("annotations-surfnet/instances_train.json")
-df_valid = get_df_train_val("annotations-surfnet/instances_val.json")
