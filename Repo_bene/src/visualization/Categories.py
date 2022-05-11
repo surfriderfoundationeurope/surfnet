@@ -5,6 +5,7 @@ dfg.plot(kind='bar', title='Trash Size by ID', ylabel='Size',
 
 cat_percentages = df_bboxes['id_ref_trash_type_fk'].value_counts()/len(df_bboxes)*10
 print(cat_percentages)
+
     """
     Barplot describing the amount of objects labeled per category, and their representation percentages.
     1: 'Sheet / tarp / plastic bag / fragment',
