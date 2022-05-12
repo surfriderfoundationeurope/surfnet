@@ -52,6 +52,19 @@ See precison curve.
 #### 5) Recall :
 See recall curve. 
 
+#### 6) Mean Average Precision :
+A measure to evaluate if the model is accurate in its detection. Comparing the predicted bounding box and the actual one. 
+We have that the 0.5 is the IoU threshold chosen to compute the confusion matrix. A lower IoU will give us a better MaP. 
+And then we have that the second one is the average of the IoU between 0.5 and 0.95. 
+The average precision is the area under the curve and ideally it would have to be close to 1 or equal to 1. 
+
+
+## VII. Intersection over Union 
+
+intersection de boîtes prédites et des boîtes initiales / par l’union des deux 
+intersection over union : area of overlap of the bb / are of the union of the bbox 
+les coordonnées des boîtes prédites ;  plus élevées le mieux : but au dessus de .5 
+
 
 
 
