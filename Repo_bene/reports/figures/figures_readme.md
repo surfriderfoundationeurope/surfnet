@@ -1,6 +1,6 @@
 ## I. Confusion Matrix 
 
-a confusion matrix gives a summary of the number of correct and incorrect predictions for the 10 categories.
+A confusion matrix gives a summary of the number of correct and incorrect predictions for the 10 categories.
 On the x-axis we have the true label of the object and on the y-axis the ones predicted by our Yolov5. 
 Aiming to predict correctly the labels, our goal is to get values close to 1 in the diagonal of the matrix.
 This matrix gives us a better understanding of which categories are better predicted and those who aree more often misspredicted. 
@@ -31,9 +31,26 @@ A high area underneath this curve means that there is a high recall and a high p
 A high recall with a low precision means that a lot of objects are found and are being classified, but that the predictions are incorrect. 
 A high precision and low recall means that there are few results but that the predictions are correct. 
 
-Having multi-label problem, we have that we create the curve for each of the categories vs. the other 9 grouped together, thus creating a binary problem.
+Having a multi-label problem, we have that we create the curve for each of the categories vs. the other 9 grouped together, thus creating a binary problem.
 
-## II. F1 curve 
+## V. F1 curve 
+
+## VI. Metrics 
+
+#### 1) Box loss : 
+How well the algorithm can locate the center of the object ; how well the predicted bounding box covers the object.
+
+#### 2) Object loss : 
+Measures whether or not the object exists in the predicted bounding box ; confidence of the object presence. 
+
+#### 3) Classification loss : 
+How well the model predicts the correct labels: classification loss.
+
+#### 4) Précision : 
+See precison curve. 
+
+#### 5) Recall :
+See recall curve. 
 
 
 
