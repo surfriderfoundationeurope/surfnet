@@ -1,10 +1,12 @@
-def path_existance(img_ids, data_dir:file=images2labels) :
+from Repo_bene.src.models.image_orientation import image_orientation
 
-    """_summary_
+def path_existance(img_ids, data_dir=images2labels) :
+
+    """ Function which 
 
     Args:
-        img_ids (_type_): _description_
-        data_dir (file, optional): _description_. Defaults to images2labels.
+        img_ids (array): Array with the images IDs created by the coco function. 
+        data_dir (file, optional): File with the images. Default to images2labels.
 
     Returns:
         my_df (data frame): 
@@ -16,6 +18,7 @@ def path_existance(img_ids, data_dir:file=images2labels) :
         if os.path.exists(os.path.join(data_dir, image_infos['file_name'])):
             
             # concatenate the data directory path and the files from the coco transformation ; if it exists, we compute the if loop.
+            # df_images = pd.read_csv("images_for_labelling_202201241120.csv"))
 
             date_creation  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["createdon"].values[0]
             view           = df_images.loc[df_images["filename"] == image_infos["file_name"]]["view"].values[0]
@@ -32,23 +35,9 @@ def path_existance(img_ids, data_dir:file=images2labels) :
 
             # in the loop we put the info of the image corresponding to the date, the type of view, the quality and the context to the empty lists created in previous function.
 
-            image = Image.open(os.path.join(data_dir,image_infos['file_name']))
-            try:
-                for orientation in ExifTags.TAGS.keys():
-                    if ExifTags.TAGS[orientation]=='Orientation':
-                        break
-                exif = image._getexif()
-                if exif is not None:
-                    if exif[orientation] == 3:
-                        image=image.rotate(180, expand=True)
-                    elif exif[orientation] == 6:
-                        image=image.rotate(270, expand=True)
-                    elif exif[orientation] == 8:
-                        image=image.rotate(90, expand=True)
+            image = Image.open(os.path.join(data_dir,image_infos['file_name'])) # image is opened and identified it returns an image object 
 
-            except (AttributeError, KeyError, IndexError):
-                # cases: image don't have getexif
-                pass
+            image_orientation(image) # calls function which gives the images that have a specified orientation the same orientation
 
             image    = np.array(image) #cv2.cvtColor(np.array(image.convert('RGB')),  cv2.COLOR_RGB2BGR)
             ann_ids  = coco.getAnnIds(imgIds=[img_id])
@@ -60,6 +49,7 @@ def path_existance(img_ids, data_dir:file=images2labels) :
             image    = cv2.resize(image,(target_w,target_h))
             h, w     = image.shape[:-1]
             yolo_annot = []
+
             for ann in anns:
                 cat = ann['category_id'] - 1
                 [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
