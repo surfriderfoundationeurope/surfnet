@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "plastic-origins"
-version = "1.0.1"
+version = "1.2.0-alpha.0"
 description = "A package containing methods commonly used to make inferences"
 repository = "https://github.com/surfriderfoundationeurope/surfnet"
 homepage = "https://www.plasticorigins.eu/"
@@ -24,8 +24,8 @@ psycopg2-binary = "2.9.3"
 Flask = "2.0.3"
 Werkzeug = "2.0.3"
 gunicorn = "19.10.0"
-torch = "1.10.1"
-torchvision = "0.11.2"
+torch = "^1.11.0"
+torchvision = "^0.12.0"
 scikit-video = "^1.1.11"
 pykalman = "^0.9.5"
 
@@ -43,7 +43,7 @@ source = ["src"]
 
 [tool.coverage.run]
 branch = true
-source = ["plasticorigins","serving"]
+source = ["plasticorigins"]
 omit = ["src/plasticorigins/detection/centernet/networks/dlav0.py",
         "src/plasticorigins/detection/centernet/networks/large_hourglass.py",
         "src/plasticorigins/detection/centernet/networks/msra_resnet.py",

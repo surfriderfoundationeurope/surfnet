@@ -8,7 +8,7 @@ from plasticorigins.tools.misc import (
     load_model,
     pre_process_centernet,
 )
-from serving.config import config_track
+from plasticorigins.serving.config import config_track
 
 
 def test_load_model():

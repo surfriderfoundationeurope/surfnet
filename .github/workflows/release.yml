@@ -35,7 +35,6 @@ jobs:
       - name: Run lint
         run: |
           poetry run flake8 src/plasticorigins/
-          poetry run flake8 src/serving/
       - name: Run tests
         run: |
           cd models/
@@ -44,6 +43,50 @@ jobs:
           poetry run coverage run -m pytest
           poetry run coverage xml
           rm models/mobilenet_v3_pretrained.pth
+
+  release:
+    needs: [tests]
+    name: "release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2.3.4
+
+      - name: Set up Python {{ "${{ matrix.python-version }}" }}
+        uses: actions/setup-python@v2.2.2
+        with:
+          python-version: "3.8"
+      - name: Upgrade pip
+        run: |
+          pip install --upgrade pip
+          pip --version
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry --version
+          poetry install
+
+      - name: Get Dev Version
+        id: get-dev-version
+        run: |
+          echo "::set-output name=version::$(poetry version --short)"
+      - name: Get Release Version
+        id: get-version
+        run: |
+          echo $VERSION_PRE
+          VERSION=${VERSION_PRE%-*}
+          echo $VERSION
+          echo "::set-output name=version::$VERSION"
+        env:
+          VERSION_PRE: ${{ steps.get-dev-version.outputs.version }}
+      - name: Set Release version
+        run: |
+          poetry version ${{ steps.get-version.outputs.version }}
+          git config user.name "Release"
+          git config user.email "<>"
+          git add pyproject.toml
+          git commit -m "Prepare release: ${{ steps.get-version.outputs.version }}"
+          git push origin HEAD:$(echo $GITHUB_REF | cut -d'/' -f 3)
       - name: Check Version
         id: check-version
         run: |
@@ -57,12 +100,13 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "dist/*,documentation*.tar.gz"
+          artifacts: "dist/*"
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.check-version.outputs.tag }}_${{ github.event.inputs.env }}
+          tag: ${{ steps.check-version.outputs.tag }}
           draft: false
           commit: ${{ steps.check-version.outputs.branch }}
           prerelease: steps.check-version.outputs.prerelease == 'true'
+          allowUpdates: true
 
       - name: Publish to Pypi
         run: |
