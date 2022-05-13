@@ -106,6 +106,7 @@ jobs:
           draft: false
           commit: ${{ steps.check-version.outputs.branch }}
           prerelease: steps.check-version.outputs.prerelease == 'true'
+          allowUpdates: true
 
       - name: Publish to Pypi
         run: |
