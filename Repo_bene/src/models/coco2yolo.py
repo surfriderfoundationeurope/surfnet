@@ -1,4 +1,5 @@
 def coco2yolo(bbox:list, image_height:int=1080, image_width:int=1080):
+    
     """Function to normalize the representation of the bounding box, such that there are in the yolo format (normalized)
 
     Args:
