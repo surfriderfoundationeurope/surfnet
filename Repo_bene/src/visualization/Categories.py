@@ -8,6 +8,7 @@ print(cat_percentages)
 
     """
     Barplot describing the amount of objects labeled per category, and their representation percentages.
+    
     1: 'Sheet / tarp / plastic bag / fragment',
     2: 'Insulating material',
     3: 'Bottle-shaped',

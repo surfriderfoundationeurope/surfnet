@@ -1,4 +1,7 @@
 def plot_image_and_bboxes(img, anns, ratio):
+
+    """_summary_
+    """
     fig, ax = plt.subplots(1, figsize=(12, 10))
     ax.imshow(img)
     

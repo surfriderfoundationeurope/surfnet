@@ -1,3 +1,4 @@
+from Repo_bene.src.models.coco2yolo import coco2yolo
 from Repo_bene.src.models.image_orientation import image_orientation
 
 def path_existance(img_ids, data_dir=images2labels) :
@@ -9,7 +10,7 @@ def path_existance(img_ids, data_dir=images2labels) :
         data_dir (file, optional): File with the images. Default to images2labels.
 
     Returns:
-        my_df (data frame): 
+        my_df (data frame):  
     """
 
     for img_id in img_ids:
@@ -20,7 +21,7 @@ def path_existance(img_ids, data_dir=images2labels) :
             # concatenate the data directory path and the files from the coco transformation ; if it exists, we compute the if loop.
             # df_images = pd.read_csv("images_for_labelling_202201241120.csv"))
 
-            date_creation  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["createdon"].values[0]
+            date_creation  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["createdon"].values[0] 
             view           = df_images.loc[df_images["filename"] == image_infos["file_name"]]["view"].values[0]
             image_quality  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["image_quality"].values[0]
             context        = df_images.loc[df_images["filename"] == image_infos["file_name"]]["context"].values[0]
@@ -40,18 +41,18 @@ def path_existance(img_ids, data_dir=images2labels) :
             image_orientation(image) # calls function which gives the images that have a specified orientation the same orientation
 
             image    = np.array(image) #cv2.cvtColor(np.array(image.convert('RGB')),  cv2.COLOR_RGB2BGR)
-            ann_ids  = coco.getAnnIds(imgIds=[img_id])
-            anns     = coco.loadAnns(ids=ann_ids)
-            h, w     = image.shape[:-1]
-            target_h = 1080
-            ratio    = target_h/h
+            ann_ids  = coco.getAnnIds(imgIds=[img_id]) # gets us the ids of the annotations
+            anns     = coco.loadAnns(ids=ann_ids) # file with : ID of the label, ID of the image, bounding box coordinates and the category ID
+            h, w     = image.shape[:-1] 
+            target_h = 1080 # the target height of the image 
+            ratio    = target_h/h # We get the ratio of the target and the actual height 
             target_w = int(ratio*w) 
-            image    = cv2.resize(image,(target_w,target_h))
-            h, w     = image.shape[:-1]
+            image    = cv2.resize(image,(target_w,target_h)) # we resize the image with the new target shapes 
+            h, w     = image.shape[:-1] 
             yolo_annot = []
 
             for ann in anns:
-                cat = ann['category_id'] - 1
+                cat = ann['category_id'] - 1 # gets the 
                 [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
                 bbox = np.array([bbox_x, bbox_y, bbox_w, bbox_h])
                 yolo_bbox = coco2yolo(bbox, target_h, target_w)
