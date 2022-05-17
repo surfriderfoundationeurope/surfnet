@@ -1,10 +1,12 @@
 def image_orientation (image):
+
     """ Function which gives the images that have a specified orientation the same orientation.
+        If the image does not have an orientation, the image is not altered. 
 
      Args:
             image (image object): Image that is in the path data_directory as well as in the instance json files. 
 
-        Returns: Image, with the propeer orinetation. 
+    Returns: Image, with the propeer orinetation. 
             _type_: image
     """
 

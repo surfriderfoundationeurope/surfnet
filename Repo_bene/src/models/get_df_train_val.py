@@ -10,7 +10,7 @@ def get_df_train_val(annotation_file):
 
     Returns:
         my_df (data frame): Data frame with columns : old_path, date, view, quality, context, img_name,
-         label_name, image and bounding box. 
+        label_name, image and bounding box. 
     """
     
     coco = COCO(annotation_file) # transform the file using a coco function where the COCO function 
