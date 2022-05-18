@@ -108,10 +108,7 @@ def get_coco(root, image_set, transforms):
             "train2017",
             os.path.join("annotations", "instances_train2017.json"),
         ),
-        "val": (
-            "val2017",
-            os.path.join("annotations", "instances_val2017.json"),
-        ),
+        "val": ("val2017", os.path.join("annotations", "instances_val2017.json"),),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     CAT_LIST = [
@@ -162,14 +159,8 @@ def get_coco(root, image_set, transforms):
 
 def get_surfrider_old(root, image_set, transforms):
     PATHS = {
-        "train": (
-            "Images_md5",
-            os.path.join("annotations", "instances_train.json"),
-        ),
-        "val": (
-            "Images_md5",
-            os.path.join("annotations", "instances_val.json"),
-        ),
+        "train": ("Images_md5", os.path.join("annotations", "instances_train.json"),),
+        "val": ("Images_md5", os.path.join("annotations", "instances_val.json"),),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     # CAT_LIST = [0, 1, 2, 3]
@@ -199,10 +190,7 @@ def get_surfrider_old(root, image_set, transforms):
 
 def get_surfrider(root, image_set, transforms):
     PATHS = {
-        "train": (
-            "images",
-            os.path.join("annotations", "instances_train.json"),
-        ),
+        "train": ("images", os.path.join("annotations", "instances_train.json"),),
         "val": ("images", os.path.join("annotations", "instances_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
@@ -221,9 +209,7 @@ def get_surfrider(root, image_set, transforms):
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = CocoDetectionWithExif(
-        img_folder, ann_file, transforms=transforms
-    )
+    dataset = CocoDetectionWithExif(img_folder, ann_file, transforms=transforms)
 
     # if image_set == "train":
     #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
@@ -233,10 +219,7 @@ def get_surfrider(root, image_set, transforms):
 
 def get_surfrider_video_frames(root, image_set, transforms):
     PATHS = {
-        "train": (
-            "data",
-            os.path.join("annotations", "annotations_train.json"),
-        ),
+        "train": ("data", os.path.join("annotations", "annotations_train.json"),),
         "val": ("data", os.path.join("annotations", "annotations_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
@@ -267,9 +250,7 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
         target_transform: Optional[Callable] = None,
         transforms: Optional[Callable] = None,
     ):
-        super().__init__(
-            root, annFile, transform, target_transform, transforms
-        )
+        super().__init__(root, annFile, transform, target_transform, transforms)
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """

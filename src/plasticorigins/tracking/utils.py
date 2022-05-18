@@ -105,10 +105,7 @@ def overlay_transparent(background, overlay, x, y):
         overlay = np.concatenate(
             [
                 overlay,
-                np.ones(
-                    (overlay.shape[0], overlay.shape[1], 1),
-                    dtype=overlay.dtype,
-                )
+                np.ones((overlay.shape[0], overlay.shape[1], 1), dtype=overlay.dtype,)
                 * 255,
             ],
             axis=2,
@@ -352,10 +349,7 @@ class Display:
 
         if len(self.latest_detections):
             self.ax.scatter(
-                self.latest_detections[:, 0],
-                self.latest_detections[:, 1],
-                c="r",
-                s=40,
+                self.latest_detections[:, 0], self.latest_detections[:, 1], c="r", s=40,
             )
 
         if something_to_show:
