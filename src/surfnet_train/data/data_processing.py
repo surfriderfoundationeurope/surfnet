@@ -5,7 +5,9 @@ import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
 from pycocotools.coco import COCO
 from PIL import Image, ImageDraw, ImageFont, ExifTags
-
+import os
+import cv2
+import pandas as pd
 
 
 
@@ -59,13 +61,15 @@ def plot_image_and_bboxes(img, anns, ratio:float):
 
 
 
-def get_df_train_val(annotation_file):
+def get_df_train_val(annotation_file, data_dir, df_images):
 
     """Transforms the labels and images to the same format in order to be used by the Yolov5 algorithm. 
   
     Args: 
         annotation_file (json instances file): Annotation file which contains information on the images, 
         the annotations (labels) and categories of the labels. 
+        data_dir (file): File with the images. Default to images2labels.
+        df_images (data frame): = pd.read_csv("images_for_labelling_202201241120.csv"))
 
     Returns:
         my_df (data frame): Data frame with columns : old_path, date, view, quality, context, img_name,
@@ -76,19 +80,9 @@ def get_df_train_val(annotation_file):
                                  # loads a coco annotation file and prepares data structures 
     # gives the annotations into a coco api form ; helps the user in extracting annotations conveniently
 
-    old_filenames  = [] 
-    dates          = []
-    views          = []
-    images_quality = []
-    contexts       = []
-    all_bboxes     = []
-    all_images     = []
-    new_filenames  = []
-    new_labelnames = []
-
     img_ids = np.array(coco.getImgIds()) # creates an array with the images IDs processed by coco
-
-    my_df = path_existance(img_ids) # calls function
+    
+    my_df = path_existance(img_ids, data_dir, coco, df_images) # calls function
 
     return (my_df)
 
