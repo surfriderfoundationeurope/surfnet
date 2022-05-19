@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
+from pycocotools.coco import COCO
 
 
 
@@ -36,7 +38,7 @@ def plot_image_and_bboxes(img, anns, ratio:float):
 
     Args:
         img (): Image, from the instance file.
-        anns (_type_): Annotations linked to the specified image, from instance file. 
+        anns (): Annotations linked to the specified image, from instance file. 
         ratio (float): Ratio - most often definesd at the (1080/height of the image). 
     """
     fig, ax = plt.subplots(1, figsize=(12, 10))
@@ -50,11 +52,47 @@ def plot_image_and_bboxes(img, anns, ratio:float):
         ax.add_patch(rect)
     
     plt.show()
-    # It prints out a 12 * 10 image with bounding box(es). 
+    # Prints out a 12 * 10 image with bounding box(es). 
 
 
 
+
+def get_df_train_val(annotation_file):
+
+    """Transforms the labels and images to the same format in order to be used by the Yolov5 algorithm. 
+  
+    Args: 
+        annotation_file (json instances file): Annotation file which contains information on the images, 
+        the annotations (labels) and categories of the labels. 
+
+    Returns:
+        my_df (data frame): Data frame with columns : old_path, date, view, quality, context, img_name,
+        label_name, image and bounding box. 
+    """
     
+    coco = COCO(annotation_file) # transform the file using a coco function where the COCO function 
+                                 # loads a coco annotation file and prepares data structures 
+    # gives the annotations into a coco api form ; helps the user in extracting annotations conveniently
+
+    old_filenames  = [] 
+    dates          = []
+    views          = []
+    images_quality = []
+    contexts       = []
+    all_bboxes     = []
+    all_images     = []
+    new_filenames  = []
+    new_labelnames = []
+
+    img_ids = np.array(coco.getImgIds()) # creates an array with the images IDs processed by coco
+
+    my_df = path_existance(img_ids) # calls function
+
+    return (my_df)
+
+
+
+
 def shaping_bboxes(anns:list, ratio:float, target_h:float, target_w:int):
 
     """Function in charge of shaping the bounding boxes, normalized via the coco2yolo function.
