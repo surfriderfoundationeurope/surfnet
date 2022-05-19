@@ -1,25 +1,41 @@
-from Repo_bene.src.models.Shaping_bboxes import shaping_bboxes
-from Repo_bene.src.models.image_orientation import image_orientation
+from src.data.data_processing import shaping_bboxes
+from src.data.data_processing import image_orientation
+import os
+import numpy as np
+import pandas as pd
+import cv2
 
-def path_existance(img_ids, data_dir=images2labels) :
+def path_existance(img_ids, data_dir, coco, df_images) :
 
     """ Function which 
 
     Args:
         img_ids (array): Array with the images IDs created by the coco function. 
-        data_dir (file, optional): File with the images. Default to images2labels.
+        data_dir (file): File with the images. Default to images2labels.
+        coco (): Annotation file transformed and prepares data structures 
+        df_images (): pd.read_csv("images_for_labelling_202201241120.csv"))
+
 
     Returns:
         my_df (data frame):  
     """
 
+    old_filenames  = [] 
+    dates          = []
+    views          = []
+    images_quality = []
+    contexts       = []
+    all_bboxes     = []
+    all_images     = []
+    new_filenames  = []
+    new_labelnames = []
+
     for img_id in img_ids:
         image_infos = coco.loadImgs(ids=[img_id])[0]
-
+        
         if os.path.exists(os.path.join(data_dir, image_infos['file_name'])):
             
             # concatenate the data directory path and the files from the coco transformation ; if it exists, we compute the if loop.
-            # recall : df_images = pd.read_csv("images_for_labelling_202201241120.csv"))
 
             date_creation  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["createdon"].values[0] 
             view           = df_images.loc[df_images["filename"] == image_infos["file_name"]]["view"].values[0]
@@ -55,7 +71,7 @@ def path_existance(img_ids, data_dir=images2labels) :
             h, w     = image.shape[:-1]  
             yolo_annot = []
 
-            shaping_bboxes(anns)
+            shaping_bboxes(anns, ratio, target_h, target_w)
             # calls function which shapes the bounding boxes as normalized
             
             basename  = os.path.splitext(image_infos['file_name'])[0]
