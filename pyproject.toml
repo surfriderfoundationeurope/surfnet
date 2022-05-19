@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "surfnet_train"
+version = "0.1.0"
+description = "A Package to manage the training of surfnet Yolov5 version"
+authors = ["Firas <firas.dhaha@neoxia.com>"]
+
+packages = [
+    { include = "surfnet_train", from = "src" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+cocotools = "^0.2.0"
+notebook = "^6.4.11"
+scikit-learn = "^1.1.0"
+torch = "^1.11.0"
+torchvision = "^0.12.0"
+seaborn = "^0.11.2"
+wandb = "^0.12.16"
+
+[tool.poetry.dev-dependencies]
+click = "^8.1.3"
+Sphinx = "^4.5.0"
+coverage = "^6.3.3"
+pytest = "^7.1.2"
+flake8 = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
