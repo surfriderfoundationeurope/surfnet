@@ -1,8 +1,10 @@
+from matplotlib import image
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
 from pycocotools.coco import COCO
+from PIL import Image, ImageDraw, ImageFont, ExifTags
 
 
 
@@ -89,6 +91,40 @@ def get_df_train_val(annotation_file):
     my_df = path_existance(img_ids) # calls function
 
     return (my_df)
+
+
+
+
+def image_orientation (image:image):
+
+    """ Function which gives the images that have a specified orientation the same orientation.
+        If the image does not have an orientation, the image is not altered. 
+
+     Args:
+        image (image): Image that is in the path data_directory as well as in the instance json files. 
+
+    Returns: Image, with the proper orientation. 
+            _type_: image
+    """
+
+    try:
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation]=='Orientation':
+                break
+        exif = image._getexif()
+        if exif is not None:
+            if exif[orientation] == 3:
+                image=image.rotate(180, expand=True)
+            elif exif[orientation] == 6:
+                image=image.rotate(270, expand=True)
+            elif exif[orientation] == 8:
+                image=image.rotate(90, expand=True)
+
+    except (AttributeError, KeyError, IndexError):
+        # cases: image don't have getexif
+        pass
+
+    return (image)
 
 
 
