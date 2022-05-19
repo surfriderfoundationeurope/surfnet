@@ -1,4 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+
+
 
 def coco2yolo(bbox:list, image_height:int=1080, image_width:int=1080):
     
@@ -25,7 +30,31 @@ def coco2yolo(bbox:list, image_height:int=1080, image_width:int=1080):
 
 
 
+def plot_image_and_bboxes(img, anns, ratio:float):
 
+    """ Plots the image and the bounding box(es) associated to the detected object(s). 
+
+    Args:
+        img (): Image, from the instance file.
+        anns (_type_): Annotations linked to the specified image, from instance file. 
+        ratio (float): Ratio - most often definesd at the (1080/height of the image). 
+    """
+    fig, ax = plt.subplots(1, figsize=(12, 10))
+    ax.imshow(img) 
+    
+    for ann in anns:
+        
+        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
+        # Obtains the new coordinates of the bboxes - normalized via the ratio. 
+        rect = patches.Rectangle((bbox_x, bbox_y), bbox_w, bbox_h, linewidth=2, edgecolor='r', facecolor="none")
+        ax.add_patch(rect)
+    
+    plt.show()
+    # It prints out a 12 * 10 image with bounding box(es). 
+
+
+
+    
 def shaping_bboxes(anns:list, ratio:float, target_h:float, target_w:int):
 
     """Function in charge of shaping the bounding boxes, normalized via the coco2yolo function.
