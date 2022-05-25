@@ -1,6 +1,6 @@
 from datetime import datetime
-from src.surfnet_train.data.data_processing import shaping_bboxes
-from src.surfnet_train.data.data_processing import image_orientation
+#from src.surfnet_train.data.data_processing import shaping_bboxes
+#from Users.rispal.ZoRaFa.yolov5_train_test.src.surfnet_train.data import image_orientation
 import os
 import numpy as np
 import pandas as pd
@@ -17,7 +17,6 @@ def path_existance(img_ids, data_dir, coco, df_images) :
         data_dir (file): File with the images. Default to images2labels.
         coco (): Annotation file transformed and prepares data structures 
         df_images (): pd.read_csv("images_for_labelling_202201241120.csv"))
-
 
     Returns:
         my_df (data frame):  

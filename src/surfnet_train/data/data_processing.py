@@ -43,7 +43,7 @@ def plot_image_and_bboxes(img, anns, ratio:float):
     Args:
         img (): Image, from the instance file.
         anns (): Annotations linked to the specified image, from instance file. 
-        ratio (float): Ratio - most often definesd at the (1080/height of the image). 
+        ratio (float): Ratio - most often defined at the (1080/height of the image). 
     """
     fig, ax = plt.subplots(1, figsize=(12, 10))
     ax.imshow(img) 
@@ -150,3 +150,22 @@ def shaping_bboxes(anns:list, ratio:float, target_h:float, target_w:int):
 
     return(yolo_annot)
     # list with the coordinates of the bboxes and their associated label
+
+
+
+def get_date(df_train_valid):
+
+    """_summary_
+
+    Args: 
+        df_train_valid (data frame): dataframe obtained using the get_df_train_val 
+    Returns:
+        _type_: _description_
+    """
+    d = df_train_valid.iloc[0]["date"] # we take the date column 
+                                        # of shape YYYY-MM-DD HH:MM:SS
+    d = d.date() # puts our d into a date instance
+    day =  int("".join(str(d).split("-"))) # seperates at the - and then joins the rest : YYYYMMDD
+    df_train_valid["day"] = day
+
+    return(df_train_valid)
