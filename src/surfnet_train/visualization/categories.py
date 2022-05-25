@@ -94,3 +94,31 @@ def img_view (df_images):
          xlabel='View', figsize=(6, 5))
     
     return(table, plot)
+
+
+
+
+def img_quality (df_images):
+
+    """ Function creating a plot with the number of pictures depending on their quality. 
+
+    Args:
+        df_images (data frame): Data frame with the information of the images/pictures used. 
+
+    Returns:
+        plot (plot): Plot of the quality of the images. 
+        table (data frame): Table with the count and percentages of the images by quality. 
+    """
+
+    context_percent= round((df_images['image_quality'].value_counts()/len(df_images)*100),2)
+
+    table = pd.DataFrame(context_percent)
+    table["Count"] = df_images['image_quality'].value_counts()
+    table.rename(columns = {0 : 'Quality', 'image_quality' : 'Percentages'}, inplace = True)
+
+    fig, ax = plt.subplots(figsize=(15,7))
+    dfg = df_images.groupby(['image_quality']).size()
+    plot = dfg.plot(kind='bar', title='Size by Image Quality', ylabel='Size',
+         xlabel='Quality', figsize=(6, 5))
+    
+    return(table, plot)
