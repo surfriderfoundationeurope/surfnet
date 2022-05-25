@@ -1,10 +1,10 @@
 import pandas as pd 
-from matplotlib import plt
+import matplotlib.pyplot as plt
 
 
 def annotations_cat (df_bboxes):
 
-    """Fonction returning a plot and table with the proportion of trash by category. 
+    """Function returning a plot and table with the proportion of trash by category. 
 
     Args: 
         df_bboxes(csv file): Csv file with the bounding boxes description, coordinates, ID and linked image.
@@ -38,3 +38,31 @@ def annotations_cat (df_bboxes):
     plt.legend(handles, categories[1:11], bbox_to_anchor=(1.02, .75), title='Categories')
     
     return(print(plot), print(new_table))
+
+
+
+
+def img_context (df_images):
+
+    """ Function creating a plot with the number of pictures depending on their context. 
+
+    Args:
+        df_images (data frame): Data frame with the information of the images/pictures used. 
+
+    Returns:
+        plot (plot): Plot of the context per label category. 
+        table (data frame): Percentages and count of the images by context. 
+    """
+
+    context_percent = round((df_images['context'].value_counts()/len(df_images)*100),2)
+
+    table = pd.DataFrame(context_percent)
+    table["Count"] = df_images['context'].value_counts()
+    table.rename(columns = {0 : 'Context', 'context' : 'Percentages'}, inplace = True)
+
+    fig, ax = plt.subplots(figsize=(15,7))
+    dfg = df_images.groupby(['context']).size()
+    plot = dfg.plot(kind='bar', title='Size by Context', ylabel='Size',
+         xlabel='Context', figsize=(6, 5))
+    
+    return(print(table, plot))
