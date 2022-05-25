@@ -11,7 +11,7 @@ def annotations_cat (df_bboxes):
 
     Returns: 
         plot(plot): Plot of the count of the categories x-axis : label category, y-axis count.
-        table(dataframe): ID, percentage and count of the different trash categories.
+        new_table(dataframe): ID, percentage and count of the different trash categories.
 
     """
 
@@ -50,7 +50,7 @@ def img_context (df_images):
         df_images (data frame): Data frame with the information of the images/pictures used. 
 
     Returns:
-        plot (plot): Plot of the context per label category. 
+        plot (plot): Plot of the context of the images.  
         table (data frame): Percentages and count of the images by context. 
     """
 
@@ -66,3 +66,31 @@ def img_context (df_images):
          xlabel='Context', figsize=(6, 5))
     
     return(print(table, plot))
+
+
+
+
+def img_view (df_images):
+
+    """ Function creating a plot with the number of pictures depending on their view. 
+
+    Args:
+        df_images (data frame): Data frame with the information of the images/pictures used. 
+
+    Returns:
+        plot (plot): Plot of the view of the images. 
+        table (data frame): Percentages and count of the images by view. 
+    """
+
+    context_percent= round((df_images['view'].value_counts()/len(df_images)*100),2)
+
+    table = pd.DataFrame(context_percent)
+    table["Count"] = df_images['view'].value_counts()
+    table.rename(columns = {0 : 'View', 'view' : 'Percentages'}, inplace = True)
+
+    fig, ax = plt.subplots(figsize=(15,7))
+    dfg = df_images.groupby(['view']).size()
+    plot = dfg.plot(kind='bar', title='Size by View', ylabel='Size',
+         xlabel='View', figsize=(6, 5))
+    
+    return(table, plot)
