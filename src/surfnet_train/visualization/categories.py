@@ -1,25 +1,35 @@
-
+import pandas as pd 
+from matplotlib import plt
 
 
 def annotations_cat (df_bboxes):
 
-    """_summary_
+    """Fonction returning a plot and table with the proportion of trash by category. 
+
+    Args: 
+        df_bboxes(csv file): Csv file with the bounding boxes description, coordinates, ID and linked image.
+
+    Returns: 
+        plot(plot): Plot of the count of the categories x-axis : label category, y-axis count.
+        table(dataframe): ID, percentage and count of the different trash categories.
+
     """
 
-    cat_percentages = round((df_bboxes['id_ref_trash_type_fk'].value_counts()/len(df_bboxes)*100),2).to_frame()
-    
     categories = ['N/A', 'Sheet / tarp / plastic bag / fragment', 'Insulating material','Drum', 'Bottle-shaped', 
                   'Can-shaped', 'Other packaging', 'Tire', 'Fishing net / cord', 'Easily namable', 'Unclear']
+                  # trash categories 
 
-    table = pd.DataFrame(categories)
-    table["Percentage"] = cat_percentages
-    table["ID"] = list(range(0,11))
-    table["Count"] = df_bboxes['id_ref_trash_type_fk'].value_counts().to_frame()
-    table.drop([0])
-    table.rename(columns = {0 : 'Category'}, inplace = True)
-    new_table = table.set_index('ID').drop([0])
+    cat_percentages = round((df_bboxes['id_ref_trash_type_fk'].value_counts()/len(df_bboxes)*100),2).to_frame()
+    # percentages of each trash category in the dataset
 
-    fig, ax = plt.subplots(figsize=(15,7))
+    table = pd.DataFrame(categories)      # creation of data frame of the categories 
+    table["Percentage"] = cat_percentages # adding the percentages to the df
+    table["ID"] = list(range(0,11))       # adding the ID to the df 
+    table["Count"] = df_bboxes['id_ref_trash_type_fk'].value_counts().to_frame() # adding the count of the labels to the df 
+    table.rename(columns = {0 : 'Category'}, inplace = True)                     # rename the category column 
+    new_table = table.set_index('ID').drop([0])                                  # final df, dropping excess info 
+
+    fig, ax = plt.subplots(figsize=(15,7)) # creation 
     dfg = df_bboxes.groupby(['id_ref_trash_type_fk']).size()
     plot = dfg.plot(kind='bar', title='Trash Size by ID', ylabel='Size', xlabel='Trash ID', figsize=(6, 5))
     ax.legend(title='Categories',loc='center left', bbox_to_anchor=(1, 0.5))
