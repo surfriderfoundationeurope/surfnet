@@ -29,3 +29,15 @@ flake8 = "^4.0.1"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+# coverage configuration
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["surfnet_train"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 10
