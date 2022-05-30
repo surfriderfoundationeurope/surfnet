@@ -1,6 +1,6 @@
 from datetime import datetime
-#from src.surfnet_train.data.data_processing import shaping_bboxes
-#from Users.rispal.ZoRaFa.yolov5_train_test.src.surfnet_train.data import image_orientation
+from src.surfnet_train.data.data_processing import shaping_bboxes
+from src.surfnet_train.data import image_orientation
 import os
 import numpy as np
 import pandas as pd
