@@ -45,12 +45,12 @@ def test_image_orientation():
     ogimage = cv2.cvtColor(np.array(my_image), cv2.COLOR_RGB2BGR)
     testimage = cv2.cvtColor(np.array(output), cv2.COLOR_RGB2BGR)
 
-    #assert type(output) == PIL.Image.Image
     assert (output).size == my_image.size
     assert np.count_nonzero(cv2.subtract(ogimage, testimage)) == 0
+    
+    #assert type(output) == PIL.Image.Image
     #assert np.testing.
     #all((cv2.subtract(ogimage, testimage) == 0))
-
     # assert equality 2 images ; array of pixel coordonnée : comparer les 2 tableaux 
     # assert my_image._getexif()[orientation] == []
-     #assert diff = ImageChops.difference(im2, im1)
+    # assert diff = ImageChops.difference(im2, im1)
