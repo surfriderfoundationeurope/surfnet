@@ -1,12 +1,14 @@
 from matplotlib.font_manager import json_load
 from src.surfnet_train.data.data_processing import coco2yolo
 from src.surfnet_train.data.data_processing import image_orientation
+from src.surfnet_train.data.data_processing import shaping_bboxes
 import numpy as np
 import PIL
-from PIL import Image, ImageDraw, ImageFont, ExifTags
+from PIL import Image, ImageChops, ImageDraw, ImageFont, ExifTags
 from pycocotools.coco import COCO
 import os
 import json
+import cv2
 
 
 
@@ -35,10 +37,20 @@ def test_image_orientation():
     f.close() # create our own json file with 2 images : "file.json"
 
     my_image = Image.open(os.path.join('tests/test_surfnet_train/utils/images', 
-    COCO('tests/test_surfnet_train/utils/data/file.json').loadImgs(333)[0]['file_name']))
+    COCO('tests/test_surfnet_train/utils/data/file.json').loadImgs(1)[0]['file_name']))
     # create the image in the same way as our function 
 
     output = image_orientation(my_image) 
 
-    assert type(output) == PIL.Image.Image
-    assert my_image._getexif()[orientation] == []
+    ogimage = cv2.cvtColor(np.array(my_image), cv2.COLOR_RGB2BGR)
+    testimage = cv2.cvtColor(np.array(output), cv2.COLOR_RGB2BGR)
+
+    #assert type(output) == PIL.Image.Image
+    assert (output).size == my_image.size
+    assert np.count_nonzero(cv2.subtract(ogimage, testimage)) == 0
+    #assert np.testing.
+    #all((cv2.subtract(ogimage, testimage) == 0))
+
+    # assert equality 2 images ; array of pixel coordonnée : comparer les 2 tableaux 
+    # assert my_image._getexif()[orientation] == []
+     #assert diff = ImageChops.difference(im2, im1)
