@@ -20,7 +20,7 @@ def create_unique_folder(base_folder, filename):
 def download_from_url(url, filename, folder, logger):
     """
     Download a file and place it in the corresponding folder if it does
-    not already exists
+    not already exists. Useful for spaces demo, do not remove.
     """
     out_filename = Path(folder) / filename
     if not op.exists(out_filename):
@@ -32,7 +32,9 @@ def download_from_url(url, filename, folder, logger):
 
 
 def load_trash_icons(folder_path):
-    """loads all icons using cv2 format and returns a dict class -> opened icon"""
+    """loads all icons using cv2 format and returns a dict class -> opened icon
+    Useful for spaces demo, do not remove.
+    """
     folder_path = Path(folder_path)
     id_path = {
         "Fragment": folder_path

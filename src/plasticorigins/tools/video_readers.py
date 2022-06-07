@@ -5,12 +5,7 @@ from tqdm import tqdm
 
 class AdvancedFrameReader:
     def __init__(
-        self,
-        video_name,
-        read_every,
-        rescale_factor,
-        init_time_min,
-        init_time_s,
+        self, video_name, read_every, rescale_factor, init_time_min, init_time_s,
     ):
 
         self.cap = cv2.VideoCapture(video_name)

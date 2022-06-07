@@ -6,7 +6,6 @@ from plasticorigins.detection.centernet.networks.mobilenet import MobiletNetHM
 from plasticorigins.tools.misc import (
     blob_for_bbox,
     load_model,
-    pre_process_centernet,
 )
 from plasticorigins.serving.config import config_track
 
@@ -28,10 +27,3 @@ def test_blob_for_bbox():
         heatmap_res[100:120, 100:120], heatmap[100:120, 100:120]
     )
     assert cint[0] == 110 and cint[1] == 110
-
-
-def test_pre_process_centernet():
-    image = np.array(Image.open("tests/ressources/test_image.jpeg"))
-    image_res = pre_process_centernet(image=image)
-    assert np.array_equal(image_res.shape, [3, 512, 512])
-    assert type(image_res) == Tensor

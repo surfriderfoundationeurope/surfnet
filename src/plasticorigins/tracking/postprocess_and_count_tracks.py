@@ -24,9 +24,7 @@ def filter_tracks(tracklets, kappa, tau):
     results = []
     for tracker_nb, dets in enumerate(tracks):
         for det in dets:
-            results.append(
-                (det[0], tracker_nb, det[1], det[2], det[3], det[4])
-            )
+            results.append((det[0], tracker_nb, det[1], det[2], det[3], det[4]))
 
     results = sorted(results, key=lambda x: x[0])
     return results
@@ -71,9 +69,7 @@ def postprocess_for_api(results, class_dict=defaultdict(lambda: "fragment")):
         # otherwise, retrieve the jsonline and append the box
         else:
             result_list[id_list[id]]["frame_to_box"][str(frame_number)] = box
-            result_list[id_list[id]]["frame_to_class_conf"][
-                str(frame_number)
-            ] = (
+            result_list[id_list[id]]["frame_to_class_conf"][str(frame_number)] = (
                 res[5],
                 conf,
             )
@@ -132,9 +128,7 @@ def compute_moving_average(tracklet, kappa):
     for observation in tracklet:
         frame_id = observation[0] - 1
         observation_points[frame_id - first_frame_id] = 1
-    density_fill = convolve(
-        observation_points, np.ones(kappa) / kappa, mode="same"
-    )
+    density_fill = convolve(observation_points, np.ones(kappa) / kappa, mode="same")
     if pad > 0 and len(observation_points) >= kappa:
         density_fill[:pad] = density_fill[pad : 2 * pad]
         density_fill[-pad:] = density_fill[-2 * pad : -pad]

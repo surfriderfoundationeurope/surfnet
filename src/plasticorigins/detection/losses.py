@@ -8,9 +8,7 @@ class FocalLoss(nn.Module):
         super().__init__()
         self.alpha = int(alpha)
         self.beta = int(beta)
-        self.focal_loss = (
-            self._focal_loss if train else self._focal_loss_class_wise
-        )
+        self.focal_loss = self._focal_loss if train else self._focal_loss_class_wise
         self.loss = self._train_loss if train else self._test_loss
         self.centernet_output = centernet_output
 
@@ -47,9 +45,7 @@ class FocalLoss(nn.Module):
         pos_inds = gt_centers.eq(1).float()
         neg_inds = gt_centers.lt(1).float()
 
-        return self._focal_loss_class_wise(
-            pred_centers, gt_centers, pos_inds, neg_inds
-        )
+        return self._focal_loss_class_wise(pred_centers, gt_centers, pos_inds, neg_inds)
 
     def _focal_loss(self, pred_hm, gt_hm, pos_inds, neg_inds):
         """Modified focal loss. Exactly the same as CornerNet.
@@ -65,9 +61,7 @@ class FocalLoss(nn.Module):
 
         loss = 0.0
 
-        pos_loss = (
-            torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
-        )
+        pos_loss = torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
         neg_loss = (
             torch.log(1 - pred_hm)
             * torch.pow(pred_hm, self.alpha)
@@ -98,9 +92,7 @@ class FocalLoss(nn.Module):
 
         neg_weights = torch.pow(1 - gt_hm, self.beta)
 
-        pos_loss = (
-            torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
-        )
+        pos_loss = torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
         neg_loss = (
             torch.log(1 - pred_hm)
             * torch.pow(pred_hm, self.alpha)
@@ -119,9 +111,7 @@ class FocalLoss(nn.Module):
             if num_poss_class == 0:
                 loss[i] = loss[i] - neg_loss[i]
             else:
-                loss[i] = (
-                    loss[i] - (pos_loss[i] + neg_loss[i]) / num_poss_class
-                )
+                loss[i] = loss[i] - (pos_loss[i] + neg_loss[i]) / num_poss_class
 
         return loss
 
