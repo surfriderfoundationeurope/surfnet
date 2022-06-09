@@ -5,6 +5,7 @@ from src.surfnet_train.data.data_processing import shaping_bboxes
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFont, ExifTags
 from pycocotools.coco import COCO
+import coco
 import os
 import json
 import cv2
@@ -61,32 +62,14 @@ def test_image_orientation():
 
 def test_shaping_bboxes():
 
-    output = shaping_bboxes()
+    bbox_anns = COCO("tests/test_surfnet_train/utils/data/file.json").loadAnns(
+        ids=COCO("tests/test_surfnet_train/utils/data/file.json").getAnnIds(imgIds=[1]))
 
-def shaping_bboxes(anns:list, ratio:float, target_h:float, target_w:int):
-
-    """Function in charge of shaping the bounding boxes, normalized via the coco2yolo function.
-
-    Args:
-        anns (list): List with ID of the label, ID of the image, bounding box coordinates and the category ID
-        ratio (float): Ratio of the target (1080) and the actual height of the image. (defined in path_existance)
-        target_h (float): The target height of the image. (defined in path_existance)
-        target_w (float): The target width of the image: (ratio*width of actual image). (defined in path_existance)
+    h, w = (np.array(Image.open(os.path.join("tests/test_surfnet_train/utils/images", COCO(
+        "tests/test_surfnet_train/utils/data/file.json").loadImgs(1)[0]['file_name'])))).shape[:-1]
     
-    Returns: yolo_annot a list with the coordinates of the bboxes and their associated label. 
-        _type_: list
-    """
-    yolo_annot = []
+    output = shaping_bboxes(bbox_anns, 1080/h, 1080, 1080/h*w)
+    bbox = np.array([1731, 1200, 145, 338])*(1080/h)
+    our_bbox = np.array([9, coco2yolo(bbox, h, w)])
 
-    for ann in anns:
-        cat = ann['category_id'] - 1 # gets the actual categories, according to the initial yaml 
-        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int) 
-        # gets the bboxes coordinates * the ratio = (1080 /height of the image)
-        bbox = np.array([bbox_x, bbox_y, bbox_w, bbox_h]) # creates array with the bboxes coordinates 
-        yolo_bbox = coco2yolo(bbox, target_h, target_w) # calls coco2yolo function to normalize the coordinates 
-        yolo_str  = str(cat) + " " + " ".join(yolo_bbox.astype(str)) 
-        # gives the category of the label and the coordinates of the bboxes 
-        yolo_annot.append(yolo_str)
-
-    return(yolo_annot)
-    # list with the coordinates of the bboxes and their associated label
+    assert np.testing.assert_array_equal(output, our_bbox)
