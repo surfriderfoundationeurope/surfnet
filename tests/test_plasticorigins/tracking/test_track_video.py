@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from plasticorigins.tools.video_readers import IterableFrameReader
+from plasticorigins.tools.video_readers import IterableFrameReader, SimpleVideoReader
 from plasticorigins.tracking.track_video import track_video
 from plasticorigins.serving.inference import config_track, engine
 
@@ -42,3 +42,4 @@ def test_track_video():
     )
     assert len(results) == 16
     assert len(results[0]) == 6
+
