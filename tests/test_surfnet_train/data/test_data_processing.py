@@ -5,7 +5,6 @@ from src.surfnet_train.data.data_processing import shaping_bboxes
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFont, ExifTags
 from pycocotools.coco import COCO
-import coco
 import os
 import json
 import cv2
@@ -45,6 +44,13 @@ def test_image_orientation():
     ogimage = cv2.cvtColor(np.array(my_image), cv2.COLOR_RGB2BGR)
     testimage = cv2.cvtColor(np.array(output), cv2.COLOR_RGB2BGR)
 
+meta = getattr(ogimage, "meta", {})
+    exif = meta.get("EXIF_MAIN", {})
+    if not exif:
+        return None
+    ori = exif.get("Orientation", None)
+    return ori
+
     assert (output).size == my_image.size
     assert np.count_nonzero(cv2.subtract(ogimage, testimage)) == 0
     # here we're comparing the new image with the OG one : so should not work if we have a chnage in the function 
@@ -68,8 +74,10 @@ def test_shaping_bboxes():
     h, w = (np.array(Image.open(os.path.join("tests/test_surfnet_train/utils/images", COCO(
         "tests/test_surfnet_train/utils/data/file.json").loadImgs(1)[0]['file_name'])))).shape[:-1]
     
-    output = shaping_bboxes(bbox_anns, 1080/h, 1080, 1080/h*w)
+    output = shaping_bboxes(bbox_anns, 1080/h, 1080, 1080*h/w)
+    cat = 9
     bbox = np.array([1731, 1200, 145, 338])*(1080/h)
-    our_bbox = np.array([9, coco2yolo(bbox, h, w)])
+    our_bbox = np.array([coco2yolo(bbox, 1080, 1080*h/w)])
+    yolo_str  = str(cat) + " " + " ".join(our_bbox.astype(str))
 
     assert np.testing.assert_array_equal(output, our_bbox)
