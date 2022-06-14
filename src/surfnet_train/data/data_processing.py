@@ -103,11 +103,14 @@ def image_orientation (image:image):
             _type_: image
     """
 
+    old_orientation = []
+    new_orientation = []
     try:
         for orientation in ExifTags.TAGS.keys():
             if ExifTags.TAGS[orientation]=='Orientation':
                 break
         exif = image._getexif()
+        old_orientation.append(exif[orientation])
         if exif is not None:
             if exif[orientation] == 3:
                 image=image.rotate(180, expand=True)
@@ -115,7 +118,7 @@ def image_orientation (image:image):
                 image=image.rotate(270, expand=True)
             elif exif[orientation] == 8:
                 image=image.rotate(90, expand=True)
-
+        new_orientation.append(image._getexif()[orientation])
     except (AttributeError, KeyError, IndexError):
         # cases: image don't have getexif
         pass
@@ -152,7 +155,6 @@ def shaping_bboxes(anns:list, ratio:float, target_h:float, target_w:int):
 
     return(yolo_annot)
     # list with the coordinates of the bboxes and their associated label
-
 
 
 

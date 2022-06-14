@@ -8,6 +8,7 @@ from pycocotools.coco import COCO
 import os
 import json
 import cv2
+import piexif
 from numpy import insert
 
 
@@ -30,7 +31,7 @@ def test_image_orientation():
       {"id": 599, "image_id": 333, "bbox": [468, 1908, 108, 130], "category_id": 1}, 
       {"id": 600, "image_id": 333, "bbox": [1273, 1854, 297, 249], "category_id": 1}, 
       {"id": 601, "image_id": 333, "bbox": [487, 1884, 53, 125], "category_id": 1},
-       {"id": 602, "image_id": 333, "bbox": [1260, 1867, 204, 142], "category_id": 1}]}
+      {"id": 602, "image_id": 333, "bbox": [1260, 1867, 204, 142], "category_id": 1}]}
 
     f = open("tests/test_surfnet_train/utils/data/file.json", "w")
     json.dump(file, f)
@@ -40,28 +41,14 @@ def test_image_orientation():
     COCO('tests/test_surfnet_train/utils/data/file.json').loadImgs(333)[0]['file_name']))
     # create the image in the same way as our function : did not see any change 
 
-    output = image_orientation(my_image) 
+    output = image_orientation(my_image)
+
 
     ogimage = cv2.cvtColor(np.array(my_image), cv2.COLOR_RGB2BGR)
     testimage = cv2.cvtColor(np.array(output), cv2.COLOR_RGB2BGR)
 
-#meta = getattr(ogimage, "meta", {})
-    #exif = meta.get("EXIF_MAIN", {})
-    #if not exif:
-        #return None
-    #ori = exif.get("Orientation", None)
-    #return ori
-
-    assert (output).size == my_image.size
-    assert np.count_nonzero(cv2.subtract(ogimage, testimage)) == 0
-    # here we're comparing the new image with the OG one : so should not work if we have a chnage in the function 
-
-    #assert type(output) == PIL.Image.Image
-    #assert np.testing.
-    #all((cv2.subtract(ogimage, testimage) == 0))
-    # assert equality 2 images ; array of pixel coordonnée : comparer les 2 tableaux 
-    # assert my_image._getexif()[orientation] == []
-    # assert diff = ImageChops.difference(im2, im1)
+    assert piexif.load(output.info['exif'])['0th'][piexif.ImageIFD.Orientation] == 1
+    #assert np.count_nonzero(cv2.subtract(ogimage, testimage)) == 0
 
 
 
