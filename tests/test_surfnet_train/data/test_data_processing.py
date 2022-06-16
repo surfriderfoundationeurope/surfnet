@@ -8,7 +8,6 @@ from pycocotools.coco import COCO
 import os
 import json
 import cv2
-import piexif
 from numpy import insert
 
 
