@@ -38,17 +38,12 @@ def test_image_orientation():
     f.close() # create our own json file with 2 images : "file.json"
 
     my_image = Image.open(os.path.join('tests/test_surfnet_train/utils/images', 
-    COCO('tests/test_surfnet_train/utils/data/file.json').loadImgs(333)[0]['file_name']))
+    COCO('tests/test_surfnet_train/utils/data/file.json').loadImgs(1)[0]['file_name']))
     # create the image in the same way as our function : did not see any change 
 
-    output = image_orientation(my_image)
+    old, new, output = image_orientation(my_image)
 
-
-    ogimage = cv2.cvtColor(np.array(my_image), cv2.COLOR_RGB2BGR)
-    testimage = cv2.cvtColor(np.array(output), cv2.COLOR_RGB2BGR)
-
-    assert piexif.load(output.info['exif'])['0th'][piexif.ImageIFD.Orientation] == 1
-    #assert np.count_nonzero(cv2.subtract(ogimage, testimage)) == 0
+    assert (new == [1] or new == [])
 
 
 
