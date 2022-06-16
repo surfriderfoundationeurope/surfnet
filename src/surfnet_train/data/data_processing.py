@@ -123,7 +123,7 @@ def image_orientation (image:image):
         # cases: image don't have getexif
         pass
 
-    return (image)
+    return (old_orientation, new_orientation, image)
 
 
 
