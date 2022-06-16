@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ExifTags
 import os
 import cv2
 import pandas as pd
-from datetime import datetime
+import datetime
 
 
 
@@ -214,7 +214,7 @@ def path_existance(img_ids, data_dir, coco, df_images) :
             image_quality  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["image_quality"].values[0]
             context        = df_images.loc[df_images["filename"] == image_infos["file_name"]]["context"].values[0]
 
-            date_time_obj = datetime.datetime.strptime(date_creation, '%Y-%m-%d %H:%M:%S')
+            date_time_obj = datetime.datetime.strptime(date_creation, '%Y-%m-%d %H:%M:%S.%f')
 
             old_filenames.append(image_infos["file_name"])
             dates.append(date_time_obj)
@@ -241,9 +241,8 @@ def path_existance(img_ids, data_dir, coco, df_images) :
             target_w = int(ratio*w) 
             image    = cv2.resize(image,(target_w,target_h)) # we resize the image with the new target shapes 
             h, w     = image.shape[:-1]  
-            yolo_annot = []
 
-            shaping_bboxes(anns, ratio, target_h, target_w)
+            yolo_annot = shaping_bboxes(anns, ratio, target_h, target_w)
             # calls function which shapes the bounding boxes as normalized
             
             basename  = os.path.splitext(image_infos['file_name'])[0]
