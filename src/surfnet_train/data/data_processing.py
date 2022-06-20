@@ -1,42 +1,18 @@
-from matplotlib import image
+import os
+import yaml
+import psycopg2
+from datetime import datetime
+
 import numpy as np
+from sklearn.model_selection import train_test_split
+import pandas as pd
+import cv2
+
+from matplotlib import image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
-from pycocotools.coco import COCO
 from PIL import Image, ImageDraw, ImageFont, ExifTags
-import os
-import cv2
-import pandas as pd
-import datetime
-import time
-
-
-
-
-def coco2yolo(bbox:list, image_height:int=1080, image_width:int=1080):
-
-    """Function to normalize the representation of the bounding box, such that there are in the yolo format (normalized)
-
-    Args:
-        bbox (list): Coordinates of the bounding box : x, y, w and h coordiates.
-        image_height (int, optional): Height of the image. Defaults to 1080.
-        image_width (int, optional): Width of the image. Defaults to 1080.
-
-    Returns: Normalized bounding box coordinates : values between 0-1.
-        _type_: array
-    """
-
-    bbox = bbox.copy().astype(float) # otherwise all value will be 0 as voc_pascal dtype is np.int
-
-    bbox[[0, 2]] = bbox[[0, 2]]/ image_width
-    bbox[[1, 3]] = bbox[[1, 3]]/ image_height
-
-    bbox[[0, 1]] = bbox[[0, 1]] + bbox[[2, 3]]/2
-
-    return bbox
-
-
 
 
 def plot_image_and_bboxes(img, anns, ratio:float):
@@ -52,7 +28,6 @@ def plot_image_and_bboxes(img, anns, ratio:float):
     ax.imshow(img)
 
     for ann in anns:
-
         [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
         # Obtains the new coordinates of the bboxes - normalized via the ratio.
         rect = patches.Rectangle((bbox_x, bbox_y), bbox_w, bbox_h, linewidth=2, edgecolor='r', facecolor="none")
@@ -62,38 +37,7 @@ def plot_image_and_bboxes(img, anns, ratio:float):
     # Prints out a 12 * 10 image with bounding box(es).
 
 
-
-
-def get_df_train_val(annotation_file, data_dir, df_images):
-
-    """Transforms the labels and images to the same format in order to be used by the Yolov5 algorithm.
-
-    Args:
-        annotation_file (json instances file): Annotation file which contains information on the images,
-        the annotations (labels) and categories of the labels.
-        data_dir (file): File with the images. Default to images2labels.
-        df_images (data frame): = pd.read_csv("images_for_labelling_202201241120.csv"))
-
-    Returns:
-        my_df (data frame): Data frame with columns : old_path, date, view, quality, context, img_name,
-        label_name, image and bounding box.
-    """
-
-    coco = COCO(annotation_file) # transform the file using a coco function where the COCO function
-                                 # loads a coco annotation file and prepares data structures
-    # gives the annotations into a coco api form ; helps the user in extracting annotations conveniently
-
-    img_ids = np.array(coco.getImgIds()) # creates an array with the images IDs processed by coco
-
-    my_df = path_existance(img_ids, data_dir, coco, df_images) # calls function
-
-    return (my_df)
-
-
-
-
 def image_orientation (image:image):
-
     """ Function which gives the images that have a specified orientation the same orientation.
         If the image does not have an orientation, the image is not altered.
 
@@ -103,7 +47,6 @@ def image_orientation (image:image):
     Returns: Image, with the proper orientation.
             _type_: image
     """
-
     old_orientation = []
     new_orientation = []
     try:
@@ -111,7 +54,7 @@ def image_orientation (image:image):
             if ExifTags.TAGS[orientation]=='Orientation':
                 break
         exif = image._getexif()
-        old_orientation.append(exif[orientation])
+
         if exif is not None:
             if exif[orientation] == 3:
                 image=image.rotate(180, expand=True)
@@ -119,62 +62,12 @@ def image_orientation (image:image):
                 image=image.rotate(270, expand=True)
             elif exif[orientation] == 8:
                 image=image.rotate(90, expand=True)
-        new_orientation.append(image._getexif()[orientation])
+
     except (AttributeError, KeyError, IndexError):
         # cases: image don't have getexif
         pass
 
-    return (old_orientation, new_orientation, image)
-
-
-
-
-def shaping_bboxes(anns:list, ratio:float, target_h:float, target_w:int):
-
-    """Function in charge of shaping the bounding boxes, normalized via the coco2yolo function.
-
-    Args:
-        anns (list): List with ID of the label, ID of the image, bounding box coordinates and the category ID
-        ratio (float): Ratio of the target (1080) and the actual height of the image. (defined in path_existance)
-        target_h (float): The target height of the image. (defined in path_existance)
-        target_w (float): The target width of the image: (ratio*width of actual image). (defined in path_existance)
-
-    Returns: yolo_annot a list with the coordinates of the bboxes and their associated label.
-        _type_: list
-    """
-    yolo_annot = []
-
-    for ann in anns:
-        cat = ann['category_id'] - 1 # gets the actual categories, according to the initial yaml
-        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
-        # gets the bboxes coordinates * the ratio = (1080 /height of the image)
-        bbox = np.array([bbox_x, bbox_y, bbox_w, bbox_h]) # creates array with the bboxes coordinates
-        yolo_bbox = coco2yolo(bbox, target_h, target_w) # calls coco2yolo function to normalize the coordinates
-        yolo_str  = str(cat) + " " + " ".join(yolo_bbox.astype(str))
-        # gives the category of the label and the coordinates of the bboxes
-        yolo_annot.append(yolo_str)
-
-    return yolo_annot
-    # list with the coordinates of the bboxes and their associated label
-
-
-
-def get_date(df_train_valid):
-
-    """_summary_
-
-    Args:
-        df_train_valid (data frame): dataframe obtained using the get_df_train_val
-    Returns:
-        _type_: _description_
-    """
-    d = df_train_valid.iloc[0]["date"] # we take the date column
-                                        # of shape YYYY-MM-DD HH:MM:SS
-    d = d.date() # puts our d into a date instance
-    day =  int("".join(str(d).split("-"))) # seperates at the - and then joins the rest : YYYYMMDD
-    df_train_valid["day"] = day
-
-    return(df_train_valid)
+    return image
 
 
 def bbox2yolo(bbox, image_height:int=1080, image_width:int=1080):
@@ -206,7 +99,6 @@ def process_annotations(anns, ratio, target_h, target_w):
     bboxes = anns[["location_x","location_y","width","height"]].values * ratio
     bboxes = bbox2yolo(bboxes, target_h, target_w)
     return labels, bboxes
-
 
 
 def build_yolo_annotations_for_images(data_dir, df_bboxes, df_images):
@@ -274,3 +166,93 @@ def build_yolo_annotations_for_images(data_dir, df_bboxes, df_images):
         else:
             count_missing +=1
     return valid_imagenames, count_exists, count_missing
+
+
+def get_train_valid (df_data, split=0.85):
+    """ split data into train and test
+    """
+    train_files, val_files = train_test_split(df_data, train_size = split)
+    train_files = list(train_files["img_name"].unique())
+    val_files   = list(val_files["img_name"].unique())
+
+    return train_files, val_files
+
+
+def generate_yolo_files(output_dir, train_files, val_files):
+    """ Generates data files for yolo training: train.txt, val.txt and data.yaml
+    """
+    output_dir = Path(output_dir)
+    with open(output_dir / 'train.txt', 'w') as f:
+        for path in train_files:
+            f.write(path+'\n')
+
+    with open(output_dir / 'val.txt', 'w') as f:
+        for path in val_files:
+            f.write(path+'\n')
+
+    data = dict(
+        path  = './../',
+        train =  output_dir / 'train.txt' ,
+        val   =  output_dir / 'val.txt'),
+        nc    = 10,
+        names = ['Sheet / tarp / plastic bag / fragment', 'Insulating material', 'Bottle-shaped', 'Can-shaped', 'Drum', 'Other packaging', 'Tire', 'Fishing net / cord', 'Easily namable', 'Unclear'],
+        )
+
+    with open(output_dir / 'data.yaml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+
+
+def get_annotations_from_db(password):
+    """ Gets the data from the database. Requires that your IP is configured
+    in Azure
+    """
+    # Update connection string information
+    host = "pgdb-plastico-prod.postgres.database.azure.com"
+    dbname = "plastico-prod"
+    user = "reader_user@pgdb-plastico-prod"
+    # password = input('Enter password:')
+    password = 'SurfReader!'
+    sslmode = "require"
+
+    # Construct connection string
+    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn = psycopg2.connect(conn_string)
+    print("Connection established")
+
+    # Fetch all rows from table
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM "label".bounding_boxes')
+    raw_annotations = cursor.fetchall()
+
+    cursor.execute('SELECT * FROM "label".images_for_labelling')
+    raw_images_info = cursor.fetchall()
+
+    #cursor.execute('SELECT * FROM "campaign".trash_type')
+    #raw_category_info = cursor.fetchall()
+    df_bboxes = pd.DataFrame(raw_annotations,
+                             columns=["id","id_creator_fk","createdon","id_ref_trash_type_fk",
+                                      "id_ref_images_for_labelling","location_x","location_y",
+                                      "width","height"])
+
+    df_images = pd.DataFrame(raw_images_info,
+                             columns=["id","id_creator_fk","createdon","filename","view",
+                                      "image_quality","context","container_url","blob_name"])
+    conn.close()
+    return df_bboxes, df_images.set_index("id") #, raw_category_info
+
+
+def get_annotations_from_files(input_dir, bbox_filename, images_filename):
+    """ Get annotations from csv files instead of the database. The files should
+    be located in the input_dir folder
+    """
+    return pd.read_csv(input_dir / bbox_filename),
+           pd.read_csv(input_dir / images_filename).set_index("id")
+           #pd.read_csv(input_dir / trash_filename)
+
+
+def save_annotations_to_files(output_dir, df_bboxes, df_images):
+    """ Saves the annotations in csv format
+    """
+    df_bboxes.to_csv(output_dir / "bbox.csv")
+    df_images.to_csv(output_dir / "images.csv")

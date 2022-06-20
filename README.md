@@ -28,3 +28,60 @@ The COCO function can be used in order to read these instances files.
 
 The coco format is a specific JSON structure that dictates how labels and metadata are saved for an image dataset. It explains how the annotations and the image metadata are stored on the platform. 
 ### 
+
+## Training 
+
+### 1) Installing the requirements and import various packages needed. 
+
+```
+pip install -r requirements.txt
+````
+
+We also open the csv files we previously downloaded. 
+```
+df_bboxes = pd.read_csv("bounding_boxes_202206171635.csv")
+df_images = pd.read_csv("images_for_labelling_202206171635.csv")
+```
+We create two empty folders for later use: 
+```
+!mkdir ./images
+!mkdir ./labels
+```
+### 2) Data Processing
+
+import the functions :
+- coco2yolo
+- shapping_bboxes
+- image_orientation  
+- get_df
+- path_existance 
+- get_date
+- get_train_valid
+code example: 
+```
+from src.surfnet_train.data.data_processing import coco2yolo
+```
+```
+df_data = get_df("instances.json", "images2label" , df_images)
+
+df_data = get_date(df_data)
+
+train_files, val_files = get_train_valid(df_data)
+```
+
+### 3) Importing yaml file and yolov5 parameters
+
+
+
+### 4) Launching YOLOv5
+
+Change the parameters according to your training: 
+- batch size ()
+- nb. of epochs 
+- weights
+- workers
+- project
+- name 
+````
+yolov5/data/hyps/hyp.scratch.yaml" --batch 32 --epochs 100 --data "data.yaml" --weights "yolov5s.pt" --workers 23 --project "yolo_bene" --name "yolo_ben_100" --exist-ok 
+```
