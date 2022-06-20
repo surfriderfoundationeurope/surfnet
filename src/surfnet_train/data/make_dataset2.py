@@ -1,42 +1,40 @@
-
-from data_processing import coco2yolo
-from data_processing import get_df_train_val
+from data_processing import get_annotations_from_files, get_annotations_from_db
+from data_processing import generate_yolo_files, get_train_valid, build_yolo_annotations_for_images
 from pathlib import Path
 from sklearn.model_selection import KFold
 import pandas as pd
 import psycopg2
 
 
-
-
 def __main__(args):
-    data_dir = Path("../data/")
-    if args.use_db:
-        df_bboxes, df_images = get_annotations_from_db()
-    else:
+    data_dir = Path(args.data_dir)
+    if args.bbox_filename and args.images_filename:
         df_bboxes, df_images = get_annotations_from_files(data_dir,
-                                            args.bbox_filename,
-                                            args.images_filename)
+                                                        args.bbox_filename,
+                                                        args.images_filename)
+    elif args.password:
+        print("getting annotations from db")
+        df_bboxes, df_images = get_annotations_from_db(args.password)
+    else:
+        print("either a password must be set, or bbox and images filenames")
+        return
 
-    yolo_filelist = build_yolo_annotations_for_images(data_dir, df_bboxes, df_images)
+    yolo_filelist, cpos, cneg = build_yolo_annotations_for_images(data_dir, args.images_dir, df_bboxes, df_images, args.limit_data)
+    print(f"found {cpos} valid annotations with images and {cneg} unmatched annotations")
+    train_files, val_files = get_train_valid(yolo_filelist, args.split)
 
-    df_train_valid = get_df_train_val(annotation_file, data_dir, df_images)
+    generate_yolo_files(data_dir, train_files, val_files)
 
-    kf = KFold(n_splits=7)
-    df_train_valid = df_train_valid.reset_index(drop=True)
-    df_train_valid['fold'] = -1
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Build dataset')
+    parser.add_argument('--data-dir', type=str, help="path to main data folder")
+    parser.add_argument('--images-dir', type=str, help="path to image folder")
+    parser.add_argument('--password', type=str, help="password for connection to DB")
+    parser.add_argument('--bbox-filename', type=str, default="")
+    parser.add_argument('--images-filename', type=str, default="")
+    parser.add_argument('--split', type=float, default=0.85)
+    parser.add_argument('--limit-data', type=int, default=0)
+    args = parser.parse_args()
 
-    for fold, (train_idx, val_idx) in enumerate(kf.split(df_train_valid)):
-        df_train_valid.loc[val_idx, 'fold'] = fold
-
-    FOLD = 1
-
-    train_files = []
-    val_files   = []
-    train_df = df_train_valid.query("fold!=@FOLD")
-    valid_df = df_train_valid.query("fold==@FOLD")
-
-    train_files = list(train_df["img_name"].unique())
-    val_files   = list(valid_df["img_name"].unique())
-
-    generate_data_files(data_dir, train_files, val_files)
+    main(args)

@@ -1,5 +1,7 @@
 import os
+from pathlib import Path
 import yaml
+import time
 import psycopg2
 from datetime import datetime
 
@@ -101,7 +103,8 @@ def process_annotations(anns, ratio, target_h, target_w):
     return labels, bboxes
 
 
-def build_yolo_annotations_for_images(data_dir, df_bboxes, df_images):
+def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
+                                      df_images, limit_data):
     """ Generates the .txt files that are necessary for yolo training. See
     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format
 
@@ -116,20 +119,29 @@ def build_yolo_annotations_for_images(data_dir, df_bboxes, df_images):
     """
     valid_imagenames = []
 
-    list_imgs = sorted(os.listdir(data_dir / "images"))
+    input_img_folder = Path(images_dir)
+    data_dir = Path(data_dir)
+    list_imgs = sorted(os.listdir(input_img_folder))
     used_imgs = set(df_bboxes["id_ref_images_for_labelling"].values)
 
     print(f"number of images in images folder: {len(list_imgs)}")
     print(f"number of images referenced in database: {len(df_images)}")
     print(f"number of images with a bbox in database: {len(used_imgs)}")
 
-    img_folder = Path(data_dir) / "images"
+    if not Path.exists(data_dir / "images"):
+        os.mkdir(data_dir / "images")
+    if not Path.exists(data_dir / "annotations"):
+        os.mkdir(data_dir / "annotations")
+
+
     count_exists, count_missing = 0, 0
 
-    for img in used_imgs:
-        img_name = df_images.loc[img]["filename"]
-        if Path.exists(img_folder / img_name):
+    for img_id in used_imgs:
+        img_name = df_images.loc[img_id]["filename"]
+        if Path.exists(input_img_folder / img_name):
             count_exists += 1
+            if limit_data > 0 and count_exists > limit_data:
+                break
             # various meta information about the image, could be useful
             date_creation  = df_images.loc[img_id]["createdon"]
             view           = df_images.loc[img_id]["view"]
@@ -137,7 +149,7 @@ def build_yolo_annotations_for_images(data_dir, df_bboxes, df_images):
             context        = df_images.loc[img_id]["context"]
             date_time_obj = time.strptime(date_creation, '%Y-%m-%d %H:%M:%S.%f')
 
-            image = Image.open(img_folder / img_name)
+            image = Image.open(input_img_folder / img_name)
 
             # in place rotation of the image using Exif data
             image_orientation(image)
@@ -156,24 +168,23 @@ def build_yolo_annotations_for_images(data_dir, df_bboxes, df_images):
             yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
 
             # writing the image and annotation
-            img_file_name   = data_dir / "images" / img_id + ".jpg"
-            label_file_name = data_dir / "annotations" / img_id + ".txt"
+            img_file_name   = data_dir / "images" / (img_id + ".jpg")
+            label_file_name = data_dir / "annotations" / (img_id + ".txt")
             Image.fromarray(image).save(img_file_name)
             with open(label_file_name, 'w') as f:
                 f.write('\n'.join(yolo_strs))
 
-            valid_imagenames.append(img_file_name)
+            valid_imagenames.append(img_file_name.as_posix())
         else:
             count_missing +=1
     return valid_imagenames, count_exists, count_missing
 
-
-def get_train_valid (df_data, split=0.85):
+def get_train_valid(list_files, split=0.85):
     """ split data into train and test
     """
-    train_files, val_files = train_test_split(df_data, train_size = split)
-    train_files = list(train_files["img_name"].unique())
-    val_files   = list(val_files["img_name"].unique())
+    train_files, val_files = train_test_split(list_files, train_size = split)
+    train_files = list(set(train_files))
+    val_files   = list(set(val_files))
 
     return train_files, val_files
 
@@ -191,10 +202,10 @@ def generate_yolo_files(output_dir, train_files, val_files):
             f.write(path+'\n')
 
     data = dict(
-        path  = './../',
-        train =  output_dir / 'train.txt' ,
-        val   =  output_dir / 'val.txt'),
-        nc    = 10,
+        path = './../',
+        train = (output_dir / 'train.txt').as_posix() ,
+        val = (output_dir / 'val.txt').as_posix(),
+        nc = 10,
         names = ['Sheet / tarp / plastic bag / fragment', 'Insulating material', 'Bottle-shaped', 'Can-shaped', 'Drum', 'Other packaging', 'Tire', 'Fishing net / cord', 'Easily namable', 'Unclear'],
         )
 
@@ -246,9 +257,9 @@ def get_annotations_from_files(input_dir, bbox_filename, images_filename):
     """ Get annotations from csv files instead of the database. The files should
     be located in the input_dir folder
     """
-    return pd.read_csv(input_dir / bbox_filename),
-           pd.read_csv(input_dir / images_filename).set_index("id")
-           #pd.read_csv(input_dir / trash_filename)
+    df_bboxes = pd.read_csv(input_dir / bbox_filename)
+    df_images = pd.read_csv(input_dir / images_filename).set_index("id")
+    return df_bboxes, df_images
 
 
 def save_annotations_to_files(output_dir, df_bboxes, df_images):
