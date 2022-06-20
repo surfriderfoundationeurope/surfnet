@@ -39,8 +39,13 @@ pip install -r requirements.txt
 
 We also open the csv files we previously downloaded. 
 ```
-df_bboxes = pd.read_csv("bounding_boxes_202205231416.csv")
-df_images = pd.read_csv("images_for_labelling_202205231708.csv")
+df_bboxes = pd.read_csv("bounding_boxes_202206171635.csv")
+df_images = pd.read_csv("images_for_labelling_202206171635.csv")
+```
+We create two empty folders for later use: 
+```
+!mkdir ./images
+!mkdir ./labels
 ```
 ### 2) Data Processing
 
@@ -48,20 +53,25 @@ import the functions :
 - coco2yolo
 - shapping_bboxes
 - image_orientation  
-- get_df_train_val 
+- get_df
 - path_existance 
 - get_date
 - get_train_valid
-
+code example: 
 ```
-df_data = get_df_train_val("instances_val.json", "images2label" , df_images)
+from src.surfnet_train.data.data_processing import coco2yolo
+```
+```
+df_data = get_df("instances.json", "images2label" , df_images)
 
 df_data = get_date(df_data)
 
 train_files, val_files = get_train_valid(df_data)
 ```
 
-### 3) 
+### 3) Importing yaml file and yolov5 parameters
+
+
 
 ### 4) Launching YOLOv5
 
