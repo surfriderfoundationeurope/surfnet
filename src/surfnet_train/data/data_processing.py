@@ -8,8 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ExifTags
 import os
 import cv2
 import pandas as pd
-import datetime
-import time
+from datetime import datetime
 
 
 
@@ -215,7 +214,7 @@ def path_existance(img_ids, data_dir, coco, df_images) :
             image_quality  = df_images.loc[df_images["filename"] == image_infos["file_name"]]["image_quality"].values[0]
             context        = df_images.loc[df_images["filename"] == image_infos["file_name"]]["context"].values[0]
 
-            date_time_obj = time.strptime(date_creation, '%Y-%m-%d %H:%M:%S.%f')
+            date_time_obj = datetime.strptime(date_creation, '%Y-%m-%d %H:%M:%S.%f')
 
             old_filenames.append(image_infos["file_name"])
             dates.append(date_time_obj)
