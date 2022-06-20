@@ -1,4 +1,4 @@
-from data_processing import get_annotations_from_files, get_annotations_from_db
+from data_processing import get_annotations_from_files, get_annotations_from_db, find_img_ids_to_exclude
 from data_processing import generate_yolo_files, get_train_valid, build_yolo_annotations_for_images
 from pathlib import Path
 from sklearn.model_selection import KFold
@@ -19,7 +19,12 @@ def main(args):
         print("either a password must be set, or bbox and images filenames")
         return
 
-    yolo_filelist, cpos, cneg = build_yolo_annotations_for_images(data_dir, args.images_dir, df_bboxes, df_images, args.limit_data)
+    if args.exclude_img_folder:
+        to_exclude = find_img_ids_to_exclude(args.exclude_img_folder)
+    else:
+        to_exclude = None
+    yolo_filelist, cpos, cneg = build_yolo_annotations_for_images(data_dir, args.images_dir,
+            df_bboxes, df_images, args.limit_data, to_exclude)
     print(f"found {cpos} valid annotations with images and {cneg} unmatched annotations")
     train_files, val_files = get_train_valid(yolo_filelist, args.split)
 
@@ -35,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--images-filename', type=str, default="")
     parser.add_argument('--split', type=float, default=0.85)
     parser.add_argument('--limit-data', type=int, default=0)
+    parser.add_argument('--exclude-img-folder', type=str, help="the path to the folder which contains images and annotations, from which we can find the img ids to exclude")
     args = parser.parse_args()
 
     main(args)

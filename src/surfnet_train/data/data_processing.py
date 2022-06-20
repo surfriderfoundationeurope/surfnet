@@ -104,7 +104,7 @@ def process_annotations(anns, ratio, target_h, target_w):
 
 
 def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
-                                      df_images, limit_data):
+                                      df_images, limit_data, exclude_ids=None):
     """ Generates the .txt files that are necessary for yolo training. See
     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format
 
@@ -127,6 +127,9 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
     print(f"number of images in images folder: {len(list_imgs)}")
     print(f"number of images referenced in database: {len(df_images)}")
     print(f"number of images with a bbox in database: {len(used_imgs)}")
+    if exclude_ids:
+        used_imgs = used_imgs - exclude_ids
+        print(f"after exclusion, number of images with a bbox in database: {len(used_imgs)}")
 
     if not Path.exists(data_dir / "images"):
         os.mkdir(data_dir / "images")
@@ -267,3 +270,8 @@ def save_annotations_to_files(output_dir, df_bboxes, df_images):
     """
     df_bboxes.to_csv(output_dir / "bbox.csv")
     df_images.to_csv(output_dir / "images.csv")
+
+
+def find_img_ids_to_exclude(data_dir):
+    list_files = sorted(os.listdir(Path(data_dir) / "labels"))
+    return set([f.split(".")[0] for f in list_files])
