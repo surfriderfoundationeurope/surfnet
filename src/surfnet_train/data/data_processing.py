@@ -63,7 +63,7 @@ def plot_image_and_bboxes(img, anns, ratio:float):
 
 
 
-def get_df_train_val(annotation_file, data_dir, df_images):
+def get_df(annotation_file, data_dir, df_images):
 
     """Transforms the labels and images to the same format in order to be used by the Yolov5 algorithm. 
   
@@ -110,7 +110,7 @@ def image_orientation (image:image):
             if ExifTags.TAGS[orientation]=='Orientation':
                 break
         exif = image._getexif()
-        old_orientation.append(exif[orientation])
+        
         if exif is not None:
             if exif[orientation] == 3:
                 image=image.rotate(180, expand=True)
@@ -118,12 +118,12 @@ def image_orientation (image:image):
                 image=image.rotate(270, expand=True)
             elif exif[orientation] == 8:
                 image=image.rotate(90, expand=True)
-        new_orientation.append(image._getexif()[orientation])
+        
     except (AttributeError, KeyError, IndexError):
         # cases: image don't have getexif
         pass
 
-    return (old_orientation, new_orientation, image)
+    return (image)
 
 
 
@@ -174,7 +174,6 @@ def get_date(df_train_valid):
     df_train_valid["day"] = day
 
     return(df_train_valid)
-
 
 
 
@@ -268,3 +267,14 @@ def path_existance(img_ids, data_dir, coco, df_images) :
     my_df   = pd.DataFrame(my_list, columns=['old_path', 'date', 'view', 'quality','context', 'img_name', 'label_name', 'img', 'bboxes'])
 
     return(my_df)
+
+def get_train_valid (df_data, split:0.85):
+
+    """_summary_
+    """
+
+    train_files, val_files = train_test_split(df_data, train_size = .85)
+    train_files = list(train_files["img_name"].unique())
+    val_files   = list(val_files["img_name"].unique())
+    
+    return(train_files, val_files)
