@@ -6,7 +6,7 @@ import pandas as pd
 import psycopg2
 
 
-def __main__(args):
+def main(args):
     data_dir = Path(args.data_dir)
     if args.bbox_filename and args.images_filename:
         df_bboxes, df_images = get_annotations_from_files(data_dir,

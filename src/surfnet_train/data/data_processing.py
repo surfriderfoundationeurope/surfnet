@@ -130,8 +130,8 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
 
     if not Path.exists(data_dir / "images"):
         os.mkdir(data_dir / "images")
-    if not Path.exists(data_dir / "annotations"):
-        os.mkdir(data_dir / "annotations")
+    if not Path.exists(data_dir / "labels"):
+        os.mkdir(data_dir / "labels")
 
 
     count_exists, count_missing = 0, 0
@@ -169,7 +169,7 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
 
             # writing the image and annotation
             img_file_name   = data_dir / "images" / (img_id + ".jpg")
-            label_file_name = data_dir / "annotations" / (img_id + ".txt")
+            label_file_name = data_dir / "labels" / (img_id + ".txt")
             Image.fromarray(image).save(img_file_name)
             with open(label_file_name, 'w') as f:
                 f.write('\n'.join(yolo_strs))
