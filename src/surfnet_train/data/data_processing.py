@@ -49,25 +49,19 @@ def image_orientation (image:image):
     Returns: Image, with the proper orientation.
             _type_: image
     """
-    old_orientation = []
-    new_orientation = []
-    try:
-        for orientation in ExifTags.TAGS.keys():
-            if ExifTags.TAGS[orientation]=='Orientation':
-                break
-        exif = image._getexif()
+    
+    for orientation in ExifTags.TAGS.keys():
+        if ExifTags.TAGS[orientation]=='Orientation':
+            break
+    exif = image._getexif()
 
-        if exif is not None:
-            if exif[orientation] == 3:
-                image=image.rotate(180, expand=True)
-            elif exif[orientation] == 6:
-                image=image.rotate(270, expand=True)
-            elif exif[orientation] == 8:
-                image=image.rotate(90, expand=True)
-
-    except (AttributeError, KeyError, IndexError):
-        # cases: image don't have getexif
-        pass
+    if exif is not None:
+        if exif[orientation] == 3:
+            image=image.rotate(180, expand=True)
+        elif exif[orientation] == 6:
+            image=image.rotate(270, expand=True)
+        elif exif[orientation] == 8:
+            image=image.rotate(90, expand=True)
 
     return image
 
@@ -155,7 +149,10 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
             image = Image.open(input_img_folder / img_name)
 
             # in place rotation of the image using Exif data
-            image_orientation(image)
+            try :
+                image = image_orientation(image)
+            except :
+                pass
 
             image    = np.array(image)
             h, w     = image.shape[:-1]
