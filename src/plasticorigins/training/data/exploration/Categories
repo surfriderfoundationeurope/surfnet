@@ -1,4 +1,0 @@
-fig, ax = plt.subplots(figsize=(15,7))
-dfg = df_bboxes.groupby(['id_ref_trash_type_fk']).size()
-dfg.plot(kind='bar', title='Trash Size by ID', ylabel='Size',
-         xlabel='Trash ID', figsize=(6, 5))
