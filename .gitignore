@@ -98,8 +98,8 @@ target/
 
 # exclude data from source control by default
 /data/
-src/plasticorigins/training/notebooks/csv/
-src/plasticorigins/training/notebooks/pickle/
+/src/plasticorigins/training/notebooks/csv/
+/src/plasticorigins/training/notebooks/pickle/
 
 
 
