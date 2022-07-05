@@ -98,6 +98,10 @@ target/
 
 # exclude data from source control by default
 /data/
+src/plasticorigins/training/notebooks/csv/
+src/plasticorigins/training/notebooks/pickle/
+
+
 
 # Mac OS-specific storage files
 .DS_Store
