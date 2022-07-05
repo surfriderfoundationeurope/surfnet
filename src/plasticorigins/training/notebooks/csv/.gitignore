@@ -1,0 +1,3 @@
+# Ignore all files with the specified extension.
+# Scope is all repo folders.
+*.csv
