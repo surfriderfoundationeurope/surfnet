@@ -110,6 +110,7 @@ class IterableFrameReader:
             if max_frame != 0
             else self.total_num_frames
         )
+        self.num_skipped_frames = 0
         self.counter = 0
         self.progress_bar = None
 
@@ -144,7 +145,8 @@ class IterableFrameReader:
         does not work on all backends
         """
         self.video.release()
-        self.progress_bar.close()
+        if self.progress_bar:
+            self.progress_bar.close()
         self.__init__(
             self.video_filename,
             self.skip_frames,
@@ -178,6 +180,9 @@ class IterableFrameReader:
                 ret, frame = self._read_frame()
                 if ret:
                     return frame
+                else:
+                    self.num_skipped_frames += 1
+                    return next(self)
 
         self.reset_video()
         raise StopIteration
@@ -233,4 +238,5 @@ class TorchIterableFromReader(torch.utils.data.IterableDataset):
 
     def __iter__(self):
         for frame in self.reader:
-            yield self.transforms(frame)
+            if frame is not None:
+                yield self.transforms(frame)
