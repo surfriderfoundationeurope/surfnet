@@ -12,7 +12,7 @@ from plasticorigins.serving.config import config_track
 
 def test_load_model():
     model_mbn = load_model(
-        arch=config_track.arch, model_weights=None, device="cpu"
+        arch="mobilenet_v3_small", model_weights=None, device="cpu"
     )
     assert type(model_mbn) == MobiletNetHM
 

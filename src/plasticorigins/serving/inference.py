@@ -130,6 +130,7 @@ def track(args):
 
     logger.info("---Detecting...")
     if args.arch == "yolo":
+        detections = []
         for frame in reader:
             detections.append(detector(frame))
     elif args.arch == "mobilenet_v3_small":
