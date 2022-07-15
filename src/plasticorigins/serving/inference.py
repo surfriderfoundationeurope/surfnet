@@ -9,8 +9,8 @@ from werkzeug.utils import secure_filename
 
 # imports for tracking
 from plasticorigins.detection.detect import detect
-from plasticorigins.tools.files import create_unique_folder
-from plasticorigins.tools.misc import load_model
+from plasticorigins.tools.files import create_unique_folder, download_from_url
+
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tracking.postprocess_and_count_tracks import (
     filter_tracks,
@@ -35,11 +35,18 @@ device = torch.device(device)
 engine = get_tracker("EKF")
 
 logger.info("---Loading model...")
-model = load_model(
-    arch=config_track.arch, model_weights=config_track.model_weights, device=device,
-)
-logger.info("---Model loaded.")
-
+if config_track.arch == "mobilenet_v3_small":
+    from plasticorigins.tools.misc import load_model
+    model = load_model(
+        arch=config_track.arch, model_weights=config_track.model_weights, device=device,
+    )
+    logger.info("---Model mobilenet loaded.")
+elif config_track.arch == "yolo":
+    from plasticorigins.detection.yolo import load_model, predict_yolo
+    model_path = download_from_url(config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger)
+    model_yolo = load_model(model_path, config_track.device, config_track.yolo_conf_thrld, config_track.yolo_iou_thrld)
+else:
+    logger.error(f"unrecognized model {config_track.arch}")
 
 observation_variance = np.load(
     os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
@@ -93,9 +100,14 @@ def handle_post_request():
 
 
 def track(args):
-    detector = lambda frame: detect(
-        frame, threshold=args.detection_threshold, model=model
-    )
+    if args.arch == "mobilenet_v3_small":
+        detector = lambda frame: detect(
+            frame, threshold=args.detection_threshold, model=model
+        )
+    elif args.arch == "yolo":
+        detector = lambda frame: predict_yolo(model_yolo, frame, size=config_track.size, augment=False)
+    else:
+        logger.error("bad model arch")
 
     logger.info(f"---Processing {args.video_path}")
     reader = IterableFrameReader(
@@ -117,9 +129,11 @@ def track(args):
     ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
     logger.info("---Detecting...")
-    detections = get_detections_for_video(
-        reader, detector, batch_size=args.detection_batch_size, device=device
-    )
+    if args.arch == "yolo":
+        for frame in reader:
+            detections.append(detector(frame))
+    elif args.arch == "mobilenet_v3_small":
+        detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
 
     logger.info("---Tracking...")
     display = None
