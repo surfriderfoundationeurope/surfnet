@@ -14,11 +14,15 @@ from plasticorigins.tracking.utils import (
     read_tracking_results,
     write_tracking_results_to_file,
 )
-from plasticorigins.serving.inference import config_track, device, model
+from plasticorigins.serving.inference import config_track, device
+from plasticorigins.detection.centernet.models import load_model_simple
 
 results = np.load("tests/ressources/results.npy", allow_pickle=True)
 results = [tuple(res) for res in results]
 
+from plasticorigins.detection.centernet.networks.mobilenet import get_mobilenet_v3_small
+
+model = load_model_simple()
 
 def test_get_detections_for_video():
     config_track.video_path = "tests/ressources/validation_videos/T1_trim.mp4"
