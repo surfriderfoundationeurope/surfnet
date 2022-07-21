@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 
+import warnings
 import numpy as np
 import torch
 from flask import jsonify, request
@@ -129,10 +130,15 @@ def track(args):
     ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
     logger.info("---Detecting...")
+    detections = []
     if args.arch == "yolo":
-        detections = []
-        for frame in reader:
-            detections.append(detector(frame))
+        # Catching warnings that come from a yolo bug:
+        # "User provided device_type of \'cuda\', but CUDA is not available. Disabling"
+        # should be fixed with more recent versions of yolo
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            for frame in reader:
+                detections.append(detector(frame))
     elif args.arch == "mobilenet_v3_small":
         detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
 
@@ -147,6 +153,7 @@ def track(args):
         transition_variance,
         observation_variance,
         display,
+        is_yolo=args.arch=="yolo"
     )
     reader.video.release()
     # store unfiltered results
