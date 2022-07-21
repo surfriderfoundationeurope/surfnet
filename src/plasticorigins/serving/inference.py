@@ -38,14 +38,25 @@ engine = get_tracker("EKF")
 logger.info("---Loading model...")
 if config_track.arch == "mobilenet_v3_small":
     from plasticorigins.tools.misc import load_model
+
     model = load_model(
-        arch=config_track.arch, model_weights=config_track.model_weights, device=device,
+        arch=config_track.arch,
+        model_weights=config_track.model_weights,
+        device=device,
     )
     logger.info("---Model mobilenet loaded.")
 elif config_track.arch == "yolo":
     from plasticorigins.detection.yolo import load_model, predict_yolo
-    model_path = download_from_url(config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger)
-    model_yolo = load_model(model_path, config_track.device, config_track.yolo_conf_thrld, config_track.yolo_iou_thrld)
+
+    model_path = download_from_url(
+        config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger
+    )
+    model_yolo = load_model(
+        model_path,
+        config_track.device,
+        config_track.yolo_conf_thrld,
+        config_track.yolo_iou_thrld,
+    )
 else:
     logger.error(f"unrecognized model {config_track.arch}")
 
@@ -106,7 +117,9 @@ def track(args):
             frame, threshold=args.detection_threshold, model=model
         )
     elif args.arch == "yolo":
-        detector = lambda frame: predict_yolo(model_yolo, frame, size=config_track.size, augment=False)
+        detector = lambda frame: predict_yolo(
+            model_yolo, frame, size=config_track.size, augment=False
+        )
     else:
         logger.error("bad model arch")
 
@@ -140,7 +153,9 @@ def track(args):
             for frame in reader:
                 detections.append(detector(frame))
     elif args.arch == "mobilenet_v3_small":
-        detections = get_detections_for_video(reader, detector, batch_size=args.detection_batch_size, device=device)
+        detections = get_detections_for_video(
+            reader, detector, batch_size=args.detection_batch_size, device=device
+        )
 
     logger.info("---Tracking...")
     display = None
@@ -153,13 +168,16 @@ def track(args):
         transition_variance,
         observation_variance,
         display,
-        is_yolo=args.arch=="yolo"
+        is_yolo=args.arch == "yolo",
     )
     reader.video.release()
     # store unfiltered results
     output_filename = Path(args.output_dir) / "results_unfiltered.txt"
     write_tracking_results_to_file(
-        results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename,
+        results,
+        ratio_x=ratio_x,
+        ratio_y=ratio_y,
+        output_filename=output_filename,
     )
     logger.info("---Filtering...")
 
