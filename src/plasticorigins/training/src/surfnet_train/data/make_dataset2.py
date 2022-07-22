@@ -23,8 +23,8 @@ def main(args):
         to_exclude = find_img_ids_to_exclude(args.exclude_img_folder)
     else:
         to_exclude = None
-    yolo_filelist, cpos, cneg = build_yolo_annotations_for_images(data_dir, args.images_dir,
-            df_bboxes, df_images, args.limit_data, to_exclude)
+    yolo_filelist, cpos, cneg = build_yolo_annotations_for_images(data_dir, args.images_dir, args.bbox_filename,
+            df_bboxes, df_images, args.limit_data, args.name_images_folder, args.name_labels_folder, to_exclude)
     print(f"found {cpos} valid annotations with images and {cneg} unmatched annotations")
     train_files, val_files = get_train_valid(yolo_filelist, args.split)
 
@@ -35,6 +35,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Build dataset')
     parser.add_argument('--data-dir', type=str, help="path to main data folder")
     parser.add_argument('--images-dir', type=str, help="path to image folder")
+    parser.add_argument('--name-images-folder', type=str, default="images_test", help="name of processed images")
+    parser.add_argument('--name-labels-folder', type=str, default="labels_test", help="name of processed labels")
     parser.add_argument('--password', type=str, help="password for connection to DB")
     parser.add_argument('--bbox-filename', type=str, default="")
     parser.add_argument('--images-filename', type=str, default="")

@@ -43,7 +43,7 @@ def image_orientation (image:image):
     """ Function which gives the images that have a specified orientation the same orientation.
         If the image does not have an orientation, the image is not altered.
 
-     Args:
+    Args:
         image (image): Image that is in the path data_directory as well as in the instance json files.
 
     Returns: Image, with the proper orientation.
@@ -97,8 +97,9 @@ def process_annotations(anns, ratio, target_h, target_w):
     return labels, bboxes
 
 
-def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
-                                      df_images, limit_data, exclude_ids=None):
+def build_yolo_annotations_for_images(data_dir, images_dir, path_bboxes, df_bboxes,
+                                      df_images, limit_data, img_folder_name, label_folder_name, 
+                                      exclude_ids=None):
     """ Generates the .txt files that are necessary for yolo training. See
     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format
 
@@ -125,13 +126,20 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
         used_imgs = used_imgs - exclude_ids
         print(f"after exclusion, number of images with a bbox in database: {len(used_imgs)}")
 
-    if not Path.exists(data_dir / "images"):
-        os.mkdir(data_dir / "images")
-    if not Path.exists(data_dir / "labels"):
-        os.mkdir(data_dir / "labels")
+    if not Path.exists(data_dir / img_folder_name):
+        os.mkdir(data_dir / img_folder_name)
+    if not Path.exists(data_dir / label_folder_name):
+        os.mkdir(data_dir / label_folder_name)
 
+    # to determine which methods or annotation processing we will use 
+    # (it depends if we work with the whole dataset or not)
+    fast_ann_process = False
+    if path_bboxes.split("/")[-1].split("_")[0] == "filter":
+        fast_ann_process = True
 
     count_exists, count_missing = 0, 0
+
+    print("Start building the annotations ...")
 
     for img_id in used_imgs:
         img_name = df_images.loc[img_id]["filename"]
@@ -139,13 +147,7 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
             count_exists += 1
             if limit_data > 0 and count_exists > limit_data:
                 break
-            # various meta information about the image, could be useful
-            date_creation  = df_images.loc[img_id]["createdon"]
-            view           = df_images.loc[img_id]["view"]
-            image_quality  = df_images.loc[img_id]["image_quality"]
-            context        = df_images.loc[img_id]["context"]
-            date_time_obj = time.strptime(date_creation, '%Y-%m-%d %H:%M:%S.%f')
-
+            
             image = Image.open(input_img_folder / img_name)
 
             # in place rotation of the image using Exif data
@@ -163,13 +165,25 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
             h, w     = image.shape[:-1]
 
             # getting annotations and converting to yolo
-            anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
-            labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
-            yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
+
+            if fast_ann_process:
+
+                bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]["bboxes"]
+                bboxes = bboxes.iloc[0]
+                bboxes = bboxes[1:-1].replace("'","").split(", ")
+                yolo_strs = []
+                for bbox in bboxes:
+                    yolo_strs.append(bbox.strip("\\n"))
+
+            else :
+
+                anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
+                labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
+                yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
 
             # writing the image and annotation
-            img_file_name   = data_dir / "images" / (img_id + ".jpg")
-            label_file_name = data_dir / "labels" / (img_id + ".txt")
+            img_file_name   = data_dir / img_folder_name / (img_id + ".jpg")
+            label_file_name = data_dir / label_folder_name / (img_id + ".txt")
             Image.fromarray(image).save(img_file_name)
             with open(label_file_name, 'w') as f:
                 f.write('\n'.join(yolo_strs))
@@ -177,6 +191,13 @@ def build_yolo_annotations_for_images(data_dir, images_dir, df_bboxes,
             valid_imagenames.append(img_file_name.as_posix())
         else:
             count_missing +=1
+
+        if count_exists%500==0:
+                print("Exists : ", count_exists)
+                print("Missing : ",count_missing)
+
+    print(f"Process finished successfully with {count_missing} missing images !")
+
     return valid_imagenames, count_exists, count_missing
 
 def get_train_valid(list_files, split=0.85):
