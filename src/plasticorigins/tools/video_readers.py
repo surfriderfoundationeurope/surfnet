@@ -9,11 +9,11 @@ def square_crop(input_frame, out_shape):
     if h > w:
         new_h = w
         xtop = h // 2 - new_h // 2
-        crop = input_frame[xtop:xtop+new_h,:,:]
+        crop = input_frame[xtop : xtop + new_h, :, :]
     elif h < w:
         new_w = h
         yleft = w // 2 - new_w // 2
-        crop = input_frame[:,yleft:yleft+new_w,:]
+        crop = input_frame[:, yleft : yleft + new_w, :]
     else:
         crop = input_frame
     return cv2.resize(crop, out_shape)
@@ -21,7 +21,12 @@ def square_crop(input_frame, out_shape):
 
 class AdvancedFrameReader:
     def __init__(
-        self, video_name, read_every, rescale_factor, init_time_min, init_time_s,
+        self,
+        video_name,
+        read_every,
+        rescale_factor,
+        init_time_min,
+        init_time_s,
     ):
 
         self.cap = cv2.VideoCapture(video_name)
@@ -106,7 +111,7 @@ class IterableFrameReader:
         progress_bar=False,
         preload=False,
         max_frame=0,
-        crop=False
+        crop=False,
     ):
         # store arguments for reset
         self.video_filename = video_filename
@@ -172,7 +177,7 @@ class IterableFrameReader:
             self.progress_bar_arg,
             self.preload,
             self.max_frame_arg,
-            self.crop
+            self.crop,
         )
 
     def _load_all_frames(self):
@@ -244,12 +249,13 @@ class IterableFrameReader:
                 h_new, w_new = w_in, w_in
         else:
             h_new, w_new = h_in, w_in
-        print(f"hw:{h_new}x{w_new} - xy:{x_top}/{y_left} down{downsampling_factor}")
-        ratio_x, ratio_y = (h_new * downsampling_factor / self.output_shape[0],
-                            w_new * downsampling_factor / self.output_shape[1])
 
-        mapping = lambda x, y: (int(x * ratio_x + x_top),
-                                int(y * ratio_y + y_left))
+        ratio_x, ratio_y = (
+            h_new * downsampling_factor / self.output_shape[0],
+            w_new * downsampling_factor / self.output_shape[1],
+        )
+
+        mapping = lambda x, y: (int(x * ratio_x + x_top), int(y * ratio_y + y_left))
         return mapping
 
 

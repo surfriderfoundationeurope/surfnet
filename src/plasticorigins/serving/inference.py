@@ -24,8 +24,10 @@ from plasticorigins.tracking.utils import (
     read_tracking_results,
     write_tracking_results_to_file,
 )
-from plasticorigins.serving.config import config_track, id_categories
-# yolo version:
+from plasticorigins.serving.config import id_categories
+
+# centernet / yolo version
+# from plasticorigins.serving.config import config_track
 from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()
@@ -133,7 +135,7 @@ def track(args):
         output_shape=args.output_shape,
         progress_bar=True,
         preload=args.preload_frames,
-        crop=args.crop
+        crop=args.crop,
     )
 
     num_frames, fps = (
@@ -175,7 +177,7 @@ def track(args):
     coord_mapping = reader.get_inv_mapping(args.downsampling_factor)
     write_tracking_results_to_file(
         results,
-        coord_mapping, # Scale the output back to original video size
+        coord_mapping,  # Scale the output back to original video size
         output_filename=output_filename,
     )
     logger.info("---Filtering...")
@@ -187,7 +189,7 @@ def track(args):
     output_filename = Path(args.output_dir) / "results.txt"
     write_tracking_results_to_file(
         filtered_results,
-        lambda x,y:(x,y), # No scaling, already scaled!
+        lambda x, y: (x, y),  # No scaling, already scaled!
         output_filename=output_filename,
     )
 
