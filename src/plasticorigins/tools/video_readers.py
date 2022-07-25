@@ -225,26 +225,28 @@ class IterableFrameReader:
             self.counter += 1
             self.video.read()
 
-    def get_uncrop_mapping(self):
+    def get_inv_mapping(self, downsampling_factor):
         """Returns a mapping between coordinates in cropped space
         and coordinates in the original video"""
         h_in, w_in = self.input_shape
         x_top, y_left = 0, 0
 
-        if h_in > w_in:
-            new_h = w_in
-            size = w_in
-            x_top = h_in // 2 - new_h // 2
-            y_left = 0
-        elif h_in < w_in:
-            new_w = h_in
-            size = h_in
-            y_left = w_in // 2 - new_w // 2
-            x_top = 0
+        if self.crop:
+            if h_in > w_in:
+                h_new, w_new = w_in, w_in
+                x_top = h_in // 2 - h_new // 2
+                y_left = 0
+            elif h_in < w_in:
+                h_new, w_new = h_in, h_in
+                y_left = w_in // 2 - w_new // 2
+                x_top = 0
+            else:
+                h_new, w_new = w_in, w_in
         else:
-            size = h_in
-        ratio_x, ratio_y = (size / self.output_shape[0],
-                            size / self.output_shape[1])
+            h_new, w_new = h_in, w_in
+        print(f"hw:{h_new}x{w_new} - xy:{x_top}/{y_left} down{downsampling_factor}")
+        ratio_x, ratio_y = (h_new * downsampling_factor / self.output_shape[0],
+                            w_new * downsampling_factor / self.output_shape[1])
 
         mapping = lambda x, y: (int(x * ratio_x + x_top),
                                 int(y * ratio_y + y_left))

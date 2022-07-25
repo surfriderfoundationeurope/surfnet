@@ -54,6 +54,7 @@ def test_write_tracking_results_to_file():
     ratio_x = input_shape[1] / (
         output_shape[1] // config_track.downsampling_factor
     )
+    coord_mapping = lambda x,y: (x*ratio_x, y*ratio_y)
 
     tmp_folder = "tests/ressources/tmp"
     output_filename = os.path.join(tmp_folder, "results.txt")
@@ -62,8 +63,7 @@ def test_write_tracking_results_to_file():
 
     write_tracking_results_to_file(
         results,
-        ratio_x=ratio_x,
-        ratio_y=ratio_y,
+        coord_mapping,
         output_filename=output_filename,
     )
 
@@ -82,6 +82,7 @@ def test_read_tracking_results():
     ratio_x = input_shape[1] / (
         output_shape[1] // config_track.downsampling_factor
     )
+    coord_mapping = lambda x,y: (x*ratio_x, y*ratio_y)
 
     tmp_folder = "tests/ressources/tmp"
     output_filename = os.path.join(tmp_folder, "results.txt")
@@ -90,8 +91,7 @@ def test_read_tracking_results():
 
     write_tracking_results_to_file(
         results,
-        ratio_x=ratio_x,
-        ratio_y=ratio_y,
+        coord_mapping,
         output_filename=output_filename,
     )
 

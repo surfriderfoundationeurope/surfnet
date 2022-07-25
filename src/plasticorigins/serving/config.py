@@ -22,27 +22,45 @@ class DotDict(dict):
 
 config_track = DotDict(
     {
-        "yolo_conf_thrld": 0.35,
-        "yolo_iou_thrld": 0.5,
         "upload_folder": "/tmp",
         "confidence_threshold": 0.004,
         "detection_threshold": 0.3,
         "downsampling_factor": 4,
         "noise_covariances_path": "data/tracking_parameters",
-        "url_model_yolo": "https://github.com/surfriderfoundationeurope/IA_Pau/releases/download/v0.1/yolov5.pt",
-        "file_model_yolo": "yolov5.pt",
         "output_shape": (960, 544),
-        "size": 768,
         "skip_frames": 3,  # 3
-        # "arch": "yolo",
         "arch": "mobilenet_v3_small",
         "device": "cpu",
         "detection_batch_size": 1,
         "display": 0,
         "kappa": 5,  # 7
         "tau": 3,  # 4
+        "crop": False,
     }
 )
+
+config_track_yolo = DotDict(
+    {
+        "yolo_conf_thrld": 0.35,
+        "yolo_iou_thrld": 0.5,
+        "upload_folder": "/tmp",
+        "confidence_threshold": 0.004,
+        "downsampling_factor": 4,
+        "noise_covariances_path": "data/tracking_parameters",
+        "url_model_yolo": "https://github.com/surfriderfoundationeurope/IA_Pau/releases/download/v0.1/yolov5.pt",
+        "file_model_yolo": "yolov5.pt",
+        "output_shape": (768, 768),
+        "skip_frames": 3,  # 3
+        "arch": "yolo",
+        "device": "cpu",
+        "detection_batch_size": 1,
+        "display": 0,
+        "kappa": 5,  # 7
+        "tau": 3,  # 4
+        "crop": True,
+    }
+)
+
 
 logging_config = {
     "version": 1,

@@ -25,6 +25,8 @@ from plasticorigins.tracking.utils import (
     write_tracking_results_to_file,
 )
 from plasticorigins.serving.config import config_track, id_categories
+# yolo version:
+from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()
 if config_track.device is None:
@@ -35,7 +37,7 @@ device = torch.device(device)
 
 engine = get_tracker("EKF")
 
-logger.info("---Loading model...")
+
 if config_track.arch == "mobilenet_v3_small":
     from plasticorigins.tools.misc import load_model
 
@@ -57,6 +59,7 @@ elif config_track.arch == "yolo":
         config_track.yolo_conf_thrld,
         config_track.yolo_iou_thrld,
     )
+    logger.info("---Yolo model loaded.")
 else:
     logger.error(f"unrecognized model {config_track.arch}")
 
@@ -118,7 +121,7 @@ def track(args):
         )
     elif args.arch == "yolo":
         detector = lambda frame: predict_yolo(
-            model_yolo, frame, size=config_track.size, augment=False
+            model_yolo, frame, size=config_track.output_shape[0], augment=False
         )
     else:
         logger.error("bad model arch")
@@ -130,17 +133,13 @@ def track(args):
         output_shape=args.output_shape,
         progress_bar=True,
         preload=args.preload_frames,
+        crop=args.crop
     )
 
     num_frames, fps = (
         int(reader.max_num_frames / (args.skip_frames + 1)),
         reader.fps,
     )
-
-    input_shape = reader.input_shape
-    output_shape = reader.output_shape
-    ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
-    ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
     logger.info("---Detecting...")
     detections = []
@@ -173,10 +172,10 @@ def track(args):
     reader.video.release()
     # store unfiltered results
     output_filename = Path(args.output_dir) / "results_unfiltered.txt"
+    coord_mapping = reader.get_inv_mapping(args.downsampling_factor)
     write_tracking_results_to_file(
         results,
-        ratio_x=ratio_x,
-        ratio_y=ratio_y,
+        coord_mapping, # Scale the output back to original video size
         output_filename=output_filename,
     )
     logger.info("---Filtering...")
@@ -188,8 +187,7 @@ def track(args):
     output_filename = Path(args.output_dir) / "results.txt"
     write_tracking_results_to_file(
         filtered_results,
-        ratio_x=ratio_x,
-        ratio_y=ratio_y,
+        lambda x,y:(x,y), # No scaling, already scaled!
         output_filename=output_filename,
     )
 

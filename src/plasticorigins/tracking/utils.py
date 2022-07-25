@@ -237,21 +237,23 @@ def resize_external_detections(detections, ratio):
     return detections
 
 
-def write_tracking_results_to_file(results, ratio_x, ratio_y, output_filename):
+def write_tracking_results_to_file(results, coord_mapping, output_filename):
     """writes the output result of a tracking the following format:
     - frame
     - id
     - x_tl, y_tl, w=0, h=0
-    - 4x unused=-1
+    - score, classid
+    - 2x unused=-1
     """
     with open(output_filename, "w") as output_file:
         for result in results:
+            x, y = coord_mapping(result[2], result[3])
             output_file.write(
                 "{},{},{},{},{},{},{},{},{},{}\n".format(
                     result[0] + 1,
                     result[1] + 1,
-                    round(ratio_x * result[2], 2),
-                    round(ratio_y * result[3], 2),
+                    x,
+                    y,
                     0,  # width
                     0,  # height
                     round(result[4], 2),
