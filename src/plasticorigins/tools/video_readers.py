@@ -3,6 +3,22 @@ import torch
 from tqdm import tqdm
 
 
+def square_crop(input_frame, out_shape):
+    """Crops the largest square in the center of the image"""
+    h, w, _ = input_frame.shape
+    if h > w:
+        new_h = w
+        xtop = h // 2 - new_h // 2
+        crop = input_frame[xtop:xtop+new_h,:,:]
+    elif h < w:
+        new_w = h
+        yleft = w // 2 - new_w // 2
+        crop = input_frame[:,yleft:yleft+new_w,:]
+    else:
+        crop = input_frame
+    return cv2.resize(crop, out_shape)
+
+
 class AdvancedFrameReader:
     def __init__(
         self, video_name, read_every, rescale_factor, init_time_min, init_time_s,
@@ -90,6 +106,7 @@ class IterableFrameReader:
         progress_bar=False,
         preload=False,
         max_frame=0,
+        crop=False
     ):
         # store arguments for reset
         self.video_filename = video_filename
@@ -97,6 +114,7 @@ class IterableFrameReader:
         self.progress_bar_arg = progress_bar
         self.preload = preload
         self.skip_frames = skip_frames
+        self.crop = crop
 
         self.video = cv2.VideoCapture(video_filename)
         self.input_shape = (
@@ -154,6 +172,7 @@ class IterableFrameReader:
             self.progress_bar_arg,
             self.preload,
             self.max_frame_arg,
+            self.crop
         )
 
     def _load_all_frames(self):
@@ -192,7 +211,10 @@ class IterableFrameReader:
         self._skip_frames()
         if ret:
             self.update_progress_bar()
-            frame = cv2.resize(frame, self.output_shape)
+            if self.crop:
+                frame = square_crop(frame, self.output_shape)
+            else:
+                frame = cv2.resize(frame, self.output_shape)
         return ret, frame
 
     def __iter__(self):
@@ -202,6 +224,31 @@ class IterableFrameReader:
         for _ in range(self.skip_frames):
             self.counter += 1
             self.video.read()
+
+    def get_uncrop_mapping(self):
+        """Returns a mapping between coordinates in cropped space
+        and coordinates in the original video"""
+        h_in, w_in = self.input_shape
+        x_top, y_left = 0, 0
+
+        if h_in > w_in:
+            new_h = w_in
+            size = w_in
+            x_top = h_in // 2 - new_h // 2
+            y_left = 0
+        elif h_in < w_in:
+            new_w = h_in
+            size = h_in
+            y_left = w_in // 2 - new_w // 2
+            x_top = 0
+        else:
+            size = h_in
+        ratio_x, ratio_y = (size / self.output_shape[0],
+                            size / self.output_shape[1])
+
+        mapping = lambda x, y: (int(x * ratio_x + x_top),
+                                int(y * ratio_y + y_left))
+        return mapping
 
 
 class SimpleVideoReader:
