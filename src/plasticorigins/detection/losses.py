@@ -13,10 +13,24 @@ class FocalLoss(nn.Module):
         self.centernet_output = centernet_output
 
     def forward(self, pred, gt):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
 
         return self.loss(pred, gt)
 
     def _train_loss(self, pred, gt):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
 
         if self.centernet_output:
             pred = pred[0]
@@ -35,6 +49,13 @@ class FocalLoss(nn.Module):
         )  # + 0.1 * _l1_loss(pred_wh, gt_wh, pos_inds)
 
     def _test_loss(self, pred, gt):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
 
         if self.centernet_output:
             pred = pred[0]
@@ -117,6 +138,13 @@ class FocalLoss(nn.Module):
 
 
 def _l1_loss(pred, gt, pos_inds):
+    """
+    Args:
+        index (int): Index
+
+    Returns:
+        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+    """
 
     pos_inds = torch.sum(pos_inds, axis=1).ge(1).unsqueeze(1).expand_as(pred)
     return torch_l1_loss(pred[pos_inds], gt[pos_inds], size_average=False) / (
@@ -125,5 +153,12 @@ def _l1_loss(pred, gt, pos_inds):
 
 
 def _sigmoid(x):
+    """
+    Args:
+        index (int): Index
+
+    Returns:
+        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+    """
     y = torch.clamp(x.sigmoid_(), min=1e-4, max=1 - 1e-4)
     return y

@@ -1,6 +1,7 @@
 import copy
 import os
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple, List
+from matplotlib import image
 
 import imageio
 import torch
@@ -17,7 +18,18 @@ class FilterAndRemapCocoCategories:
         self.categories = categories
         self.remap = remap
 
-    def __call__(self, image, anno):
+    def __call__(self, image:image, anno:list) -> Tuple[Any, Any] :
+        """ Remapping the images with true category ids. 
+
+        Args:
+            image (image): Image, from the instance file.
+            anno (list[dict]): Annotations linked to the specified image, from instance file.
+
+        Returns:
+            image (image): Image, from the instance file.
+            anno (list[dict]): Remapped annotations linked to the specified image, from instance file.
+        """
+
         anno = [obj for obj in anno if obj["category_id"] in self.categories]
         if not self.remap:
             return image, anno
@@ -27,7 +39,19 @@ class FilterAndRemapCocoCategories:
         return image, anno
 
 
-def convert_coco_poly_to_mask(segmentations, height, width):
+def convert_coco_poly_to_mask(segmentations:List, height:int, width:int) -> torch.Tensor:
+
+    """ Converting Coco polygons to torch masks (tensors).
+
+    Args:
+        segmentations (list): list of polygons.
+        height (int): height of the mask.
+        width (int): width of the mask.
+
+    Returns:
+        masks (Tensor) : output masks
+    """
+
     masks = []
     for polygons in segmentations:
         rles = coco_mask.frPyObjects(polygons, height, width)
@@ -45,7 +69,18 @@ def convert_coco_poly_to_mask(segmentations, height, width):
 
 
 class ConvertCocoPolysToMask:
-    def __call__(self, image, anno):
+    def __call__(self, image:image, anno:List[dict]) -> Tuple[Any, Any]:
+        """ Generating target image from masks. 
+
+        Args:
+            image (image): Image, from the instance file.
+            anno (list[dict]): Annotations linked to the specified image, from instance file.
+
+        Returns:
+            image (image): Image, from the instance file.
+            target (image): Target image resulting from the product between categories and masks.
+        """
+
         w, h = image.size
         segmentations = [obj["segmentation"] for obj in anno]
         cats = [obj["category_id"] for obj in anno]
@@ -64,7 +99,18 @@ class ConvertCocoPolysToMask:
 
 
 class ConvertCocoPolysToBboxes:
-    def __call__(self, image, anno):
+    def __call__(self, image:image, anno:List[dict]) -> Tuple[Any, Any]:
+        """ Building dictionnary of image annotations. 
+
+        Args:
+            image (image): Image, from the instance file.
+            anno (list[dict]): Annotations linked to the specified image, from instance file.
+
+        Returns:
+            image (image): Image, from the instance file.
+            target (dict): Target dictionnary with bounding boxes associated with object classes
+        """
+
         bboxes = [obj["bbox"] for obj in anno]
         cats = [obj["category_id"] for obj in anno]
         if bboxes:
@@ -75,13 +121,34 @@ class ConvertCocoPolysToBboxes:
         return image, target
 
 
+
+########## TO CHECK #################
+
+
+
 class GroupInTensor:
     def __call__(self, frames, ground_truths):
+        """ 
+        Args:
+            img (): Image, from the instance file.
+            anns (): Annotations linked to the specified image, from instance file.
+            ratio (float): Ratio - most often defined at the (1080/height of the image).
+
+        Returns:
+        """
         return torch.from_numpy(frames), torch.from_numpy(ground_truths)
 
 
 def _coco_remove_images_without_annotations(dataset, cat_list=None):
     def _has_valid_annotation(anno):
+        """ 
+        Args:
+            img (): Image, from the instance file.
+            anns (): Annotations linked to the specified image, from instance file.
+            ratio (float): Ratio - most often defined at the (1080/height of the image).
+
+        Returns:
+        """
         # if it's empty, there is no annotation
         if len(anno) == 0:
             return False
@@ -103,6 +170,14 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
 
 
 def get_coco(root, image_set, transforms):
+    """ 
+    Args:
+        img (): Image, from the instance file.
+        anns (): Annotations linked to the specified image, from instance file.
+        ratio (float): Ratio - most often defined at the (1080/height of the image).
+
+    Returns:
+    """
     PATHS = {
         "train": (
             "train2017",
@@ -158,6 +233,14 @@ def get_coco(root, image_set, transforms):
 
 
 def get_surfrider_old(root, image_set, transforms):
+    """ 
+    Args:
+        img (): Image, from the instance file.
+        anns (): Annotations linked to the specified image, from instance file.
+        ratio (float): Ratio - most often defined at the (1080/height of the image).
+
+    Returns:
+    """
     PATHS = {
         "train": ("Images_md5", os.path.join("annotations", "instances_train.json"),),
         "val": ("Images_md5", os.path.join("annotations", "instances_val.json"),),
@@ -189,6 +272,14 @@ def get_surfrider_old(root, image_set, transforms):
 
 
 def get_surfrider(root, image_set, transforms):
+    """ 
+    Args:
+        img (): Image, from the instance file.
+        anns (): Annotations linked to the specified image, from instance file.
+        ratio (float): Ratio - most often defined at the (1080/height of the image).
+
+    Returns:
+    """
     PATHS = {
         "train": ("images", os.path.join("annotations", "instances_train.json"),),
         "val": ("images", os.path.join("annotations", "instances_val.json")),
@@ -218,6 +309,14 @@ def get_surfrider(root, image_set, transforms):
 
 
 def get_surfrider_video_frames(root, image_set, transforms):
+    """ 
+    Args:
+        img (): Image, from the instance file.
+        anns (): Annotations linked to the specified image, from instance file.
+        ratio (float): Ratio - most often defined at the (1080/height of the image).
+
+    Returns:
+    """
     PATHS = {
         "train": ("data", os.path.join("annotations", "annotations_train.json"),),
         "val": ("data", os.path.join("annotations", "annotations_val.json")),

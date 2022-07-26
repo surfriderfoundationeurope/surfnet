@@ -93,6 +93,13 @@ def handle_post_request():
 
 
 def track(args):
+    """
+    Args:
+        index (int): Index
+
+    Returns:
+        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+    """
     detector = lambda frame: detect(
         frame, threshold=args.detection_threshold, model=model
     )

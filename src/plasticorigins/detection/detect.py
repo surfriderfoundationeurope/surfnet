@@ -2,6 +2,13 @@ import torch
 
 
 def nms(heat, kernel=3):
+    """
+    Args:
+        index (int): Index
+
+    Returns:
+        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+    """
     pad = (kernel - 1) // 2
 
     hmax = torch.nn.functional.max_pool2d(heat, (kernel, kernel), stride=1, padding=pad)
@@ -10,6 +17,13 @@ def nms(heat, kernel=3):
 
 
 def detect(preprocessed_frames, threshold, model):
+    """
+    Args:
+        index (int): Index
+
+    Returns:
+        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+    """
     batch_result = torch.sigmoid(model(preprocessed_frames)["hm"])
     batch_peaks = nms(batch_result).gt(threshold).squeeze(dim=1)
     detections = [torch.nonzero(peaks).cpu().numpy()[:, ::-1] for peaks in batch_peaks]

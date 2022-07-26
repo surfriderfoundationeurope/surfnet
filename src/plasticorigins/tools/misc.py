@@ -12,6 +12,13 @@ class ResizeForCenterNet:
         self.fix_res = fix_res
 
     def __call__(self, image):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
         if self.fix_res:
             new_h = 512
             new_w = 512

@@ -17,6 +17,13 @@ class Compose:
         self.transforms = transforms
 
     def __call__(self, image, target):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
         for t in self.transforms:
             image, target = t(image, target)
         return image, target
@@ -28,6 +35,13 @@ class ToTensorBboxes:
         self.downsampling_factor = downsampling_factor
 
     def __call__(self, image, bboxes):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
         h, w = image.shape[:-1]
         image = F.to_tensor(image)
         if self.downsampling_factor is not None:
@@ -79,6 +93,13 @@ class Normalize:
         self.std = std
 
     def __call__(self, image, target):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
         image = F.normalize(image, mean=self.mean, std=self.std)
         return image, target
 
@@ -121,6 +142,13 @@ class TrainTransforms:
         )
 
     def __call__(self, img, target):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
 
         bboxes_imgaug = [
             BoundingBox(
@@ -174,6 +202,13 @@ class ValTransforms:
         )
 
     def __call__(self, img, target):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
 
         bboxes_imgaug = [
             BoundingBox(
@@ -204,4 +239,11 @@ class TransformFrames:
         self.transforms = T.Compose(transforms)
 
     def __call__(self, img):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
         return self.transforms(img)

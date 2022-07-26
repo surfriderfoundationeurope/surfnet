@@ -28,6 +28,13 @@ get_id = lambda cat: categories_id[cat]
 
 
 def load_model(model_path, device, conf=0.35, iou=0.50):
+    """
+    Args:
+        index (int): Index
+
+    Returns:
+        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+    """
     model = yolov5.load(model_path, device=device)
     model.conf = conf
     model.iou = iou
@@ -123,6 +130,13 @@ class DetectTorchScript(nn.Module):
         return self.model(x)[0]
 
     def get_label_idxs(self, preds_names):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        """
         get_id = lambda cat: self.categories_id[cat]
         return np.array(list(map(get_id, preds_names)))
 
