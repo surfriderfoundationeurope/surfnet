@@ -70,7 +70,7 @@ def image_orientation (image:image) -> image:
     return image
 
 
-def bbox2yolo(bbox:list, image_height:int=1080, image_width:int=1080) -> Array:
+def bbox2yolo(bbox:list, image_height:int=1080, image_width:int=1080) -> np.ndarray:
 
     """Function to normalize the representation of the bounding box, such that
     there are in the yolo format (normalized in range [0-1]).
@@ -81,7 +81,7 @@ def bbox2yolo(bbox:list, image_height:int=1080, image_width:int=1080) -> Array:
         image_width (int, optional): Width of the image. Defaults to 1080.
 
     Returns: Normalized bounding box coordinates : values between 0-1.
-        _type_: array
+        _type_: ndarray
     """
 
     bbox = bbox.copy().astype(float) #instead of np.int

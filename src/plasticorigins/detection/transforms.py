@@ -1,5 +1,19 @@
+"""Provide several transformation functions to convert, process and normalize images.
+
+The module contains the following classes:
+- Compose
+- ToTensorBboxes
+- Normalize
+- TrainTransforms
+- ValTransforms
+- TransformFrames
+
+"""
+
+from typing import Any, Tuple, List, Dict
 import cv2
 import imgaug as ia
+from matplotlib import image
 import numpy as np
 import torch
 import torchvision.transforms as T
@@ -13,37 +27,49 @@ ia.seed(1)
 
 
 class Compose:
+
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, image, target):
-        """
+    def __call__(self, image:image, target) -> Tuple[Any, Any]:
+
+        """ Apply transformations on image according to the given target.
+
         Args:
-            index (int): Index
+            image (image): Image, from the instance file.
+            target ():
 
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            tuple: Tuple (image, target) after transformations.
         """
+
         for t in self.transforms:
             image, target = t(image, target)
+
         return image, target
 
 
 class ToTensorBboxes:
+
     def __init__(self, num_classes, downsampling_factor):
         self.num_classes = num_classes
         self.downsampling_factor = downsampling_factor
 
-    def __call__(self, image, bboxes):
-        """
+    def __call__(self, image:image, bboxes:List[Dict]) -> Tuple[Any, torch.Tensor]:
+
+        """ Apply transformations on image according to the given target.
+
         Args:
-            index (int): Index
+            image (image): Image, from the instance file.
+            bboxes (List[Dict]): List of annotations with labels and bounding boxes coordinates.
 
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            tuple: Tuple (image, target) after transformations.
         """
+
         h, w = image.shape[:-1]
         image = F.to_tensor(image)
+
         if self.downsampling_factor is not None:
             blobs = np.zeros(
                 shape=(
@@ -67,9 +93,12 @@ class ToTensorBboxes:
             new_blobs, ct_int = blob_for_bbox(
                 bbox, blobs[cat], self.downsampling_factor
             )
+
             blobs[cat] = new_blobs
+
             if ct_int is not None:
                 ct_x, ct_y = ct_int
+
                 if ct_x < blobs.shape[2] and ct_y < blobs.shape[1]:
                     blobs[-2, ct_y, ct_x] = bbox[3]
                     blobs[-1, ct_y, ct_x] = bbox[2]
@@ -84,27 +113,35 @@ class ToTensorBboxes:
                 #     plt.close()
 
         target = torch.from_numpy(blobs)
+
         return image, target
 
 
 class Normalize:
+
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std
 
-    def __call__(self, image, target):
-        """
+    def __call__(self, image:image, target) -> Tuple[Any, Any]:
+
+        """ Normalize the input image.
+
         Args:
-            index (int): Index
+            image (image): Image, from the instance file.
+            target ()
 
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            tuple: Tuple (image, target) after normalization.
         """
+
         image = F.normalize(image, mean=self.mean, std=self.std)
+
         return image, target
 
 
 class TrainTransforms:
+
     def __init__(
         self,
         base_size,
@@ -141,13 +178,16 @@ class TrainTransforms:
             ]
         )
 
-    def __call__(self, img, target):
-        """
+    def __call__(self, image:image, target) -> Any:
+        
+        """ Create a new augmenter sequence and apply transformations based on the argument last_transforms.
+
         Args:
-            index (int): Index
+            image (image): Image, from the instance file.
+            target ()
 
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            The last transformations required.
         """
 
         bboxes_imgaug = [
@@ -160,13 +200,15 @@ class TrainTransforms:
             )
             for bbox, cat in zip(target["bboxes"], target["cats"])
         ]
-        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=img.shape)
+        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=image.shape)
 
-        img, bboxes_imgaug = self.seq(image=img, bounding_boxes=bboxes)
-        return self.last_transforms(img, bboxes_imgaug)
+        image, bboxes_imgaug = self.seq(image=image, bounding_boxes=bboxes)
+
+        return self.last_transforms(image, bboxes_imgaug)
 
 
 class ValTransforms:
+
     def __init__(
         self,
         base_size,
@@ -201,13 +243,16 @@ class ValTransforms:
             ]
         )
 
-    def __call__(self, img, target):
-        """
+    def __call__(self, image:image, target) -> Any:
+        
+        """ Create a new augmenter sequence and apply transformations based on the argument last_transforms.
+
         Args:
-            index (int): Index
+            image (image): Image, from the instance file.
+            target ()
 
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            The last transformations required.
         """
 
         bboxes_imgaug = [
@@ -220,13 +265,15 @@ class ValTransforms:
             )
             for bbox, cat in zip(target["bboxes"], target["cats"])
         ]
-        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=img.shape)
+        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=image.shape)
 
-        img, bboxes_imgaug = self.seq(image=img, bounding_boxes=bboxes)
-        return self.last_transforms(img, bboxes_imgaug)
+        image, bboxes_imgaug = self.seq(image=image, bounding_boxes=bboxes)
+
+        return self.last_transforms(image, bboxes_imgaug)
 
 
 class TransformFrames:
+
     def __init__(self):
         transforms = []
 
@@ -238,12 +285,15 @@ class TransformFrames:
 
         self.transforms = T.Compose(transforms)
 
-    def __call__(self, img):
-        """
-        Args:
-            index (int): Index
+    def __call__(self, image:image) -> Any:
 
+        """ Apply given transformations on the input image.
+
+        Args:
+            image (image): Image, from the instance file.
+    
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            The image with the transformations required.
         """
-        return self.transforms(img)
+        
+        return self.transforms(image)
