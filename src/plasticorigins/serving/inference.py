@@ -1,6 +1,9 @@
+import argparse
+import json
 import logging
 import os
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -49,13 +52,18 @@ transition_variance = np.load(
 )
 
 
-def handle_post_request():
-    """main function to handle a post request.
-    The file is in `request.files`
+def handle_post_request() -> json:
 
-    Will create tmp folders for storing the file and intermediate results
-    Outputs a json
+    """Main function to handle a post request. The file is in `request.files`
+        Will create tmp folders for storing the file and intermediate results
+        Outputs a json
+
+    Args:
+
+    Returns:
+        A output json file.
     """
+
     logger.info("---receiving request")
     if "file" in request.files:
         file = request.files["file"]
@@ -92,19 +100,25 @@ def handle_post_request():
     return response
 
 
-def track(args):
-    """
+def track(args:argparse) -> Tuple[list,int,int]:
+
+    """ Tracking function for object detection in frame sequences.
+
     Args:
-        index (int): Index
+        args (argparse): arguments for tracking process.
 
     Returns:
-        tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        filtered_results (list): list of filtered tracks.
+        num_frames (int): max number of frames for tracking.
+        fps (int): number of frames per second (video speed).       
     """
+
     detector = lambda frame: detect(
         frame, threshold=args.detection_threshold, model=model
     )
 
     logger.info(f"---Processing {args.video_path}")
+
     reader = IterableFrameReader(
         video_filename=args.video_path,
         skip_frames=args.skip_frames,
@@ -141,6 +155,7 @@ def track(args):
         display,
     )
     reader.video.release()
+
     # store unfiltered results
     output_filename = Path(args.output_dir) / "results_unfiltered.txt"
     write_tracking_results_to_file(
@@ -151,6 +166,7 @@ def track(args):
     # read from the file
     results = read_tracking_results(output_filename)
     filtered_results = filter_tracks(results, args.kappa, args.tau)
+
     # store filtered results
     output_filename = Path(args.output_dir) / "results.txt"
     write_tracking_results_to_file(
