@@ -1,12 +1,14 @@
 """Provide several classes and functions to convert coco objects.
 
 This module allows the user to :
+
 - filter and remap coco categories
 - convert coco objects (polygons) to masks (torch tensors)
 - convert coco objects (polygons) to bounding boxes 
 - check validated conversion
  
 The module contains the following classes:
+
 - FilterAndRemapCocoCategories
 - ConvertCocoPolysToMask
 - ConvertCocoPolysToBboxes

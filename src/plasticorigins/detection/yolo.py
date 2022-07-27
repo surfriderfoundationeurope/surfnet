@@ -166,8 +166,7 @@ class DetectTorchScript(nn.Module):
         """ Evaluate the yolo model predictions for the input image.
 
         Args:
-            image (ndarray): expects image as numpy array of shape (B x H x W x C) or (H x W x C). 
-            In practice B=1 and H x W = 640.
+            image (ndarray): expects image as numpy array of shape (B x H x W x C) or (H x W x C). In practice B=1 and H x W = 640.
         
         Returns:
             The model predictions.

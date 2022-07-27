@@ -249,7 +249,7 @@ class ValTransforms:
 
         Args:
             image (image): Image, from the instance file.
-            target ()
+            target ():
 
         Returns:
             The last transformations required.
