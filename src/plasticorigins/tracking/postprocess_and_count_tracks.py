@@ -105,7 +105,7 @@ def write(results, output_name):
     """
     output_tracks_filename = output_name.split(".")[0] + "_tracks.txt"
     write_tracking_results_to_file(
-        results, ratio_x=1, ratio_y=1, output_filename=output_tracks_filename
+        results, lambda x, y: (x, y), output_filename=output_tracks_filename
     )
 
     with open(output_name.split(".")[0] + "_count.txt", "w") as out_file:
