@@ -106,18 +106,11 @@ class TrainTransforms:
         self.seq = iaa.Sequential(
             [
                 iaa.Resize(
-                    {
-                        "height": self.random_size_range,
-                        "width": "keep-aspect-ratio",
-                    }
+                    {"height": self.random_size_range, "width": "keep-aspect-ratio",}
                 ),
                 iaa.Fliplr(p=self.hflip_prob),
-                iaa.PadToFixedSize(
-                    width=self.crop_width, height=self.crop_height
-                ),
-                iaa.CropToFixedSize(
-                    width=self.crop_width, height=self.crop_height
-                ),
+                iaa.PadToFixedSize(width=self.crop_width, height=self.crop_height),
+                iaa.CropToFixedSize(width=self.crop_width, height=self.crop_height),
             ]
         )
         self.last_transforms = Compose(
@@ -162,10 +155,7 @@ class ValTransforms:
         self.seq = iaa.Sequential(
             [
                 iaa.Resize(
-                    {
-                        "height": int(self.base_size),
-                        "width": "keep-aspect-ratio",
-                    }
+                    {"height": int(self.base_size), "width": "keep-aspect-ratio",}
                 ),
                 # iaa.Rotate((-45,45)),
                 iaa.CenterPadToFixedSize(
@@ -205,9 +195,7 @@ class TransformFrames:
     def __init__(self):
         transforms = []
 
-        transforms.append(
-            T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        )
+        transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
         transforms.append(T.ToTensor())
         transforms.append(
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
