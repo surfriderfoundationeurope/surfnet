@@ -1,32 +1,51 @@
-from multiprocessing.dummy import Array
+"""The ``data_processing`` submodule provides several functions for data processing and to build annotations for yolo model.
+
+This submodule contains the following functions :
+
+- ``bbox2yolo(bbox:ndarray, image_height:int=1080, image_width:int=1080)`` : Function to normalize the representation of the bounding box, such that
+    there are in the yolo format.
+- ``build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str, 
+                                        df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
+                                         img_folder_name:str, label_folder_name:str, exclude_ids:Optional[set]=None)`` : Generates the .txt files that are necessary for yolo training.
+- ``find_img_ids_to_exclude(data_dir:WindowsPath)`` : Find image ids to exclude from list of images used for building the annotation files.
+- ``generate_yolo_files(output_dir:WindowsPath, train_files:List[Any,type[str]], val_files:List[Any,type[str]])`` : Generates data files for yolo training: train.txt, val.txt and data.yaml.
+- ``get_annotations_from_db(password:str)`` : Gets the data from the database. Requires that your IP is configured in Azure.
+- ``get_annotations_from_files(input_dir:WindowsPath, bboxes_filename:str, images_filename:str)`` : Get annotations from csv files instead of the database. The files should be located in the input_dir folder.
+- ``get_train_valid(list_files:List[Any,type[str]], split:float=0.85)`` : Split data into train and validation partitions.
+- ``image_orientation (image:image)`` : Function which gives the images that have a specified orientation the same orientation.
+- ``plot_image_and_bboxes(img:image, anns:list, ratio:float)`` : Plots the image and the bounding box(es) associated to the detected object(s).
+- ``process_annotations(anns:DataFrame, ratio:float, target_h:int=1080, target_w:int=1080)`` : Processes the annotations to match the yolo format.
+- ``save_annotations_to_files(output_dir:WindowsPath, df_bboxes:DataFrame, df_images:DataFrame)`` : Save the annotations in csv format.
+
+"""
+
 import os
 from pathlib import Path, WindowsPath
 import yaml
-import time
 import psycopg2
-from datetime import datetime
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, Optional
 
 import numpy as np
+from numpy import ndarray
 from sklearn.model_selection import train_test_split
 import pandas as pd
+from pandas import DataFrame
 import cv2
 
 from matplotlib import image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from matplotlib.patches import Rectangle
-from PIL import Image, ImageDraw, ImageFont, ExifTags
+from PIL import Image, ExifTags
 
 
-def plot_image_and_bboxes(img:image, anns:list, ratio:float):
+def plot_image_and_bboxes(img:image, anns:list, ratio:float) -> None:
 
     """ Plots the image and the bounding box(es) associated to the detected object(s).
 
     Args:
-        img (image): Image, from the instance file.
-        anns (list): Annotations linked to the specified image, from instance file.
-        ratio (float): Ratio - most often defined at the (1080/height of the image).
+        img (image): Image, from the instance file
+        anns (list): Annotations linked to the specified image, from instance file
+        ratio (float): Ratio - most often defined at the (1080/height of the image)
     """
 
     _, ax = plt.subplots(1, figsize=(12, 10))
@@ -48,10 +67,10 @@ def image_orientation (image:image) -> image:
         If the image does not have an orientation, the image is not altered.
 
     Args:
-        image (image): Image that is in the path data_directory as well as in the instance json files.
+        image (image): Image that is in the path data_directory as well as in the instance json files
 
-    Returns: image, with the proper orientation.
-        _type_: image
+    Returns: 
+        image (image): image with the proper orientation
     """
     
     for orientation in ExifTags.TAGS.keys():
@@ -70,18 +89,18 @@ def image_orientation (image:image) -> image:
     return image
 
 
-def bbox2yolo(bbox:list, image_height:int=1080, image_width:int=1080) -> np.ndarray:
+def bbox2yolo(bbox:ndarray, image_height:int=1080, image_width:int=1080) -> ndarray:
 
     """Function to normalize the representation of the bounding box, such that
     there are in the yolo format (normalized in range [0-1]).
 
     Args:
-        bbox (array): Coordinates of the bounding box : x, y, w and h coordiates.
-        image_height (int, optional): Height of the image. Defaults to 1080.
-        image_width (int, optional): Width of the image. Defaults to 1080.
+        bbox (ndrray): Coordinates of the bounding box : x, y, w and h coordiates
+        image_height (int, optional): Height of the image. Set as default to 1080.
+        image_width (int, optional): Width of the image. Set as default to 1080.
 
-    Returns: Normalized bounding box coordinates : values between 0-1.
-        _type_: ndarray
+    Returns: 
+        bbox (ndarray): Normalized bounding box coordinates : values between 0-1.
     """
 
     bbox = bbox.copy().astype(float) #instead of np.int
@@ -94,19 +113,19 @@ def bbox2yolo(bbox:list, image_height:int=1080, image_width:int=1080) -> np.ndar
     return bbox
 
 
-def process_annotations(anns:pd.DataFrame, ratio:float, target_h:int=1080, target_w:int=1080) -> Tuple[Any,Any]:
+def process_annotations(anns:DataFrame, ratio:float, target_h:int=1080, target_w:int=1080) -> Tuple[List,ndarray]:
 
     """ Processes the annotations to match the yolo format.
 
     Args:
-        anns (dataframe): image annotation informations with image id_ref and coordinates of the bounding box : x, y, w and h coordiates.
-        ratio (float): Ratio - most often defined at the (1080/height of the image).
-        target_h (int): Height of the image. Defaults to 1080.
-        target_w (int): Width of the image. Defaults to 1080.
+        anns (DataFrame): image annotation informations with image id_ref and coordinates of the bounding box : x, y, w and h coordiates
+        ratio (float): Ratio - most often defined at the (1080/height of the image)
+        target_h (int): Height of the image. Set as default to ``1080``.
+        target_w (int): Width of the image. Set as default to ``1080``.
 
     Returns: 
-        labels (list): list of object classes in the current image
-        bboxes (array): array of bounding boxes (x and y positions with height and width) for each object in the current image
+        labels (List): list of object classes in the current image
+        bboxes (ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
     """
 
     labels = anns["id_ref_trash_type_fk"].values - 1
@@ -116,8 +135,8 @@ def process_annotations(anns:pd.DataFrame, ratio:float, target_h:int=1080, targe
 
 
 def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str, 
-                                        df_bboxes:pd.DataFrame, df_images:pd.DataFrame, limit_data:int,
-                                         img_folder_name:str, label_folder_name:str, exclude_ids:set=None) -> Tuple[List, int, int]:
+                                        df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
+                                         img_folder_name:str, label_folder_name:str, exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
     
     """ Generates the .txt files that are necessary for yolo training. See
     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format.
@@ -125,16 +144,16 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
     Args:
         data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         images_dir (WindowsPath): path of the image directory. It should contain a folder with all images.
-        path_bboxes (str): path of the bounding_boxes csv file.
-        df_bboxes (pd.DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width).
-        df_images (pd.DataFrame): DataFrame with the image informations.
-        limit_data (int): limit number of images used. If you want all images set limit_data to 0.
-        img_folder_name (str): name of the image folder where all annoted images will be stored.
-        label_folder_name (str): name of the annotation folder where all annotations and labels will be stored.
-        exclude_ids (set, optional): Set of image id to exclude from the process. Set as default to None.
+        path_bboxes (str): path of the bounding_boxes csv file
+        df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
+        df_images (DataFrame): DataFrame with the image informations
+        limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
+        img_folder_name (str): name of the image folder where all annoted images will be stored
+        label_folder_name (str): name of the annotation folder where all annotations and labels will be stored
+        exclude_ids (Optional[set]): Set of image id to exclude from the process. Set as default to ``None``.
 
     Returns:
-        valid_imagenames (list): list of image names that have been processed with success
+        valid_imagenames (List): list of image names that have been processed with success
         cpos (int): number of images with success
         cneg (int): number of images with fail
     """
@@ -227,17 +246,17 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
     return valid_imagenames, count_exists, count_missing
 
 
-def get_train_valid(list_files:List[str], split:float=0.85) -> Tuple[List[str],List[str]]:
+def get_train_valid(list_files:List[Any,type[str]], split:float=0.85) -> Tuple[List[Any,type[str]],List[Any,type[str]]]:
 
     """Split data into train and validation partitions.
 
     Args:
-        list_files (List[str]): list of image files to split into train and test partitions.
+        list_files (List[Any,type[str]]): list of image files to split into train and test partitions
         split (float, optional): train_size between 0 and 1. Set as default to 0.85.
 
     Returns:
-        train_files (List[str]): list of image names for training step.
-        val_files (List[str]): list of image names for validation step.
+        train_files (List[Any,type[str]]): list of image names for training step
+        val_files (List[Any,type[str]]): list of image names for validation step
     """
 
     train_files, val_files = train_test_split(list_files, train_size = split)
@@ -247,14 +266,14 @@ def get_train_valid(list_files:List[str], split:float=0.85) -> Tuple[List[str],L
     return train_files, val_files
 
 
-def generate_yolo_files(output_dir:WindowsPath, train_files:List[str], val_files:List[str]):
+def generate_yolo_files(output_dir:WindowsPath, train_files:List[Any,type[str]], val_files:List[Any,type[str]]) -> None:
 
     """ Generates data files for yolo training: train.txt, val.txt and data.yaml.
 
     Args:
         output_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
-        train_files (List[str]): list of image names for training step.
-        val_files (List[str]): list of image names for validation step.
+        train_files (List[Any,type[str]]): list of image names for training step
+        val_files (List[Any,type[str]]): list of image names for validation step
     """
 
     with open(output_dir / 'train.txt', 'w') as f:
@@ -277,16 +296,16 @@ def generate_yolo_files(output_dir:WindowsPath, train_files:List[str], val_files
         yaml.dump(data, outfile, default_flow_style=False)
 
 
-def get_annotations_from_db(password:str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def get_annotations_from_db(password:str) -> Tuple[DataFrame, DataFrame]:
 
     """ Gets the data from the database. Requires that your IP is configured in Azure.
 
     Args:
-        password (str): password to connect to the SQL DataBase.
+        password (str): password to connect to the SQL DataBase
 
     Returns:
-        df_bboxes (pd.DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width).
-        df_images (pd.DataFrame): DataFrame with the image informations.
+        df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
+        df_images (DataFrame): DataFrame with the image informations
     """
 
     # Update connection string information
@@ -326,18 +345,18 @@ def get_annotations_from_db(password:str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return df_bboxes, df_images.set_index("id") #, raw_category_info
 
 
-def get_annotations_from_files(input_dir:WindowsPath, bboxes_filename:str, images_filename:str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def get_annotations_from_files(input_dir:WindowsPath, bboxes_filename:str, images_filename:str) -> Tuple[DataFrame, DataFrame]:
     
     """ Get annotations from csv files instead of the database. The files should be located in the input_dir folder.
 
     Args:
         input_dir (WindowsPath): path of the data directory. It should contain a folder with all data (images + annotations).
-        bboxes_filename (str): name of the bounding boxes csv file.
-        images_filename (str): name of the images csv file.
+        bboxes_filename (str): name of the bounding boxes csv file
+        images_filename (str): name of the images csv file
 
     Returns:
-        df_bboxes (pd.DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width).
-        df_images (pd.DataFrame): DataFrame with the image informations.
+        df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
+        df_images (DataFrame): DataFrame with the image informations
     """
 
     df_bboxes = pd.read_csv(input_dir / bboxes_filename)
@@ -346,14 +365,14 @@ def get_annotations_from_files(input_dir:WindowsPath, bboxes_filename:str, image
     return df_bboxes, df_images
 
 
-def save_annotations_to_files(output_dir:WindowsPath, df_bboxes:pd.DataFrame, df_images:pd.DataFrame):
+def save_annotations_to_files(output_dir:WindowsPath, df_bboxes:DataFrame, df_images:DataFrame) -> None:
     
     """ Saves the annotations in csv format.
 
     Args:
         output_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
-        df_bboxes (pd.DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width).
-        df_images (pd.DataFrame): DataFrame with the image informations.
+        df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
+        df_images (DataFrame): DataFrame with the image informations
     """
 
     df_bboxes.to_csv(output_dir / "bbox.csv")
@@ -365,11 +384,10 @@ def find_img_ids_to_exclude(data_dir:WindowsPath) -> set:
     """Find image ids to exclude from list of images used for building the annotation files.
 
     Args:
-        data_dir (WindowsPath): path of the root data directory. 
-        It should contain a folder with all useful data for images and annotations.
+        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
 
     Returns:
-        ids_to_exclude (set): set of image ids to exclude.
+        ids_to_exclude (set): set of image ids to exclude
     """
 
     list_files = sorted(os.listdir(Path(data_dir) / "labels"))

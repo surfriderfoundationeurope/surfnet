@@ -1,15 +1,20 @@
+"""The ``make_dataset`` submodule provides only one main function to get annotations, 
+build annotations files for yolo and build dataset for training.
+
+"""
+
 from data_processing import get_annotations_from_files, get_annotations_from_db, find_img_ids_to_exclude
 from data_processing import generate_yolo_files, get_train_valid, build_yolo_annotations_for_images
 from pathlib import Path
 import argparse
 
 
-def main(args:argparse):
+def main(args:argparse) -> None:
 
     """Main Function to get annotations, build annotations files for yolo and build dataset for training.
 
     Args:
-        args (argparse): list of arguments to build dataset for label mapping and training.
+        args (argparse): list of arguments to build dataset for label mapping and training
     """
 
     data_dir = Path(args.data_dir)
