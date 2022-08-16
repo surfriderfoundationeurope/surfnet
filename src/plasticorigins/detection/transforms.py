@@ -1,20 +1,22 @@
-"""Provide several transformation functions to convert, process and normalize images.
+"""The ``transforms`` submodule provides several transformation classes to convert, process and normalize images.
 
-The module contains the following classes:
-- Compose
-- ToTensorBboxes
-- Normalize
-- TrainTransforms
-- ValTransforms
-- TransformFrames
+This submodule contains the following classes:
+
+- ``Compose`` : Compose class for creating transformation pipeline on images.
+- ``Normalize`` : Apply normalization on images with specified mean and standard deviation.
+- ``ToTensorBboxes`` : Transform tensors to bounding boxes.
+- ``TrainTransforms`` : Apply transformations on images for training.
+- ``TransformFrames`` : Transform frames (with normalization).
+- ``ValTransforms`` : Apply transformations on images for validation.
 
 """
 
-from typing import Any, Tuple, List, Dict
+from typing import Any, Callable, Tuple, List, Dict, Union
+from PIL import Image
 import cv2
 import imgaug as ia
-from matplotlib import image
 import numpy as np
+from numpy import ndarray
 import torch
 import torchvision.transforms as T
 from imgaug import augmenters as iaa
@@ -28,19 +30,25 @@ ia.seed(1)
 
 class Compose:
 
-    def __init__(self, transforms):
+    """ Compose class for creating transformation pipeline on images.
+    
+    Args:
+        transforms (Callable): transformations to apply
+    """
+
+    def __init__(self, transforms:Callable):
         self.transforms = transforms
 
-    def __call__(self, image:image, target) -> Tuple[Any, Any]:
+    def __call__(self, image:Image, target:Any) -> Tuple[torch.Tensor, torch.Tensor]:
 
         """ Apply transformations on image according to the given target.
 
         Args:
-            image (image): Image, from the instance file.
-            target ():
+            image (Image): Image, from the instance file
+            target (Any): target for transformations
 
         Returns:
-            tuple: Tuple (image, target) after transformations.
+            Tuple (image, target) after transformations
         """
 
         for t in self.transforms:
@@ -51,20 +59,27 @@ class Compose:
 
 class ToTensorBboxes:
 
-    def __init__(self, num_classes, downsampling_factor):
+    """ Transform tensors to bounding boxes.
+    
+    Args:
+        num_classes (int): number of different object classes
+        downsampling_factor (float): downsampling factor for rescaling images
+    """
+
+    def __init__(self, num_classes:int, downsampling_factor:float):
         self.num_classes = num_classes
         self.downsampling_factor = downsampling_factor
 
-    def __call__(self, image:image, bboxes:List[Dict]) -> Tuple[Any, torch.Tensor]:
+    def __call__(self, image:Union[Any,ndarray], bboxes:List[Dict]) -> Tuple[torch.Tensor, torch.Tensor]:
 
         """ Apply transformations on image according to the given target.
 
         Args:
-            image (image): Image, from the instance file.
-            bboxes (List[Dict]): List of annotations with labels and bounding boxes coordinates.
+            image (Union[Image,ndarray]): PIL Image, from the instance file or ndarray.
+            bboxes (List[Dict]): List of annotations with labels and bounding boxes coordinates
 
         Returns:
-            tuple: Tuple (image, target) after transformations.
+            Tuple (image, target) after transformations
         """
 
         h, w = image.shape[:-1]
@@ -102,15 +117,6 @@ class ToTensorBboxes:
                 if ct_x < blobs.shape[2] and ct_y < blobs.shape[1]:
                     blobs[-2, ct_y, ct_x] = bbox[3]
                     blobs[-1, ct_y, ct_x] = bbox[2]
-                # else:
-                #     import matplotlib.pyplot as plt
-                #     print(ct_x, ct_y)
-                #     fig, ax = plt.subplots(1,1,figsize=(20,20))
-                #     ax.imshow(blobs[cat])
-                #     import pickle
-                #     with open('verbose.pickle','wb') as f:
-                #         pickle.dump((fig,ax),f)
-                #     plt.close()
 
         target = torch.from_numpy(blobs)
 
@@ -119,20 +125,27 @@ class ToTensorBboxes:
 
 class Normalize:
 
-    def __init__(self, mean, std):
+    """ Apply normalization on images with specified mean and standard deviation.
+
+    Args:
+        mean (List[float]): mean of normalization function
+        std (List[float]): standard deviation of normalization function
+    """
+
+    def __init__(self, mean:List[float], std:List[float]):
         self.mean = mean
         self.std = std
 
-    def __call__(self, image:image, target) -> Tuple[Any, Any]:
+    def __call__(self, image:torch.Tensor, target:Any) -> Tuple[torch.Tensor, torch.Tensor]:
 
         """ Normalize the input image.
 
         Args:
-            image (image): Image, from the instance file.
-            target ()
+            image (torch.Tensor): Image, from the instance file in torch Tensor format
+            target (Any): target for normalization
 
         Returns:
-            tuple: Tuple (image, target) after normalization.
+            Tuple (image, target) after normalization
         """
 
         image = F.normalize(image, mean=self.mean, std=self.std)
@@ -142,15 +155,27 @@ class Normalize:
 
 class TrainTransforms:
 
+    """ Apply transformations on images for training.
+
+    Args:
+        base_size (Tuple[int,int]): base size of images ``(H, W)``
+        crop_size (Tuple[int,int]): crop size of images ``(H, W)``
+        num_classes (int): number of object classes
+        downsampling_factor (float): downsampling factor
+        hflip_prob (float): High flip probability. Set as default to ``0.5``
+        mean (Tuple[float,float,float]) : mean of normalization function. Set as default to ``(0.485, 0.456, 0.406)``
+        std (Tuple[float,float,float]) : standard deviation of normalization function. Set as default to ``(0.229, 0.224, 0.225)``
+    """
+
     def __init__(
         self,
-        base_size,
-        crop_size,
-        num_classes,
-        downsampling_factor,
-        hflip_prob=0.5,
-        mean=(0.485, 0.456, 0.406),
-        std=(0.229, 0.224, 0.225),
+        base_size:Tuple[int,int],
+        crop_size:Tuple[int,int],
+        num_classes:int,
+        downsampling_factor:float,
+        hflip_prob:float=0.5,
+        mean:Tuple[float,float,float]=(0.485, 0.456, 0.406),
+        std:Tuple[float,float,float]=(0.229, 0.224, 0.225),
     ):
         self.num_classes = num_classes
         self.downsampling_factor = downsampling_factor
@@ -178,13 +203,13 @@ class TrainTransforms:
             ]
         )
 
-    def __call__(self, image:image, target) -> Any:
+    def __call__(self, image:ndarray, target:Any) -> Any:
         
-        """ Create a new augmenter sequence and apply transformations based on the argument last_transforms.
+        """ Create a new augmenter sequence and apply transformations based on the argument ``last_transforms``.
 
         Args:
-            image (image): Image, from the instance file.
-            target ()
+            image (ndarray): Image, from the instance file
+            target (Any): target for transformations
 
         Returns:
             The last transformations required.
@@ -209,14 +234,25 @@ class TrainTransforms:
 
 class ValTransforms:
 
+    """ Apply transformations on images for validation.
+
+    Args:
+        base_size (Tuple[int,int]): base size of images ``(H, W)``
+        crop_size (Tuple[int,int]): crop size of images ``(H, W)``
+        num_classes (int): number of object classes
+        downsampling_factor (float): downsampling factor
+        mean (Tuple[float,float,float]) : mean of normalization function. Set as default to ``(0.485, 0.456, 0.406)``
+        std (Tuple[float,float,float]) : standard deviation of normalization function. Set as default to ``(0.229, 0.224, 0.225)``
+    """
+
     def __init__(
         self,
-        base_size,
-        crop_size,
-        num_classes,
-        downsampling_factor,
-        mean=(0.485, 0.456, 0.406),
-        std=(0.229, 0.224, 0.225),
+        base_size:Tuple[int,int],
+        crop_size:Tuple[int,int],
+        num_classes:int,
+        downsampling_factor:float,
+        mean:Tuple[float,float,float]=(0.485, 0.456, 0.406),
+        std:Tuple[float,float,float]=(0.229, 0.224, 0.225),
     ):
         self.num_classes = num_classes
         self.downsampling_factor = downsampling_factor
@@ -227,7 +263,6 @@ class ValTransforms:
                 iaa.Resize(
                     {"height": int(self.base_size), "width": "keep-aspect-ratio",}
                 ),
-                # iaa.Rotate((-45,45)),
                 iaa.CenterPadToFixedSize(
                     width=self.crop_width, height=self.crop_height
                 ),
@@ -243,13 +278,13 @@ class ValTransforms:
             ]
         )
 
-    def __call__(self, image:image, target) -> Any:
+    def __call__(self, image:ndarray, target:Dict) -> Any:
         
         """ Create a new augmenter sequence and apply transformations based on the argument last_transforms.
 
         Args:
-            image (image): Image, from the instance file.
-            target ():
+            image (ndarray): Image, from the instance file
+            target (Dict): target for transformations (ground truths ``gt`` or heat map ``hm``)
 
         Returns:
             The last transformations required.
@@ -274,6 +309,8 @@ class ValTransforms:
 
 class TransformFrames:
 
+    """ Transform frames (with normalization)."""
+
     def __init__(self):
         transforms = []
 
@@ -285,12 +322,12 @@ class TransformFrames:
 
         self.transforms = T.Compose(transforms)
 
-    def __call__(self, image:image) -> Any:
+    def __call__(self, image:ndarray) -> Any:
 
         """ Apply given transformations on the input image.
 
         Args:
-            image (image): Image, from the instance file.
+            image (ndarray): Image, from the instance file
     
         Returns:
             The image with the transformations required.

@@ -13,6 +13,9 @@ BN_MOMENTUM = 0.1
 
 
 class MobiletNetHM(nn.Module):
+
+    """ MobileNetHM main class. Adapted code."""
+
     def __init__(self, heads, head_conv, **kwargs):
         self.inplanes = 576
         self.deconv_with_bias = False

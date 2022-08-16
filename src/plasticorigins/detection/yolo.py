@@ -1,21 +1,24 @@
-"""Provide utils functions for YOLO model.
+"""The ``yolo`` submodule provides utils functions for YOLO model.
 
-The module contains the following classes:
-- DetectTorchScript
+This submodule contains the following classes:
 
-The module contains the following functions:
-- load_model(model_path:str, device:str, conf:float=0.35, iou:float=0.50) : Load yolo model from model_path.
-- voc2centerdims(bboxes:np.ndarray) : Compute center coordinates of the bounding boxes and find their size (width, height).
-- predict_yolo(model, img:image, size:int=768, augment:bool=False) : Interpret yolo prediction object.
+- ``DetectTorchScript`` : Torch script yolo class.
+
+This submodule contains the following functions:
+
+- ``load_model(model_path:str, device:str, conf:float=0.35, iou:float=0.50)`` : Load yolo model from model_path.
+- ``predict_yolo(model, img:Mat, size:int=768, augment:bool=False)`` : Interpret yolo prediction object.
+- ``voc2centerdims(bboxes:ndarray)`` : Compute center coordinates of the bounding boxes and find their size (width, height).
 
 """
 
 import json
-from typing import Any, Tuple, List
+from tkinter import Image
+from typing import Any, Tuple, Union, Dict, Optional
 import cv2
-from matplotlib import image
+from cv2 import Mat
 import numpy as np
-from pandas import array
+from numpy import ndarray, dtype, int64, float64
 import torch
 import torch.nn as nn
 import yaml
@@ -46,13 +49,13 @@ def load_model(model_path:str, device:str, conf:float=0.35, iou:float=0.50) -> A
     """ Load yolo model from model_path.
 
     Args:
-        model_path (str): the model path.
-        device (str): type of device used for computing ("cpu", "gpu",...).
+        model_path (str): the model path
+        device (str): type of device used for computing ("cpu", "cuda",...)
         conf (float): confidence value in [0,1]. Set as default to 0.35.
         iou (float): iou value in [0,1]. Set as default to 0.50.
 
     Returns:
-        model: The loaded model with right input parameters.
+        model (Any): The loaded model with right input parameters
     """
 
     model = yolov5.load(model_path, device=device)
@@ -65,15 +68,15 @@ def load_model(model_path:str, device:str, conf:float=0.35, iou:float=0.50) -> A
     return model
 
 
-def voc2centerdims(bboxes:np.ndarray) -> np.ndarray:
+def voc2centerdims(bboxes:ndarray) -> ndarray:
 
     """ Compute center coordinates of the bounding boxes and find their size (width, height).
 
     Args:
-        bboxes (ndarray): contain all positions of the bounding boxes : voc  => [x1, y1, x2, y2]
+        bboxes (ndarray): contain all positions of the bounding boxes : ``voc -> [x1, y1, x2, y2]``
     
     Returns:
-        bboxes (ndarray): the updates bboxes with the center coordinates and (width, height) : output => [xcenter, ycenter, w, h]
+        bboxes (ndarray): the updates bboxes with the center coordinates and (width, height) : ``output -> [x_center, y_center, w, h]``
     """
 
     bboxes[..., 2:4] -= bboxes[..., 0:2]  # find w,h
@@ -82,20 +85,20 @@ def voc2centerdims(bboxes:np.ndarray) -> np.ndarray:
     return bboxes
 
 
-def predict_yolo(model, img:image, size:int=768, augment:bool=False) -> Tuple[np.ndarray,np.ndarray,np.ndarray]:
+def predict_yolo(model, img:Mat, size:int=768, augment:bool=False) -> Tuple[ndarray[Any,dtype[int64]],ndarray[Any,dtype[float64]],ndarray[Any,dtype[int64]]]:
 
     """ Interpret yolo prediction object.
 
     Args:
-        model (Any): yolo model used for prediction.
-        img (image): image to predict.
-        size (int): Set as default to 768.
+        model (Any): yolo model used for prediction
+        img (Mat): image to predict
+        size (int): image size. Set as default to 768.
         augment (bool): Data augmentation if True. Set as default to False.
     
     Returns:
-       bboxes (ndarray): The bounding boxes with center coordinates and W, H. Empty array if bboxes is empty.
-       confs (ndarray): The confidence values from predictions. Empty array if bboxes is empty.
-       labels (ndarray): The list of label ids from predictions. Empty array if bboxes is empty.
+       bboxes (ndarray[Any,dtype[int64]]): The bounding boxes with center coordinates and W, H. Empty array if bboxes is empty.
+       confs (ndarray[Any,dtype[float64]]): The confidence values from predictions. Empty array if bboxes is empty.
+       labels (ndarray[Any,dtype[int64]]): The list of label ids from predictions. Empty array if bboxes is empty.
     """
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -118,7 +121,15 @@ def predict_yolo(model, img:image, size:int=768, augment:bool=False) -> Tuple[np
 
 class DetectTorchScript(nn.Module):
 
-    """Torch script yolo class"""
+    """Torch script yolo class.
+    
+    Args:
+        weights (ndarray): weights of the object detection model
+        conf (float): confidence value. Set as default to ``0.35``.
+        iou (float): Set as default to ``0.5``.
+        class_names (Optional[Dict]): dictionnary of the object classes for detection in this format : `{class_name : class_id,...}`. Set as default to ``None``.
+        data (Optional[str]): path of the yaml file data. Set as default to ``None``.
+    """
 
     max_det = 1000
     agnostic_nms = True
@@ -127,13 +138,11 @@ class DetectTorchScript(nn.Module):
     # YOLOv5 TorchScript class for python inference
     def __init__(
         self,
-        weights,
-        device=None,
-        conf=0.35,
-        iou=0.50,
-        class_names=None,
-        dnn=False,
-        data=None,
+        weights:ndarray,
+        conf:float=0.35,
+        iou:float=0.50,
+        class_names:Optional[Dict]=None,
+        data:Optional[str]=None,
     ):
         super().__init__()
         self.class_names = class_names
@@ -143,10 +152,6 @@ class DetectTorchScript(nn.Module):
         self.iou_thres = iou
 
         self.size = 640
-        stride, names = (
-            64,
-            [f"class{i}" for i in range(1000)],
-        )  # assign defaults
 
         if data:  # data.yaml path (optional)
             with open(data, errors="ignore") as f:
@@ -161,7 +166,7 @@ class DetectTorchScript(nn.Module):
 
         self.__dict__.update(locals())  # assign all variables to self
 
-    def forward(self, image:np.ndarray) -> Any:
+    def forward(self, image:ndarray) -> Union[torch.Tensor,torch.Module]:
 
         """ Evaluate the yolo model predictions for the input image.
 
@@ -176,8 +181,6 @@ class DetectTorchScript(nn.Module):
         if len(shape) == 3:
             image = np.expand_dims(image, 0)  # add batch axis
 
-        # x = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-        # im = letterbox(im, new_shape=self.size, auto=False)[0] # pad and reshape
         x = np.ascontiguousarray(
             image[:, :, :, ::-1].transpose((0, 3, 1, 2))
         )  # (B x H x W x C) to (B x C x H x W), and BGR to RGB
@@ -185,12 +188,12 @@ class DetectTorchScript(nn.Module):
 
         return self.model(x)[0]
 
-    def get_label_idxs(self, preds_names:array) -> array:
+    def get_label_idxs(self, preds_names:ndarray) -> ndarray:
 
         """ Give the class ids knowing the class names.
 
         Args:
-            preds_names (array): list of predicted class names.
+            preds_names (ndarray): list of predicted class names
 
         Returns:
             The array of the labels ids found in the predictions.
@@ -200,19 +203,19 @@ class DetectTorchScript(nn.Module):
 
         return np.array(list(map(get_id, preds_names)))
 
-    def detect(self, images:List[Any]) -> Tuple[np.ndarray,np.ndarray,np.ndarray]:
+    def detect(self, images:ndarray) -> Tuple[ndarray[Any,dtype[int64]],ndarray[Any,dtype[float64]],ndarray[Any,dtype[int64]]]:
 
-        """ Interpret yolo prediction object (batch size = 1).
+        """ Interpret yolo prediction object with batch size set to 1.
 
-        Args: 
-            images (List[image]): images to predict.
-            
+        Args:
+            images (ndarray): images to predict
+
         Returns:
-            bboxes (ndarray): The bounding boxes with center coordinates and W, H. Empty array if bboxes is empty.
-            confs (ndarray): The confidence values from predictions. Empty array if bboxes is empty.
-            labels (ndarray): The list of label ids from predictions. Empty array if bboxes is empty.
+            bboxes (ndarray[Any,dtype[int64]]): The bounding boxes with center coordinates and W, H. Empty array if bboxes is empty.
+            confs (ndarray[Any,dtype[float64]]): The confidence values from predictions. Empty array if bboxes is empty.
+            labels (ndarray[Any,dtype[int64]]): The list of label ids from predictions. Empty array if bboxes is empty.  
         """
-
+        
         pred = self.forward(images)
         pred2 = non_max_suppression(
             pred,

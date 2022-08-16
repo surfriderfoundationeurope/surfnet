@@ -1,6 +1,4 @@
-"""Do math with your own functions.
+"""
+TO DO 
 
-Modules exported by this package:
-
-- `calculations`: Provide several sample math calculations.
 """

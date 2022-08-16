@@ -6,15 +6,16 @@ theme:
 plugins:
   - mkdocstrings
   
-yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+#yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
 nav:
     - Home: index.md
+    - Tutorials: tutorials.md 
     - Installation: installation.md
-    - Code Reference:
-        - Detection: detection-reference.md
-        - Serving: serving-reference.md
-        - Tools: tools-reference.md
-        - Tracking: tracking-reference.md
-        - Training: training-reference.md
-
+    - How to guide: how-to-guides.md
+    - Modules:
+        - Detection: ['detection/models.md', 'detection/coco_utils.md','detection/detect.md','detection/losses.md','detection/transforms.md','detection/yolo.md']
+        - Serving: ['serving/inference.md']
+        - Tools: ['tools/files.md','tools/misc.md','tools/optical_flow.md','tools/video_readers.md']
+        - Tracking: ['tracking/postprocess_and_count_tracks.md',tracking/track_video.md,tracking/trackers.md,tracking/utils.md]
+        - Training: ['training/data_processing.md', 'training/make_dataset.md']

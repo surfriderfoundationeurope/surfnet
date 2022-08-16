@@ -7,7 +7,7 @@ from plasticorigins.detection.detect import detect
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tracking.utils import (
     GaussianMixture,
-    exp_and_normalise,
+    exp_and_normalize,
     gather_filenames_for_video_in_annotations,
     get_detections_for_video,
     overlay_transparent,
@@ -119,9 +119,9 @@ def test_gaussian_mixture():
     assert np.array_equal(results_lpdf, np.log(results_pdf), equal_nan=True)
 
 
-def test_exp_and_normalise():
+def test_exp_and_normalize():
     x = 2 + 0.5 * np.random.randn(5)
-    res = exp_and_normalise(x)
+    res = exp_and_normalize(x)
     expected_res = np.exp(x - x.max())
     expected_res = expected_res / expected_res.sum()
     assert np.array_equal(res, expected_res)

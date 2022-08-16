@@ -1,20 +1,9 @@
-from src.surfnet_train.data.data_processing import coco2yolo
-from src.surfnet_train.data.data_processing import image_orientation
-from src.surfnet_train.data.data_processing import shaping_bboxes
+from src.plasticorigins.training.data.data_processing import image_orientation
 import numpy as np
 from PIL import Image
 from pycocotools.coco import COCO
 import os
 import json
-
-
-def test_coco2yolo():
-
-    bbox = np.array([300, 300, 100, 100])
-    output = coco2yolo(bbox, 1000, 1000)
-
-    assert len(output) == 4
-    np.testing.assert_array_equal(output, [0.35, 0.35, 0.1, 0.1])
 
 
 def test_image_orientation():
@@ -38,20 +27,3 @@ def test_image_orientation():
 
     assert (new == [1] or new == [])
 
-
-def test_shaping_bboxes():
-
-    bbox_anns = COCO("tests/test_surfnet_train/utils/data/file.json").loadAnns(
-        ids=COCO("tests/test_surfnet_train/utils/data/file.json").getAnnIds(imgIds=[1]))
-    bbox_cat = 9
-    h, w = (np.array(Image.open(os.path.join("tests/test_surfnet_train/utils/images", COCO(
-        "tests/test_surfnet_train/utils/data/file.json").loadImgs(1)[0]['file_name'])))).shape[:-1]
-    
-    output = shaping_bboxes(bbox_anns, 1080/h, 1080, 1080*h/w)
-
-    bbox = np.array([1731, 1200, 145, 338])*(1080/h)
-    bbox = bbox.astype(int)
-    our_bbox = np.array(coco2yolo(bbox, 1080, 1080*h/w))
-    yolo_str = str(bbox_cat) + " " + " ".join(our_bbox.astype(str))
-
-    np.testing.assert_array_equal(output, yolo_str)

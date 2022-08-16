@@ -1,3 +1,19 @@
+"""The ``inference`` submodule provides several functions for tracking and handling post request.
+
+The submodule configures :
+
+- the device type
+- the logger
+- the prediction model
+
+This submodule contains the following functions:
+
+- ``handle_post_request()`` : Main function to handle a post request.
+- ``track(args:argparse)`` : Tracking function for object detection in frame sequences.
+
+"""
+
+from typing import List
 import argparse
 import json
 import logging
@@ -29,10 +45,12 @@ from plasticorigins.tracking.utils import (
 from plasticorigins.serving.config import config_track, id_categories
 
 logger = logging.getLogger()
+
 if config_track.device is None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 else:
     device = config_track.device
+
 device = torch.device(device)
 
 engine = get_tracker("EKF")
@@ -54,19 +72,17 @@ transition_variance = np.load(
 
 def handle_post_request() -> json:
 
-    """Main function to handle a post request. The file is in `request.files`
-        Will create tmp folders for storing the file and intermediate results
-        Outputs a json
-
-    Args:
-
+    """Main function to handle a post request. The file is in `request.files`. Will create temporary folders for storing the file and intermediate results. Outputs a json.
+        
     Returns:
         A output json file.
     """
 
     logger.info("---receiving request")
+
     if "file" in request.files:
         file = request.files["file"]
+        
     else:
         logger.error("error no file in request")
         return None
@@ -100,17 +116,17 @@ def handle_post_request() -> json:
     return response
 
 
-def track(args:argparse) -> Tuple[list,int,int]:
+def track(args:argparse) -> Tuple[List,int,int]:
 
     """ Tracking function for object detection in frame sequences.
 
     Args:
-        args (argparse): arguments for tracking process.
+        args (argparse): arguments for tracking process
 
     Returns:
-        filtered_results (list): list of filtered tracks.
-        num_frames (int): max number of frames for tracking.
-        fps (int): number of frames per second (video speed).       
+        filtered_results (list): list of filtered tracks
+        num_frames (int): max number of frames for tracking
+        fps (int): number of frames per second (video speed)      
     """
 
     detector = lambda frame: detect(

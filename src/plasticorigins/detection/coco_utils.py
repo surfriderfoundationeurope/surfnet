@@ -1,34 +1,33 @@
-"""Provide several classes and functions to convert coco objects.
+"""The ``coco_utils`` submodule provides several classes and functions to convert coco objects.
 
-This module allows the user to :
+This submodule allows the user to :
 
 - filter and remap coco categories
 - convert coco objects (polygons) to masks (torch tensors)
 - convert coco objects (polygons) to bounding boxes 
 - check validated conversion
  
-The module contains the following classes:
+This submodule contains the following classes:
 
-- FilterAndRemapCocoCategories
-- ConvertCocoPolysToMask
-- ConvertCocoPolysToBboxes
-- GroupInTensor
-- CocoDetectionWithExif
+- ``CocoDetectionWithExif`` : Perform Coco detection with exif.
+- ``ConvertCocoPolysToBboxes`` : Convert Coco Polygons to bounding boxes.
+- ``ConvertCocoPolysToMask`` : Convert Coco Polygons to Masks.
+- ``FilterAndRemapCocoCategories`` : Filter and remap Coco categories.
+- ``GroupInTensor`` : Group arrays in (torch) Tensors.
 
-The module contains the following functions:
-- convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) : Converting Coco polygons to torch masks (tensors).
-- _coco_remove_images_without_annotations(dataset:Dataset, cat_list:List[dict]=None) : Check if the annotation are valid or not empty.
-- get_coco(root:str, image_set:str, transforms:callable) : Transform images to a dataset with specified transformation.
-- get_surfrider(root:str, image_set:str, transforms:callable) : Transform images to a dataset with specified transformation.
-- get_surfrider_video_frames(root:str, image_set:str, transforms:callable) : Transform images to a dataset with specified transformation.
+This submodule contains the following functions:
+
+- ``coco_remove_images_without_annotations(dataset:Dataset, cat_list:Optional[List[Dict]]=None)`` : Check if the annotation are valid or not empty.
+- ``convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int)`` : Converting Coco polygons to torch masks (tensors).
+- ``get_coco(root:str, image_set:str, transforms:Callable)`` : Transform images to a dataset with specified transformation.
+- ``get_surfrider(root:str, image_set:str, transforms:Callable)`` : Transform images to a dataset with specified transformation.
+- ``get_surfrider_video_frames(root:str, image_set:str, transforms:Callable)`` : Transform images to a dataset with specified transformation.
 
 """
 
 import copy
 import os
 from typing import Any, Callable, Dict, Optional, Tuple, List
-from matplotlib import image
-
 import imageio
 from numpy import ndarray
 import torch
@@ -42,22 +41,29 @@ from .transforms import Compose
 
 
 class FilterAndRemapCocoCategories:
+
+    """Filter and remap Coco categories.
     
-    def __init__(self, categories:list, remap:bool=True):
+    Args:
+        categories (List): list of object classes
+        remap (bool): Remapping if ``True``, ``False`` if not
+    """
+    
+    def __init__(self, categories:List, remap:bool=True):
         self.categories = categories
         self.remap = remap
 
-    def __call__(self, image:image, anno:List[dict]) -> Tuple[Any, List[dict]] :
+    def __call__(self, image:Image, anno:List[Dict]) -> Tuple[Any, List[Dict]] :
 
         """ Remapping the images with true category ids. 
 
         Args:
-            image (image): Image, from the instance file.
-            anno (list[dict]): Annotations linked to the specified image, from instance file.
+            image (Image): Image, from the instance file
+            anno (List[Dict]): Annotations linked to the specified image, from instance file
 
         Returns:
-            image (image): Image, from the instance file.
-            anno (list[dict]): Remapped annotations linked to the specified image, from instance file.
+            image (Image): Image, from the instance file
+            anno (List[Dict]): Remapped annotations linked to the specified image, from instance file
         """
 
         anno = [obj for obj in anno if obj["category_id"] in self.categories]
@@ -78,12 +84,12 @@ def convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) ->
     """ Converting Coco polygons to masks (torch tensors).
 
     Args:
-        segmentations (list): list of polygons.
-        height (int): height of the mask.
-        width (int): width of the mask.
+        segmentations (List): list of polygons
+        height (int): height of the mask
+        width (int): width of the mask
 
     Returns:
-        masks (Tensor) : output masks
+        masks (torch.Tensor): output masks
     """
 
     masks = []
@@ -110,17 +116,19 @@ def convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) ->
 
 class ConvertCocoPolysToMask:
 
-    def __call__(self, image:image, anno:List[dict]) -> Tuple[Any, Any]:
+    """Convert Coco Polygons to Masks."""
+
+    def __call__(self, image:Image, anno:List[Dict]) -> Tuple[Any, Any]:
 
         """ Generating target image from masks. 
 
         Args:
-            image (image): Image, from the instance file.
-            anno (list[dict]): Annotations linked to the specified image, from instance file.
+            image (Image): Image, from the instance file
+            anno (List[Dict]): Annotations linked to the specified image, from instance file
 
         Returns:
-            image (image): Image, from the instance file.
-            target (image): Target image resulting from the product between categories and masks.
+            image (Image): Image, from the instance file
+            target (Image): Target image resulting from the product between categories and masks
         """
 
         w, h = image.size
@@ -146,17 +154,19 @@ class ConvertCocoPolysToMask:
 
 class ConvertCocoPolysToBboxes:
 
-    def __call__(self, image:image, anno:List[dict]) -> Tuple[Any, Dict]:
+    """Convert Coco Polygons to bounding boxes."""
+
+    def __call__(self, image:Image, anno:List[Dict]) -> Tuple[Any, Dict]:
 
         """ Building dictionnary of image annotations. 
 
         Args:
-            image (image): Image, from the instance file.
-            anno (list[dict]): Annotations linked to the specified image, from instance file.
+            image (Image): Image, from the instance file
+            anno (List[Dict]): Annotations linked to the specified image, from instance file
 
         Returns:
-            image (image): Image, from the instance file.
-            target (dict): Target dictionnary with bounding boxes associated with object classes
+            image (Image): Image, from the instance file
+            target (Dict): Target dictionnary with bounding boxes associated with object classes
         """
 
         bboxes = [obj["bbox"] for obj in anno]
@@ -173,32 +183,45 @@ class ConvertCocoPolysToBboxes:
 
 class GroupInTensor:
 
+    """Group arrays in (torch) Tensors."""
+
     def __call__(self, frames:ndarray, ground_truths:ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        """ 
+        """ Convert multi-dimensionnal numpy array frames and ground truths into torch tensors.
+
         Args:
-            frames (ndarray): list of images
-            ground_truths (ndarray): 
+            frames (ndarray): list of frames
+            ground_truths (ndarray): the multi-dimensionnal ground truths array
 
         Returns:
-            Both frames and ground_truths convert into torch tensors
+            Both ``frames`` and ``ground_truths`` convert into torch tensors.
         """
 
         return torch.from_numpy(frames), torch.from_numpy(ground_truths)
 
 
-def _coco_remove_images_without_annotations(dataset:Dataset, cat_list:List[dict]=None) -> Dataset:
+def coco_remove_images_without_annotations(dataset:Dataset, cat_list:Optional[List[Dict]]=None) -> Dataset:
 
-    def _has_valid_annotation(anno:List[dict]) -> bool:
+    """ Remove images without annotations.
+
+    Args:
+        dataset (Dataset): The image dataset to process.
+        cat_list (Optional[List[Dict]]): The list of object categories. Set as default to ``None``.
+
+    Returns:
+        The filtered dataset.
+    """
+
+    def has_valid_annotation(anno:List[Dict]) -> bool:
 
         """ Check if the annotations are valid or not empty.
 
         Args:
-            anno (List[dict]): Annotations linked to the specified image, from instance file.
+            anno (List[Dict]): Annotations linked to the specified image, from instance file
 
         Returns:
-            True if the annotations exist and are valid.
-            Otherwise, False.
+            ``True`` if the annotations exist and are valid.
+            Otherwise, ``False``.
         """
 
         # if it's empty, there is no annotation
@@ -219,7 +242,7 @@ def _coco_remove_images_without_annotations(dataset:Dataset, cat_list:List[dict]
         if cat_list:
             anno = [obj for obj in anno if obj["category_id"] in cat_list]
 
-        if _has_valid_annotation(anno):
+        if has_valid_annotation(anno):
             ids.append(ds_idx)
 
     dataset = torch.utils.data.Subset(dataset, ids)
@@ -229,17 +252,16 @@ def _coco_remove_images_without_annotations(dataset:Dataset, cat_list:List[dict]
 
 def get_coco(root:str, image_set:str, transforms:Callable) -> Dataset:
 
-    """ Transform images to a dataset with specified transformation (classes FilterAndRemapCocoCategories
-        ConvertCocoPolysToMask and _coco_remove_images_without_annotations used).
+    """ Transform images to a dataset with specified transformation (classes ``FilterAndRemapCocoCategories``
+        ``ConvertCocoPolysToMask`` and ``_coco_remove_images_without_annotations`` used).
 
     Args:
-        root (str): Root directory where images are downloaded to..
-        image_set (str): directory to annotation data. Two possible values : "train" or "val".
-        transforms (callable, optional): A function/transform that takes input sample and its target as entry
-        and returns a transformed version.
+        root (str): Root directory where images are downloaded to
+        image_set (str): directory to annotation data. Two possible values : ``"train"`` or ``"val"``.
+        transforms (Callable): A function/transformation that takes input sample and its target as entry and returns a transformed version
 
     Returns:
-        dataset (Dataset): dataset of images with specific transformations.
+        dataset (Dataset): dataset of images with specific transformations
     """
 
     PATHS = {
@@ -248,7 +270,6 @@ def get_coco(root:str, image_set:str, transforms:Callable) -> Dataset:
             os.path.join("annotations", "instances_train2017.json"),
         ),
         "val": ("val2017", os.path.join("annotations", "instances_val2017.json"),),
-        # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
 
     CAT_LIST = [0,5,2,16,9,44,6,3,17,62,21,67,18,19,4,1,64,20,63,7,72]
@@ -270,20 +291,19 @@ def get_coco(root:str, image_set:str, transforms:Callable) -> Dataset:
     )
 
     if image_set == "train":
-        dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
+        dataset = coco_remove_images_without_annotations(dataset, CAT_LIST)
 
     return dataset
 
 
 def get_surfrider(root:str, image_set:str, transforms:Callable) -> Dataset:
 
-    """ Transform images to a dataset with specified transformation (class CocoDetectionWithExif used).
+    """ Transform images to a dataset with specified transformation (class ``CocoDetectionWithExif`` used).
 
     Args:
-        root (str): Root directory where images are downloaded to..
-        image_set (str): directory to annotation data. Two possible values : "train" or "val".
-        transforms (callable, optional): A function/transform that takes input sample and its target as entry
-        and returns a transformed version.
+        root (str): Root directory where images are downloaded to
+        image_set (str): directory to annotation data. Two possible values : ``"train"`` or ``"val"``.
+        transforms (Callable): A function/transform that takes input sample and its target as entry and returns a transformed version.
 
     Returns:
         dataset (Dataset): dataset of images with specific transformations.
@@ -291,15 +311,11 @@ def get_surfrider(root:str, image_set:str, transforms:Callable) -> Dataset:
 
     PATHS = {
         "train": ("images", os.path.join("annotations", "instances_train.json"),),
-        "val": ("images", os.path.join("annotations", "instances_val.json")),
-        # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
+        "val": ("images", os.path.join("annotations", "instances_val.json"))
     }
-    # CAT_LIST = [0, 1, 2, 3]
 
     transforms = Compose(
         [
-            # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-            # ConvertCocoPolysToMask(),
             ConvertCocoPolysToBboxes(),
             transforms,
         ]
@@ -311,32 +327,26 @@ def get_surfrider(root:str, image_set:str, transforms:Callable) -> Dataset:
 
     dataset = CocoDetectionWithExif(img_folder, ann_file, transforms=transforms)
 
-    # if image_set == "train":
-    #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
-
     return dataset
 
 
 def get_surfrider_video_frames(root:str, image_set:str, transforms:Callable) -> Dataset:
 
-    """ Transform images to a dataset with specified transformation (class CocoDetection used).
+    """ Transform images to a dataset with specified transformation (class `CocoDetection used`).
 
     Args:
-        root (str): Root directory where images are downloaded to..
-        image_set (str): directory to annotation data. Two possible values : "train" or "val".
-        transforms (callable, optional): A function/transform that takes input sample and its target as entry
-        and returns a transformed version.
+        root (str): Root directory where images are downloaded to
+        image_set (str): directory to annotation data. Two possible values : ``"train"`` or ``"val"``.
+        transforms (Callable): A function/transform that takes input sample and its target as entry and returns a transformed version.
 
     Returns:
-        dataset (Dataset): dataset of images with specific transformations.
+        dataset (Dataset): dataset of images with specific transformations
     """
 
     PATHS = {
         "train": ("data", os.path.join("annotations", "annotations_train.json"),),
-        "val": ("data", os.path.join("annotations", "annotations_val.json")),
-        # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
+        "val": ("data", os.path.join("annotations", "annotations_val.json"))
     }
-    # CAT_LIST = [0, 1, 2, 3]
 
     transforms = Compose([ConvertCocoPolysToBboxes(), transforms])
 
@@ -348,13 +358,20 @@ def get_surfrider_video_frames(root:str, image_set:str, transforms:Callable) -> 
         img_folder, ann_file, transforms=transforms
     )
 
-    # if image_set == "train":
-    #     dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
-
     return dataset
 
 
 class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
+
+    """ Perform Coco detection with exif. 
+    
+    Args:
+        root (str): path of root folder / data folder
+        annFile (str): name of annotation file
+        transform (Optional[Callable]): transformation for detection. Set as default to ``None``.
+        target_transform (Optional[Callable]): target transformation for detection. Set as default to ``None``.
+        transforms (Optional[Callable]): transformations for detection. Set as default to ``None``.
+    """
 
     def __init__(
         self,
@@ -366,14 +383,15 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
     ):
         super().__init__(root, annFile, transform, target_transform, transforms)
 
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+    def __getitem__(self, index: int) -> Tuple[ndarray, ndarray]:
+
         """ Apply a transformation to the image which corresponds to the given index.
 
         Args:
-            index (int): Index
+            index (int): Index of item
 
         Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+            Tuple ``(image, target)`` with ``target`` is the object returned by ``coco.loadAnns``
         """
 
         coco = self.coco
@@ -383,25 +401,6 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
 
         path = coco.loadImgs(img_id)[0]["file_name"]
         img = imageio.imread(os.path.join(self.root, path))
-
-        # try:
-        #     img = Image.open(os.path.join(self.root, path)).convert('RGB')
-        #     for orientation in ExifTags.TAGS.keys():
-        #         if ExifTags.TAGS[orientation]=='Orientation':
-        #             break
-
-        #     exif = img._getexif()
-        #     if exif is not None:
-        #         if exif[orientation] == 3:
-        #             img=img.rotate(180, expand=True)
-        #         elif exif[orientation] == 6:
-        #             img=img.rotate(270, expand=True)
-        #         elif exif[orientation] == 8:
-        #             img=img.rotate(90, expand=True)
-
-        # except (AttributeError, KeyError, IndexError):
-        #     # cases: image don't have getexif
-        #     pass
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
