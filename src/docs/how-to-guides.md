@@ -1,40 +1,59 @@
-This part of the project documentation focuses on a
-**problem-oriented** approach. You'll tackle common
-tasks that you might have, with the help of the code
-provided in this project.
+# How to guides 
 
-## How To Add Two Numbers?
+## Project Layout
 
-You have two numbers and you need to add them together.
-You're in luck! The `calculator` package can help you
-get this done.
+    plasticorigins/
+            detection/
+                centernet/
+                    networks/
+                        mobilenet.py
+                    models.py
+                coco_utils.py
+                detect.py
+                losses.py
+                models.py
+                transforms.py
+                yolo.py
+            serving/
+                app.py
+                config.py
+                inference.py
+                wsgi.py
+            tools/
+                files.py
+                misc.py
+                optical_flow.py
+                video_readers.py
+            tracking/
+                postprocess_and_count_tracks.py
+                track_video.py
+                trackers.py
+                utils.py
+            training/
+                data/
+                    data_processing.py
+                    make_dataset.py
+                visualization/
+                    categories.py
 
-Download the code from this GitHub repository and place
-the `calculator/` folder in the same directory as your
-Python script:
+## Modules
 
-    your_project/
-    │
-    ├── calculator/
-    │   ├── __init__.py
-    │   └── calculations.py
-    │
-    └── your_script.py
+### Detection module
 
-Inside of `your_script.py` you can now import the
-`add()` function from the `calculator.calculations`
-module:
+Module of the inference part for the object detection phase. It includes several functions for pre-processing and image transformations, as well as the creation of Deep Learning models for detection (formatting) and evaluation of detections with loss functions. 
 
-    # your_script.py
-    from calculator.calculations import add
+### Serving module
 
-After you've imported the function, you can use it
-to add any two numbers that you need to add:
+Module of the inference part to manage the server connection part launching a Flask web application.
 
-    # your_script.py
-    from calculator.calculations import add
+### Tools module
 
-    print(add(20, 22))  # OUTPUT: 42.0
+Useful function module for heatmaps calculations, model predictions, playback and conversion of input videos and loading of external data.
 
-You're now able to add any two numbers, and you'll
-always get a `float` as a result
+### Tracking module
+
+Module of the inference part dedicated to tracking waste on videos/ images.
+
+### Training module
+
+Module of the training part allowing the construction of annotations and label files used for the training phases.

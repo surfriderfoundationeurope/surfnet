@@ -1,5 +1,7 @@
-This site contains the project documentation for the
-`plasticorigins` package used for trash object detection.
+## Description of the project
+
+The Plastic Origins package developed by Surfrider Foundation Europe is a participatory science project aimed at mapping plastic pollution in rivers in France and Europe. The project uses an artificial intelligence algorithm to
+detect and count the wastes washed up on river banks. This mapping will make it possible to identify the territories most affected, to propose solutions to local actors and to measure the evolutiono of pollutionover time.
 
 ## Table Of Contents
 
@@ -10,10 +12,8 @@ This site contains the project documentation for the
 
 ## Project Overview
 
-::: plasticorigins
-
-## Acknowledgements
-
+This site contains the project documentation for the
+`plasticorigins` package used for trash object detection.
 
 ## Project layout
 
@@ -47,37 +47,19 @@ This site contains the project documentation for the
         installation.md   # The installation page.
         tutorials.md   # The tutorials page.
         
-    plasticorigins/
-        detection/
-            centernet/
-                networks/
-                    mobilenet.py
-                models.py
-            coco_utils.py
-            detect.py
-            losses.py
-            models.py
-            transforms.py
-            yolo.py
-        serving/
-            app.py
-            config.py
-            inference.py
-            wsgi.py
-        tools/
-            files.py
-            misc.py
-            optical_flow.py
-            video_readers.py
-        tracking/
-            postprocess_and_count_tracks.py
-            track_video.py
-            trackers.py
-            utils.py
-        training/
-            data/
-                data_processing.py
-                make_dataset.py
-            visualization/
-                categories.py
 
+## Results and beneficiaries
+
+The data collected will be accessible and
+downloadable by all from www.plasticorigins.eu.
+Thanks to these results, we will know where to
+act and will be able to measure the effectiveness
+of our actions
+
+## Acknowledgements
+
+The data collected will be accessible and
+downloadable by all from www.plasticorigins.eu.
+Thanks to these results, we will know where to
+act and will be able to measure the effectiveness
+of our actions.

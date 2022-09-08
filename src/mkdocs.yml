@@ -5,11 +5,9 @@ theme:
 
 plugins:
   - mkdocstrings
-  
-#yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
 nav:
-    - Home: index.md
+    - Plastic Origins: index.md
     - Tutorials: tutorials.md 
     - Installation: installation.md
     - How to guide: how-to-guides.md
