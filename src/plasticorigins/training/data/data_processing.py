@@ -286,8 +286,8 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
             count_missing +=1
 
         if count_exists%500==0:
-                print("Exists : ", count_exists)
-                print("Missing : ",count_missing)
+            print("Exists : ", count_exists)
+            print("Missing : ",count_missing)
 
     print(f"Process finished successfully with {count_missing} missing images !")
 

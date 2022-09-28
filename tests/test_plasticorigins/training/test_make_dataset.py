@@ -1,4 +1,3 @@
-import argparse
 from plasticorigins.training.data.make_dataset2 import main #, args
 from argparse import Namespace
 
@@ -48,6 +47,6 @@ def test_main():
     # valid arguments with csv file to get annotations without exclude ids
     main(args_3)
 
-    #assert type(args) == Namespace
+    # assert type(args) == Namespace
 
 

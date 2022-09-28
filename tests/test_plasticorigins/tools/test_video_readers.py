@@ -1,5 +1,3 @@
-import numpy as np
-
 from plasticorigins.tools.video_readers import SimpleVideoReader
 from plasticorigins.serving.inference import config_track
 
