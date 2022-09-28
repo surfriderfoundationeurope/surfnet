@@ -95,7 +95,7 @@ class ToTensorBboxes:
             )
         else:
             blobs = np.zeros(shape=(self.num_classes + 2, h, w))
-
+    
         for bbox_imgaug in bboxes:
             cat = bbox_imgaug.label - 1
             bbox = [
@@ -104,7 +104,7 @@ class ToTensorBboxes:
                 bbox_imgaug.width,
                 bbox_imgaug.height,
             ]
-
+            
             new_blobs, ct_int = blob_for_bbox(
                 bbox, blobs[cat], self.downsampling_factor
             )
@@ -158,7 +158,7 @@ class TrainTransforms:
     """ Apply transformations on images for training.
 
     Args:
-        base_size (Tuple[int,int]): base size of images ``(H, W)``
+        base_size (int): base size of images
         crop_size (Tuple[int,int]): crop size of images ``(H, W)``
         num_classes (int): number of object classes
         downsampling_factor (float): downsampling factor
@@ -169,7 +169,7 @@ class TrainTransforms:
 
     def __init__(
         self,
-        base_size:Tuple[int,int],
+        base_size:int,
         crop_size:Tuple[int,int],
         num_classes:int,
         downsampling_factor:float,

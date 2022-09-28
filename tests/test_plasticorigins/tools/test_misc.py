@@ -1,12 +1,7 @@
 import numpy as np
-from PIL import Image
-from torch import Tensor
 
 from plasticorigins.detection.centernet.networks.mobilenet import MobiletNetHM
-from plasticorigins.tools.misc import (
-    blob_for_bbox,
-    load_model,
-)
+from plasticorigins.tools.misc import (blob_for_bbox, load_model)
 from plasticorigins.serving.config import config_track
 
 

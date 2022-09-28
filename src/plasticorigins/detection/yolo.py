@@ -13,7 +13,6 @@ This submodule contains the following functions:
 """
 
 import json
-from tkinter import Image
 from typing import Any, Tuple, Union, Dict, Optional
 import cv2
 from cv2 import Mat

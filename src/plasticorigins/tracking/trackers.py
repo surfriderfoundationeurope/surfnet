@@ -38,7 +38,7 @@ class Tracker:
     def __init__(
         self,
         frame_nb:int,
-        X0:array[Any,dtype[float64]],
+        X0:array,
         confidence:float,
         class_id:int,
         transition_variance:ndarray[Any,dtype[float64]],
@@ -180,7 +180,7 @@ class EKF(Tracker):
     def __init__(
         self,
         frame_nb:int,
-        X0:array[Any,dtype[float64]],
+        X0:array,
         confidence:float,
         class_id:int,
         transition_variance:ndarray[Any,dtype[float64]],

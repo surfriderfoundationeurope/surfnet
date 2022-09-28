@@ -182,6 +182,12 @@ To launch the tests you can run this command
 ```shell
 poetry run coverage run -m pytest -s && poetry run coverage report -m
 ```
+
+To launch the tests and ignore useless files you can run this command
+```shell
+poetry run coverage run -m pytest -s && poetry run coverage report --omit src/plasticorigins/training/setup.py,src/plasticorigins/training/test_environment.py,src/plasticorigins/serving/wsgi.py,src/plasticorigins/detection/coco_utils.py,src/plasticorigins/detection/losses.py,src/plasticorigins/detection/yolo.py -m
+```
+
 ## Configuration
 
 `src/serving/inference.py` contains a Configuration dictionary that you may change:

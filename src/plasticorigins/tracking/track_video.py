@@ -28,8 +28,8 @@ from plasticorigins.tracking.utils import in_frame
 def init_trackers(
     engine:Any,
     detections:List[ndarray],
-    confs:array[Any,dtype[float64]],
-    labels:array[Any,dtype[int64]],
+    confs:array,
+    labels:array,
     frame_nb:int,
     state_variance:ndarray[Any,dtype[float64]],
     observation_variance:ndarray[Any,dtype[float64]],
@@ -95,8 +95,8 @@ def build_confidence_function_for_trackers(trackers:Dict[int,Tracker], flow01:nd
 
 def associate_detections_to_trackers(
     detections_for_frame:List[ndarray], 
-    confs:array[Any,dtype[float64]], 
-    labels:array[Any,dtype[int64]], 
+    confs:array, 
+    labels:array, 
     trackers:Dict[int,Tracker], 
     flow01:ndarray, 
     confidence_threshold:float) -> List:
@@ -142,7 +142,7 @@ def associate_detections_to_trackers(
     return assigned_trackers
 
 
-def interpret_detection(detections_for_frame:List[ndarray], downsampling_factor:Union[int,float], is_yolo:bool=False) -> Tuple[List[ndarray],array[Any,dtype[float64]],array[Any,dtype[int64]]]:
+def interpret_detection(detections_for_frame:List[ndarray], downsampling_factor:Union[int,float], is_yolo:bool=False) -> Tuple[List[ndarray],array,array]:
 
     """Normalizes the detections depending whether they come from Centernet or Yolo model
     

@@ -61,7 +61,7 @@ class GaussianMixture:
         ]
         self.weights = weights
 
-    def pdf(self, x:ndarray[Any]) -> ndarray[Any,dtype[float64]]:
+    def pdf(self, x:ndarray) -> ndarray:
 
         """ This method computes the Probability Density Function (pdf) for Gaussian Mixture.
         
@@ -79,7 +79,7 @@ class GaussianMixture:
 
         return result
 
-    def logpdf(self, x:ndarray[Any]) -> ndarray[Any,dtype[float64]]:
+    def logpdf(self, x:ndarray) -> ndarray:
 
         """ This method computes the standard LOGistic (i.e, mean=0, std=π/sqrt(3)) Probability Density Function (logpdf) for Gaussian Mixture.
         
@@ -92,7 +92,7 @@ class GaussianMixture:
 
         return np.log(self.pdf(x))
 
-    def cdf(self, x:ndarray[Any]) -> ndarray[Any,dtype[float64]]:
+    def cdf(self, x:ndarray) -> ndarray:
 
         """ This method computes the Cumulative Density Function (pdf) for Gaussian Mixture.
         
@@ -127,8 +127,8 @@ def exp_and_normalize(lw:ndarray[Any,dtype[float64]]) -> ndarray[Any,dtype[float
     return w / w.sum()
 
 
-def in_frame(position:Union[Tuple[int,int],List[int,int],array[int,int]], 
-                shape:Union[Tuple[int,int],List[int,int],array[int,int]], 
+def in_frame(position:Union[Tuple[int,int],List[int],array], 
+                shape:Union[Tuple[int,int],List[int],array], 
                 border:float=0.02) -> bool:
 
     """Check if the (object) position is inside the image.
@@ -156,7 +156,7 @@ def in_frame(position:Union[Tuple[int,int],List[int,int],array[int,int]],
     )
 
 
-def gather_filenames_for_video_in_annotations(video:Dict, images:List[Dict], data_dir:str) -> List[Any,type[str]]:
+def gather_filenames_for_video_in_annotations(video:Dict, images:List[Dict], data_dir:str) -> List[str]:
 
     """ Gather image names from a video for annotations.
     

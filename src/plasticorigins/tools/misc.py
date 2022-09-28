@@ -146,13 +146,15 @@ def draw_umich_gaussian(heatmap:ndarray, center:Tuple[Union[float,int],Union[flo
     top, bottom = min(y, radius), min(height - y, radius + 1)
 
     masked_heatmap = heatmap[y - top : y + bottom, x - left : x + right]
+    
     masked_gaussian = gaussian[
         radius - top : radius + bottom, radius - left : radius + right
     ]
     if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0:  # TODO debug
         np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
 
-    return masked_heatmap
+    #return masked_heatmap # TODO debug
+    return heatmap
 
 
 def blob_for_bbox(bbox:Union[List,array], heatmap:ndarray, downsampling_factor:Optional[float]=None) -> Tuple[ndarray,array]:

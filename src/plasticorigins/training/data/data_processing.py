@@ -23,12 +23,12 @@ import os
 from pathlib import Path, WindowsPath
 import yaml
 import psycopg2
-from typing import Any, Tuple, List, Optional, Union
+from typing import Tuple, List, Optional, Union
 from datetime import datetime
 from tqdm import tqdm
 
 import numpy as np
-from numpy import ndarray, array, dtype, int64
+from numpy import ndarray, array
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from pandas import DataFrame
@@ -36,34 +36,83 @@ import cv2
 
 from matplotlib import image
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from PIL import Image, ExifTags
+from PIL import Image, ExifTags, ImageDraw
 
 
-def plot_image_and_bboxes(img:image, anns:list, ratio:float) -> None:
+class_id_to_name_mapping = {1: 'Insulating material',
+                            4: 'Drum',
+                            2: 'Bottle-shaped',
+                            3: 'Can-shaped',
+                            5: 'Other packaging',
+                            6: 'Tire',
+                            7: 'Fishing net / cord',
+                            8: 'Easily namable',
+                            9: 'Unclear',
+                            0: 'Tarp / fragment',
+                            10: 'Sheet',
+                            11: 'Black Tarp / Plastic'}
+
+
+# def plot_image_and_bboxes(img:image, anns:list, ratio:float) -> None:
+
+#     """ Plots the image and the bounding box(es) associated to the detected object(s).
+
+#     Args:
+#         img (image): Image, from the instance file
+#         anns (list): Annotations linked to the specified image, from instance file
+#         ratio (float): Ratio - most often defined at the (1080/height of the image)
+#     """
+
+#     _, ax = plt.subplots(1, figsize=(12, 10))
+#     ax.imshow(img)
+
+#     for ann in anns:
+#         [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
+#         # Obtains the new coordinates of the bboxes - normalized via the ratio.
+#         rect = patches.Rectangle((bbox_x, bbox_y), bbox_w, bbox_h, linewidth=2, edgecolor='r', facecolor="none")
+#         ax.add_patch(rect)
+
+#     plt.show()
+#     # Prints out a 12 * 10 image with bounding box(es).
+
+    
+def plot_image_and_bboxes_yolo(image:image, annotation_list:ndarray) -> None:
 
     """ Plots the image and the bounding box(es) associated to the detected object(s).
 
     Args:
-        img (image): Image, from the instance file
-        anns (list): Annotations linked to the specified image, from instance file
-        ratio (float): Ratio - most often defined at the (1080/height of the image)
+        image (image): Image, from the instance file
+        annotation_list (ndarray): Annotations linked to the specified image, from instance file
     """
 
-    _, ax = plt.subplots(1, figsize=(12, 10))
-    ax.imshow(img)
+    annotations = np.array(annotation_list)
+    
+    w, h = image.size
+    
+    plotted_image = ImageDraw.Draw(image)
 
-    for ann in anns:
-        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
-        # Obtains the new coordinates of the bboxes - normalized via the ratio.
-        rect = patches.Rectangle((bbox_x, bbox_y), bbox_w, bbox_h, linewidth=2, edgecolor='r', facecolor="none")
-        ax.add_patch(rect)
-
+    transformed_annotations = np.copy(annotations)
+    transformed_annotations[:,[1,3]] = annotations[:,[1,3]] * w
+    transformed_annotations[:,[2,4]] = annotations[:,[2,4]] * h 
+    
+    transformed_annotations[:,1] = transformed_annotations[:,1] - (transformed_annotations[:,3] / 2)
+    transformed_annotations[:,2] = transformed_annotations[:,2] - (transformed_annotations[:,4] / 2)
+    transformed_annotations[:,3] = transformed_annotations[:,1] + transformed_annotations[:,3]
+    transformed_annotations[:,4] = transformed_annotations[:,2] + transformed_annotations[:,4]
+    
+    for ann in transformed_annotations:
+        obj_cls, x0, y0, x1, y1 = ann
+    
+        plotted_image.rectangle(((x0,y0), (x1,y1)), outline="#ff8300", width=5)
+        
+        plotted_image.text((x0, y0 - 10), class_id_to_name_mapping[(int(obj_cls))])
+    
+    plt.figure(figsize = (12,10))
+    plt.imshow(np.array(image))
     plt.show()
-    # Prints out a 12 * 10 image with bounding box(es).
 
 
-def image_orientation (image:image) -> image:
+def image_orientation(image:image) -> image:
 
     """ Function which gives the images that have a specified orientation the same orientation.
         If the image does not have an orientation, the image is not altered.
@@ -137,8 +186,8 @@ def process_annotations(anns:DataFrame, ratio:float, target_h:int=1080, target_w
 
 
 def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPath, df_bboxes:DataFrame, 
-                                        df_images:DataFrame, limit_data:int, context_filters:str = None, 
-                                        quality_filters:str = None, exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
+                                        df_images:DataFrame, context_filters:str = None, 
+                                        quality_filters:str = None, limit_data:int=0, exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
     
     """ Generates the .txt files that are necessary for yolo training. See
     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format.
@@ -149,11 +198,11 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
         path_bboxes (str): path of the bounding_boxes csv file
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
-        limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
         context_filters (str): the list of context filters in this format : "[context1,context2,...]". For example, `"[river,nature]"`. Set as defaults to ``None``.
         quality_filters (str): the list of quality filters in this format : "[quality1,quality2,...]". For example, `"[good,medium]"`. Set as defaults to ``None``.
+        limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
         exclude_ids (Optional[set]): Set of image id to exclude from the process. Set as default to ``None``.
-
+        
     Returns:
         valid_imagenames (List): list of image names that have been processed with success
         cpos (int): number of images with success
@@ -161,7 +210,6 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
     """
 
     valid_imagenames = []
-
     input_img_folder = Path(images_dir)
     data_dir = Path(data_dir)
     list_imgs = sorted(os.listdir(input_img_folder))
@@ -179,8 +227,9 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
     if quality_filters:
         quality_filters = quality_filters[1:-1].split(",")
         df_images = df_images[df_images["image_quality"].isin(quality_filters)]
+    
+    used_imgs = used_imgs & set(df_images.index)
 
-    used_imgs = used_imgs & set(df_images.index) 
     print(f"number of images after applying context and quality filters: {len(used_imgs)}")
 
     if exclude_ids:
@@ -245,117 +294,117 @@ def build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPa
     return valid_imagenames, count_exists, count_missing
 
 
-def build_yolo_annotations_for_images_VM(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str, 
-                                        df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
-                                        exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
+# def build_yolo_annotations_for_images_VM(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str, 
+#                                         df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
+#                                         exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
     
-    """ Generates the .txt files that are necessary for yolo training. See
-    https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format.
+#     """ Generates the .txt files that are necessary for yolo training. See
+#     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format.
 
-    Args:
-        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
-        images_dir (WindowsPath): path of the image directory. It should contain a folder with all images.
-        path_bboxes (str): path of the bounding_boxes csv file
-        df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
-        df_images (DataFrame): DataFrame with the image informations
-        limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
-        exclude_ids (Optional[set]): Set of image id to exclude from the process. Set as default to ``None``.
+#     Args:
+#         data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
+#         images_dir (WindowsPath): path of the image directory. It should contain a folder with all images.
+#         path_bboxes (str): path of the bounding_boxes csv file
+#         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
+#         df_images (DataFrame): DataFrame with the image informations
+#         limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
+#         exclude_ids (Optional[set]): Set of image id to exclude from the process. Set as default to ``None``.
 
-    Returns:
-        valid_imagenames (List): list of image names that have been processed with success
-        cpos (int): number of images with success
-        cneg (int): number of images with fail
-    """
+#     Returns:
+#         valid_imagenames (List): list of image names that have been processed with success
+#         cpos (int): number of images with success
+#         cneg (int): number of images with fail
+#     """
 
-    valid_imagenames = []
+#     valid_imagenames = []
 
-    list_imgs = sorted(os.listdir(images_dir))
-    used_imgs = set(df_bboxes["id_ref_images_for_labelling"].values)
+#     list_imgs = sorted(os.listdir(images_dir))
+#     used_imgs = set(df_bboxes["id_ref_images_for_labelling"].values)
 
-    print(f"number of images in images folder: {len(list_imgs)}")
-    print(f"number of images referenced in database: {len(df_images)}")
-    print(f"number of images with a bbox in database: {len(used_imgs)}")
+#     print(f"number of images in images folder: {len(list_imgs)}")
+#     print(f"number of images referenced in database: {len(df_images)}")
+#     print(f"number of images with a bbox in database: {len(used_imgs)}")
 
-    if exclude_ids:
-        used_imgs = used_imgs - exclude_ids
-        print(f"after exclusion, number of images with a bbox in database: {len(used_imgs)}")
+#     if exclude_ids:
+#         used_imgs = used_imgs - exclude_ids
+#         print(f"after exclusion, number of images with a bbox in database: {len(used_imgs)}")
 
-    if not Path.exists(data_dir / "images"):
-        os.mkdir(data_dir / "images")
-    if not Path.exists(data_dir / "labels"):
-        os.mkdir(data_dir / "labels")
+#     if not Path.exists(data_dir / "images"):
+#         os.mkdir(data_dir / "images")
+#     if not Path.exists(data_dir / "labels"):
+#         os.mkdir(data_dir / "labels")
 
-    # to determine which methods or annotation processing we will use 
-    # (it depends if we work with the whole dataset or not)
-    fast_ann_process = False
-    if path_bboxes.split("/")[-1].split("_")[0] == "filter":
-        fast_ann_process = True
+#     # to determine which methods or annotation processing we will use 
+#     # (it depends if we work with the whole dataset or not)
+#     fast_ann_process = False
+#     if path_bboxes.split("/")[-1].split("_")[0] == "filter":
+#         fast_ann_process = True
 
-    count_exists, count_missing = 0, 0
+#     count_exists, count_missing = 0, 0
 
-    print("Start building the annotations ...")
+#     print("Start building the annotations ...")
 
-    for img_id in used_imgs:
-        img_name = df_images.loc[img_id]["filename"]
-        if Path.exists(images_dir / img_name):
-            count_exists += 1
-            if limit_data > 0 and count_exists > limit_data:
-                break
+#     for img_id in used_imgs:
+#         img_name = df_images.loc[img_id]["filename"]
+#         if Path.exists(images_dir / img_name):
+#             count_exists += 1
+#             if limit_data > 0 and count_exists > limit_data:
+#                 break
             
-            image = Image.open(images_dir / img_name)
+#             image = Image.open(images_dir / img_name)
 
-            # in place rotation of the image using Exif data
-            try :
-                image = image_orientation(image)
-            except :
-                pass
+#             # in place rotation of the image using Exif data
+#             try :
+#                 image = image_orientation(image)
+#             except :
+#                 pass
 
-            image    = np.array(image)
-            h, w     = image.shape[:-1]
-            target_h = 1080 # the target height of the image
-            ratio    = target_h / h # We get the ratio of the target and the actual height
-            target_w = int(ratio*w)
-            image    = cv2.resize(image, (target_w, target_h))
-            h, w     = image.shape[:-1]
+#             image    = np.array(image)
+#             h, w     = image.shape[:-1]
+#             target_h = 1080 # the target height of the image
+#             ratio    = target_h / h # We get the ratio of the target and the actual height
+#             target_w = int(ratio*w)
+#             image    = cv2.resize(image, (target_w, target_h))
+#             h, w     = image.shape[:-1]
 
-            # getting annotations and converting to yolo
+#             # getting annotations and converting to yolo
 
-            if fast_ann_process:
+#             if fast_ann_process:
 
-                bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]["bboxes"]
-                bboxes = bboxes.iloc[0]
-                bboxes = bboxes[1:-1].replace("'","").split(", ")
-                yolo_strs = []
-                for bbox in bboxes:
-                    yolo_strs.append(bbox.strip("\\n"))
+#                 bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]["bboxes"]
+#                 bboxes = bboxes.iloc[0]
+#                 bboxes = bboxes[1:-1].replace("'","").split(", ")
+#                 yolo_strs = []
+#                 for bbox in bboxes:
+#                     yolo_strs.append(bbox.strip("\\n"))
 
-            else :
+#             else :
 
-                anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
-                labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
-                yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
+#                 anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
+#                 labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
+#                 yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
 
-            # writing the image and annotation
-            img_file_name   = data_dir / "images" / (img_id + ".jpg")
-            label_file_name = data_dir / "labels" / (img_id + ".txt")
-            Image.fromarray(image).save(img_file_name)
-            with open(label_file_name, 'w') as f:
-                f.write('\n'.join(yolo_strs))
+#             # writing the image and annotation
+#             img_file_name   = data_dir / "images" / (img_id + ".jpg")
+#             label_file_name = data_dir / "labels" / (img_id + ".txt")
+#             Image.fromarray(image).save(img_file_name)
+#             with open(label_file_name, 'w') as f:
+#                 f.write('\n'.join(yolo_strs))
 
-            valid_imagenames.append(img_file_name.as_posix())
-        else:
-            count_missing +=1
+#             valid_imagenames.append(img_file_name.as_posix())
+#         else:
+#             count_missing +=1
 
-        if count_exists%500==0:
-                print("Exists : ", count_exists)
-                print("Missing : ",count_missing)
+#         if count_exists%500==0:
+#                 print("Exists : ", count_exists)
+#                 print("Missing : ",count_missing)
 
-    print(f"Process finished successfully with {count_missing} missing images !")
+#     print(f"Process finished successfully with {count_missing} missing images !")
 
-    return valid_imagenames, count_exists, count_missing
+#     return valid_imagenames, count_exists, count_missing
 
 
-def get_train_valid(list_files:List[Any,type[str]], split:float=0.85) -> Tuple[List[Any,type[str]],List[Any,type[str]]]:
+def get_train_valid(list_files:List[str], split:float=0.85) -> Tuple[List[str],List[str]]:
 
     """Split data into train and validation partitions.
 
@@ -375,7 +424,7 @@ def get_train_valid(list_files:List[Any,type[str]], split:float=0.85) -> Tuple[L
     return train_files, val_files
 
 
-def generate_yolo_files(output_dir:WindowsPath, train_files:List[Any,type[str]], val_files:List[Any,type[str]]) -> None:
+def generate_yolo_files(output_dir:WindowsPath, train_files:List[str], val_files:List[str]) -> None:
 
     """ Generates data files for yolo training: train.txt, val.txt and data.yaml.
 
@@ -484,7 +533,7 @@ def save_annotations_to_files(output_dir:WindowsPath, df_bboxes:DataFrame, df_im
         df_images (DataFrame): DataFrame with the image informations
     """
 
-    df_bboxes.to_csv(output_dir / "bbox.csv")
+    df_bboxes.to_csv(output_dir / "bboxes.csv")
     df_images.to_csv(output_dir / "images.csv")
 
 
@@ -509,7 +558,7 @@ def find_img_ids_to_exclude(data_dir:WindowsPath) -> set:
 """-------- FONCTIONS FOR UPDATING THE DATABASE ---------"""
 
 
-def convert_bboxes_to_initial_locations_from_txt_labels(labels_folder_path:Union[str,WindowsPath], img_id:str, target_h:int, ratio:float, target_w:int) -> Tuple[array[dtype[int64]],array[dtype[int64]]]:
+def convert_bboxes_to_initial_locations_from_txt_labels(labels_folder_path:Union[str,WindowsPath], img_id:str, target_h:int, ratio:float, target_w:int) -> Tuple[array,array]:
 
     """ Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.
 
@@ -614,10 +663,8 @@ def build_bboxes_csv_file_for_DB(data_dir:Union[WindowsPath,str], images_dir:Uni
             image = Image.open(input_img_folder / img_name)
 
             # in place rotation of the image using Exif data
-            try :
-                image = image_orientation(image)
-            except :
-                pass
+            
+            image = image_orientation(image)
 
             image    = np.array(image)
             h, w     = image.shape[:-1]
@@ -660,13 +707,9 @@ def build_bboxes_csv_file_for_DB(data_dir:Union[WindowsPath,str], images_dir:Uni
                 index += 20
                 
             count_exists+=1
-
+            
         except:
             exceptions.append(img_id)
-
-        if count_exists % 500 == 0:
-            print(count_exists)
-            print(len(new_df_bboxes))
 
     print(f"Process finished successfully with {count_exists} updated images !")
 
