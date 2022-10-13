@@ -219,12 +219,19 @@ class EKF(Tracker):
         """
 
         flow_value = flow[
-            int(self.filtered_state_mean[1]), int(self.filtered_state_mean[0]), :,
+            int(self.filtered_state_mean[1]),
+            int(self.filtered_state_mean[0]),
+            :,
         ]
 
         grad_flow_value = np.array(
             [np.gradient(flow[:, :, 0]), np.gradient(flow[:, :, 1])]
-        )[:, :, int(self.filtered_state_mean[1]), int(self.filtered_state_mean[0]),]
+        )[
+            :,
+            :,
+            int(self.filtered_state_mean[1]),
+            int(self.filtered_state_mean[0]),
+        ]
         return (
             np.eye(2) + grad_flow_value,
             flow_value - grad_flow_value.dot(self.filtered_state_mean),
@@ -272,9 +279,10 @@ class EKF(Tracker):
         if observation is not None:
             self.store_observation(observation, frame_nb, confidence, class_id)
 
-        (self.filtered_state_mean, self.filtered_state_covariance,) = self.EKF_step(
-            observation, flow
-        )
+        (
+            self.filtered_state_mean,
+            self.filtered_state_covariance,
+        ) = self.EKF_step(observation, flow)
 
         enabled = (
             False if not in_frame(self.filtered_state_mean, flow.shape[:-1]) else True
