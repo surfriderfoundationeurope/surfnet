@@ -602,6 +602,136 @@ def convert_bboxes_to_initial_locations_from_txt_labels(labels_folder_path:Union
     return labels, bboxes.astype(int)
 
 
+"""--------- UPDATE BOUNDING BOXES DATABASE DIRECTLY ----------"""      
+    
+def update_bounding_boxes_database(data_dir:Union[WindowsPath,str], images_dir:Union[WindowsPath,str], labels_folder_name:Union[str,WindowsPath],
+                                 df_bboxes:DataFrame, df_images:DataFrame) -> None:
+
+    """ Update directly the Bounding Boxes DataBase from label folder.
+
+    Args:
+        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
+        images_dir (WindowsPath): path of the image directory. It should contain a folder with all images.
+        labels_folder_name (Union[str,WindowsPath]): the name of the labels folder or the path od this folder.
+        df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
+        df_images (DataFrame): DataFrame with the image informations
+    """
+
+    input_img_folder = Path(images_dir)
+    data_dir = Path(data_dir)
+    list_imgs = sorted(os.listdir(input_img_folder))
+    used_imgs = set(df_bboxes["id_ref_images_for_labelling"].values)
+    labels_folder_path = Path(labels_folder_name)
+
+    
+    modified_imgs = set(os.listdir(labels_folder_path))
+    modified_ids = set([img_txt.split(".")[0] for img_txt in modified_imgs])
+
+    none_modified_imgs = used_imgs - modified_ids
+
+    print(f"number of images in images folder: {len(list_imgs)}")
+    print(f"number of images referenced in database: {len(df_images)}")
+    print(f"number of images used in database: {len(used_imgs)}")
+    print(f"number of images to update in database: {len(modified_ids)}")
+    print(f"number of images to keep without updates in database: {len(none_modified_imgs)}")
+
+    count_exists = 0
+
+    print("Start updating the annotations ...")
+
+    # Update connection string information
+    host = "pgdb-plastico-prod.postgres.database.azure.com"
+    dbname = "plastico-prod"
+    user = "surfriderrootuser@pgdb-plastico-prod"
+    password = 'dbc28a2c088e4942a573c#17b1e469e83'
+    sslmode = "require"
+
+    # Construct connection string
+    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn = psycopg2.connect(conn_string)
+    print("Connection established")
+
+    # Insert all raow from csv file
+    cursor = conn.cursor()
+
+    for img_id in tqdm(modified_ids):
+
+        try:
+            img_name = df_images.loc[img_id]["filename"]
+        except: 
+            continue
+
+        infos_df_bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
+        
+        nb_trashs = len(infos_df_bboxes)
+
+        image = Image.open(input_img_folder / img_name)
+
+        # in place rotation of the image using Exif data
+        
+        try:
+            image = image_orientation(image)
+        except:
+            pass
+
+        image    = np.array(image)
+        h, w     = image.shape[:-1]
+        target_h = 1080 # the target height of the image
+        ratio    = target_h / h # We get the ratio of the target and the actual height
+        target_w = int(ratio*w)
+        image    = cv2.resize(image, (target_w, target_h))
+        h, w     = image.shape[:-1]
+
+        labels, bboxes = convert_bboxes_to_initial_locations_from_txt_labels(labels_folder_path, img_id, target_h, ratio, target_w)
+        
+        row_diff = nb_trashs - len(labels)
+
+        if row_diff < 0:
+
+            for i in range(nb_trashs):
+                row = (infos_df_bboxes.iloc[i]["id"], int(labels[i]), img_id, int(bboxes[i,0]), int(bboxes[i,1]), int(bboxes[i,2]), int(bboxes[i,3]))
+                row = row[1:] + (row[0],)
+                cursor.execute('UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s', row)
+
+            # add new rows for new trashs:
+            for i in range(nb_trashs, nb_trashs + row_diff):
+                row = (None, None, datetime.now(), int(labels[i]), img_id, int(bboxes[i,0]), int(bboxes[i,1]), int(bboxes[i,2]), int(bboxes[i,3]))
+                cursor.execute('INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+                                createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)', row)
+
+        elif row_diff > 0:
+
+            for i in range(len(labels)):
+                row = (infos_df_bboxes.iloc[i]["id"], int(labels[i]), img_id, int(bboxes[i,0]), int(bboxes[i,1]), int(bboxes[i,2]), int(bboxes[i,3]))
+                row = row[1:] + (row[0],)
+                cursor.execute('UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s', row)
+        else:
+
+            for i in range(nb_trashs):
+                row = (infos_df_bboxes.iloc[i]["id"], int(labels[i]), img_id, int(bboxes[i,0]), int(bboxes[i,1]), int(bboxes[i,2]), int(bboxes[i,3]))
+                row = row[1:] + (row[0],)
+                cursor.execute('UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s', row)
+            
+        count_exists+=1
+        conn.commit()
+        
+    count = cursor.rowcount
+    print (count, "successful update into the bounding_boxes table.")
+
+    #Closure of the DB connection
+    cursor.close()
+    conn.close()
+    print("The PostgreSQL connection is close")
+
+    print(f"Process finished successfully with {count_exists} updated images !")
+
+
+
+"""--------- UPDATE BOUNDING BOXES DATABASE FROM CSV FILE ----------"""  
 
 def build_bboxes_csv_file_for_DB(data_dir:Union[WindowsPath,str], images_dir:Union[WindowsPath,str], labels_folder_name:Union[str,WindowsPath],
                                  df_bboxes:DataFrame, df_images:DataFrame) -> Tuple[DataFrame,List]:
@@ -714,3 +844,101 @@ def build_bboxes_csv_file_for_DB(data_dir:Union[WindowsPath,str], images_dir:Uni
     print(f"Process finished successfully with {count_exists} updated images !")
 
     return new_df_bboxes, exceptions
+
+
+
+def fill_bounding_boxes_table_with_corrections(new_csv_bounding_boxes:Union[WindowsPath,str]) -> None:
+
+    """ Fill the bounding boxes DataBase from scratch. Requires that your IP is configured in Azure.
+    
+    Args:
+        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
+    """
+
+    # Update connection string information
+    host = "pgdb-plastico-prod.postgres.database.azure.com"
+    dbname = "plastico-prod"
+    user = "surfriderrootuser@pgdb-plastico-prod"
+    password = 'dbc28a2c088e4942a573c#17b1e469e83'
+    sslmode = "require"
+
+    # Construct connection string
+    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn = psycopg2.connect(conn_string)
+    print("Connection established")
+
+    # Insert all raow from csv file
+    cursor = conn.cursor()
+
+    new_df_bboxes = pd.read_csv(new_csv_bounding_boxes)
+
+    for i in tqdm(range(len(new_df_bboxes))):
+
+        row = tuple(new_df_bboxes.loc[i])
+        row = tuple([int(val) if type(val) != str else val for val in row ])
+        
+        cursor.execute('INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+            createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)', row)
+
+        conn.commit()
+        count = cursor.rowcount
+    print (count, "successful inserts into the bounding_boxes table.")
+  
+    #Closure of the DB connection
+    cursor.close()
+    conn.close()
+    print("The PostgreSQL connection is close")
+
+
+def update_bounding_boxes_table_with_corrections(new_csv_bounding_boxes) -> None:
+
+    """ Update the bounding boxes DataBase from a csv file with annotation corrections. Requires that your IP is configured in Azure.
+    
+    Args:
+        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
+    """
+
+    # Update connection string information
+    host = "pgdb-plastico-prod.postgres.database.azure.com"
+    dbname = "plastico-prod"
+    user = "surfriderrootuser@pgdb-plastico-prod"
+    password = 'dbc28a2c088e4942a573c#17b1e469e83'
+    sslmode = "require"
+
+    # Construct connection string
+    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn = psycopg2.connect(conn_string)
+    print("Connection established")
+
+    # Insert all raow from csv file
+    cursor = conn.cursor()
+
+    new_df_bboxes = pd.read_csv(new_csv_bounding_boxes)
+
+    for i in tqdm(range(len(new_df_bboxes))):
+
+        row = tuple(new_df_bboxes.loc[i])
+        row = tuple([int(val) if (type(val) != str and val is not None) else val for val in row ])
+
+        if row[0] is None:
+        
+            cursor.execute('INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+                createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                    width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)', row)
+
+        else:
+
+            row = row[1:] + (row[0],)
+            cursor.execute('UPDATE "label".bounding_boxes_with_corrections SET (id_creator_fk, \
+                createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                    width, height) = (%s, %s, %s, %s, %s, %s, %s, %s) WHERE id = %s', row)
+
+        conn.commit()
+    count = cursor.rowcount
+    print (count, "successful update into the bounding_boxes table.")
+  
+    #Closure of the DB connection
+    cursor.close()
+    conn.close()
+    print("The PostgreSQL connection is close")
