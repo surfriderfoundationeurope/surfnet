@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 from typing import Tuple
 
+import warnings
 import numpy as np
 import torch
 from flask import jsonify, request
@@ -28,8 +29,8 @@ from werkzeug.utils import secure_filename
 
 # imports for tracking
 from plasticorigins.detection.detect import detect
-from plasticorigins.tools.files import create_unique_folder
-from plasticorigins.tools.misc import load_model
+from plasticorigins.tools.files import create_unique_folder, download_from_url
+
 from plasticorigins.tools.video_readers import IterableFrameReader
 from plasticorigins.tracking.postprocess_and_count_tracks import (
     filter_tracks,
@@ -42,7 +43,11 @@ from plasticorigins.tracking.utils import (
     read_tracking_results,
     write_tracking_results_to_file,
 )
-from plasticorigins.serving.config import config_track, id_categories
+from plasticorigins.serving.config import id_categories
+
+# centernet / yolo version
+# from plasticorigins.serving.config import config_track
+from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()
 
@@ -55,12 +60,31 @@ device = torch.device(device)
 
 engine = get_tracker("EKF")
 
-logger.info("---Loading model...")
-model = load_model(
-    arch=config_track.arch, model_weights=config_track.model_weights, device=device,
-)
-logger.info("---Model loaded.")
 
+if config_track.arch == "mobilenet_v3_small":
+    from plasticorigins.tools.misc import load_model
+
+    model = load_model(
+        arch=config_track.arch,
+        model_weights=config_track.model_weights,
+        device=device,
+    )
+    logger.info("---Model mobilenet loaded.")
+elif config_track.arch == "yolo":
+    from plasticorigins.detection.yolo import load_model, predict_yolo
+
+    model_path = download_from_url(
+        config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger
+    )
+    model_yolo = load_model(
+        model_path,
+        config_track.device,
+        config_track.yolo_conf_thrld,
+        config_track.yolo_iou_thrld,
+    )
+    logger.info("---Yolo model loaded.")
+else:
+    logger.error(f"unrecognized model {config_track.arch}")
 
 observation_variance = np.load(
     os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
@@ -133,6 +157,7 @@ def track(args:argparse) -> Tuple[List,int,int]:
         frame, threshold=args.detection_threshold, model=model
     )
 
+
     logger.info(f"---Processing {args.video_path}")
 
     reader = IterableFrameReader(
@@ -141,6 +166,7 @@ def track(args:argparse) -> Tuple[List,int,int]:
         output_shape=args.output_shape,
         progress_bar=True,
         preload=args.preload_frames,
+        crop=args.crop,
     )
 
     num_frames, fps = (
@@ -148,15 +174,20 @@ def track(args:argparse) -> Tuple[List,int,int]:
         reader.fps,
     )
 
-    input_shape = reader.input_shape
-    output_shape = reader.output_shape
-    ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
-    ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
-
     logger.info("---Detecting...")
-    detections = get_detections_for_video(
-        reader, detector, batch_size=args.detection_batch_size, device=device
-    )
+    detections = []
+    if args.arch == "yolo":
+        # Catching warnings that come from a yolo bug:
+        # "User provided device_type of \'cuda\', but CUDA is not available. Disabling"
+        # should be fixed with more recent versions of yolo
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            for frame in reader:
+                detections.append(detector(frame))
+    elif args.arch == "mobilenet_v3_small":
+        detections = get_detections_for_video(
+            reader, detector, batch_size=args.detection_batch_size, device=device
+        )
 
     logger.info("---Tracking...")
     display = None
@@ -169,13 +200,17 @@ def track(args:argparse) -> Tuple[List,int,int]:
         transition_variance,
         observation_variance,
         display,
+        is_yolo=args.arch == "yolo",
     )
     reader.video.release()
 
     # store unfiltered results
     output_filename = Path(args.output_dir) / "results_unfiltered.txt"
+    coord_mapping = reader.get_inv_mapping(args.downsampling_factor)
     write_tracking_results_to_file(
-        results, ratio_x=ratio_x, ratio_y=ratio_y, output_filename=output_filename,
+        results,
+        coord_mapping,  # Scale the output back to original video size
+        output_filename=output_filename,
     )
     logger.info("---Filtering...")
 
@@ -187,8 +222,7 @@ def track(args:argparse) -> Tuple[List,int,int]:
     output_filename = Path(args.output_dir) / "results.txt"
     write_tracking_results_to_file(
         filtered_results,
-        ratio_x=ratio_x,
-        ratio_y=ratio_y,
+        lambda x, y: (x, y),  # No scaling, already scaled!
         output_filename=output_filename,
     )
 

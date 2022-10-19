@@ -16,6 +16,22 @@ import torch
 from tqdm import tqdm
 
 
+def square_crop(input_frame, out_shape):
+    """Crops the largest square in the center of the image"""
+    h, w, _ = input_frame.shape
+    if h > w:
+        new_h = w
+        xtop = h // 2 - new_h // 2
+        crop = input_frame[xtop : xtop + new_h, :, :]
+    elif h < w:
+        new_w = h
+        yleft = w // 2 - new_w // 2
+        crop = input_frame[:, yleft : yleft + new_w, :]
+    else:
+        crop = input_frame
+    return cv2.resize(crop, out_shape)
+
+
 class AdvancedFrameReader:
 
     """ Advanced reader for frames with specific parameters.
@@ -189,6 +205,7 @@ class IterableFrameReader:
         progress_bar:bool=False,
         preload:bool=False,
         max_frame:int=0,
+
     ):
         # store arguments for reset
         self.video_filename = video_filename
@@ -196,6 +213,7 @@ class IterableFrameReader:
         self.progress_bar_arg = progress_bar
         self.preload = preload
         self.skip_frames = skip_frames
+        self.crop = crop
 
         self.video = cv2.VideoCapture(video_filename)
         self.input_shape = (
@@ -209,6 +227,7 @@ class IterableFrameReader:
             if max_frame != 0
             else self.total_num_frames
         )
+        self.num_skipped_frames = 0
         self.counter = 0
         self.progress_bar = None
 
@@ -250,7 +269,8 @@ class IterableFrameReader:
         """
 
         self.video.release()
-        self.progress_bar.close()
+        if self.progress_bar:
+            self.progress_bar.close()
         self.__init__(
             self.video_filename,
             self.skip_frames,
@@ -258,6 +278,7 @@ class IterableFrameReader:
             self.progress_bar_arg,
             self.preload,
             self.max_frame_arg,
+            self.crop,
         )
 
     def _load_all_frames(self) -> List[Mat]:
@@ -303,6 +324,9 @@ class IterableFrameReader:
                 ret, frame = self._read_frame()
                 if ret:
                     return frame
+                else:
+                    self.num_skipped_frames += 1
+                    return next(self)
 
         self.reset_video()
 
@@ -324,6 +348,7 @@ class IterableFrameReader:
             self.update_progress_bar()
             frame = cv2.resize(frame, self.output_shape)
 
+
         return ret, frame
 
     def __iter__(self) -> None:
@@ -336,6 +361,34 @@ class IterableFrameReader:
         for _ in range(self.skip_frames):
             self.counter += 1
             self.video.read()
+
+    def get_inv_mapping(self, downsampling_factor):
+        """Returns a mapping between coordinates in cropped space
+        and coordinates in the original video"""
+        h_in, w_in = self.input_shape
+        x_top, y_left = 0, 0
+
+        if self.crop:
+            if h_in > w_in:
+                h_new, w_new = w_in, w_in
+                x_top = h_in // 2 - h_new // 2
+                y_left = 0
+            elif h_in < w_in:
+                h_new, w_new = h_in, h_in
+                y_left = w_in // 2 - w_new // 2
+                x_top = 0
+            else:
+                h_new, w_new = w_in, w_in
+        else:
+            h_new, w_new = h_in, w_in
+
+        ratio_x, ratio_y = (
+            h_new * downsampling_factor / self.output_shape[0],
+            w_new * downsampling_factor / self.output_shape[1],
+        )
+
+        mapping = lambda x, y: (int(x * ratio_x + x_top), int(y * ratio_y + y_left))
+        return mapping
 
 
 class SimpleVideoReader:
@@ -411,4 +464,5 @@ class TorchIterableFromReader(torch.utils.data.IterableDataset):
         """ Iterable transformations on frames. """
 
         for frame in self.reader:
-            yield self.transforms(frame)
+            if frame is not None:
+                yield self.transforms(frame)
