@@ -35,7 +35,7 @@ import torch.utils.data
 from torch.utils.data import Dataset
 import torchvision
 from PIL import Image
-from pycocotools import mask as coco_mask
+#from pycocotools import mask as coco_mask
 
 from .transforms import Compose
 
@@ -79,39 +79,39 @@ class FilterAndRemapCocoCategories:
         return image, anno
 
 
-def convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) -> torch.Tensor:
+# def convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) -> torch.Tensor:
 
-    """ Converting Coco polygons to masks (torch tensors).
+#     """ Converting Coco polygons to masks (torch tensors).
 
-    Args:
-        segmentations (List): list of polygons
-        height (int): height of the mask
-        width (int): width of the mask
+#     Args:
+#         segmentations (List): list of polygons
+#         height (int): height of the mask
+#         width (int): width of the mask
 
-    Returns:
-        masks (torch.Tensor): output masks
-    """
+#     Returns:
+#         masks (torch.Tensor): output masks
+#     """
 
-    masks = []
+#     masks = []
 
-    for polygons in segmentations:
-        rles = coco_mask.frPyObjects(polygons, height, width)
-        mask = coco_mask.decode(rles)
+#     for polygons in segmentations:
+#         rles = coco_mask.frPyObjects(polygons, height, width)
+#         mask = coco_mask.decode(rles)
 
-        if len(mask.shape) < 3:
-            mask = mask[..., None]
+#         if len(mask.shape) < 3:
+#             mask = mask[..., None]
 
-        mask = torch.as_tensor(mask, dtype=torch.uint8)
-        mask = mask.any(dim=2)
-        masks.append(mask)
+#         mask = torch.as_tensor(mask, dtype=torch.uint8)
+#         mask = mask.any(dim=2)
+#         masks.append(mask)
 
-    if masks:
-        masks = torch.stack(masks, dim=0)
+#     if masks:
+#         masks = torch.stack(masks, dim=0)
 
-    else:
-        masks = torch.zeros((0, height, width), dtype=torch.uint8)
+#     else:
+#         masks = torch.zeros((0, height, width), dtype=torch.uint8)
 
-    return masks
+#     return masks
 
 
 class ConvertCocoPolysToMask:
