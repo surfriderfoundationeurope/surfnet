@@ -28,18 +28,18 @@ from plasticorigins.detection.centernet.models import create_model as create_bas
 
 class ResizeForCenterNet:
 
-    """ Resize images for Centernet model.
-    
+    """Resize images for Centernet model.
+
     Args:
         fix_res (bool): fixe resize for images with ``(H, W) = (512, 512).`` Set as default to ``False``.
     """
 
-    def __init__(self, fix_res:bool=False):
+    def __init__(self, fix_res: bool = False):
         self.fix_res = fix_res
 
-    def __call__(self, image:torch.Tensor) -> torch.Tensor:
+    def __call__(self, image: torch.Tensor) -> torch.Tensor:
 
-        """ Resize the input image according the fix_res for CenterNet model.
+        """Resize the input image according the fix_res for CenterNet model.
 
         Args:
             image (torch.Tensor): the input image to resize
@@ -62,9 +62,9 @@ class ResizeForCenterNet:
         return image
 
 
-def gaussian_radius(det_size:Tuple[int,int], min_overlap:float=0.7) -> float:
+def gaussian_radius(det_size: Tuple[int, int], min_overlap: float = 0.7) -> float:
 
-    """ Compute the minimal gaussian radius.
+    """Compute the minimal gaussian radius.
 
     Args:
         det_size (Tuple[int,int]): the size of the image / box (heigth, width)
@@ -80,29 +80,29 @@ def gaussian_radius(det_size:Tuple[int,int], min_overlap:float=0.7) -> float:
     a1 = 1
     b1 = height + width
     c1 = width * height * (1 - min_overlap) / (1 + min_overlap)
-    sq1 = np.sqrt(b1 ** 2 - 4 * a1 * c1)
+    sq1 = np.sqrt(b1**2 - 4 * a1 * c1)
     r1 = (b1 + sq1) / 2
 
     # compute radius 2
     a2 = 4
     b2 = 2 * (height + width)
     c2 = (1 - min_overlap) * width * height
-    sq2 = np.sqrt(b2 ** 2 - 4 * a2 * c2)
+    sq2 = np.sqrt(b2**2 - 4 * a2 * c2)
     r2 = (b2 + sq2) / 2
 
     # compute radius 3
     a3 = 4 * min_overlap
     b3 = -2 * min_overlap * (height + width)
     c3 = (min_overlap - 1) * width * height
-    sq3 = np.sqrt(b3 ** 2 - 4 * a3 * c3)
+    sq3 = np.sqrt(b3**2 - 4 * a3 * c3)
     r3 = (b3 + sq3) / 2
 
     return min(r1, r2, r3)
 
 
-def gaussian2D(shape:Tuple[int,int], sigma:int=1) -> ndarray:
+def gaussian2D(shape: Tuple[int, int], sigma: int = 1) -> ndarray:
 
-    """ Compute the 2-dimensional gaussian distribution.
+    """Compute the 2-dimensional gaussian distribution.
 
     Args:
         shape (Tuple[int,int]): shape of the figure
@@ -121,9 +121,14 @@ def gaussian2D(shape:Tuple[int,int], sigma:int=1) -> ndarray:
     return h
 
 
-def draw_umich_gaussian(heatmap:ndarray, center:Tuple[Union[float,int],Union[float,int]], radius:Union[float,int], k:int=1) -> ndarray:
+def draw_umich_gaussian(
+    heatmap: ndarray,
+    center: Tuple[Union[float, int], Union[float, int]],
+    radius: Union[float, int],
+    k: int = 1,
+) -> ndarray:
 
-    """ Draw the 2-dimensional gaussian heat map.
+    """Draw the 2-dimensional gaussian heat map.
 
     Args:
         heatmap (ndarray): the input heat map
@@ -146,20 +151,24 @@ def draw_umich_gaussian(heatmap:ndarray, center:Tuple[Union[float,int],Union[flo
     top, bottom = min(y, radius), min(height - y, radius + 1)
 
     masked_heatmap = heatmap[y - top : y + bottom, x - left : x + right]
-    
+
     masked_gaussian = gaussian[
         radius - top : radius + bottom, radius - left : radius + right
     ]
     if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0:  # TODO debug
         np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
 
-    #return masked_heatmap # TODO debug
+    # return masked_heatmap # TODO debug
     return heatmap
 
 
-def blob_for_bbox(bbox:Union[List,array], heatmap:ndarray, downsampling_factor:Optional[float]=None) -> Tuple[ndarray,array]:
+def blob_for_bbox(
+    bbox: Union[List, array],
+    heatmap: ndarray,
+    downsampling_factor: Optional[float] = None,
+) -> Tuple[ndarray, array]:
 
-    """ Compute the 2-dimensional gaussian heat map and the coordinates of the bounding box center.
+    """Compute the 2-dimensional gaussian heat map and the coordinates of the bounding box center.
 
     Args:
         bbox (Union[List,array]): list of the bounding box coordinates
@@ -189,9 +198,9 @@ def blob_for_bbox(bbox:Union[List,array], heatmap:ndarray, downsampling_factor:O
     return heatmap, ct_int
 
 
-def load_checkpoint(model:Any, trained_model_weights_filename:str) -> Any:
+def load_checkpoint(model: Any, trained_model_weights_filename: str) -> Any:
 
-    """ Load the model checkpoint with specific model weights.
+    """Load the model checkpoint with specific model weights.
 
     Args:
         model (Any): prediction model
@@ -207,9 +216,11 @@ def load_checkpoint(model:Any, trained_model_weights_filename:str) -> Any:
     return model
 
 
-def load_model(arch:str, model_weights:Union[str,ndarray[Any,dtype[float64]]], device:str) -> Any:
+def load_model(
+    arch: str, model_weights: Union[str, ndarray[Any, dtype[float64]]], device: str
+) -> Any:
 
-    """ Load a prediction model with specific architecture, model weights and device type.
+    """Load a prediction model with specific architecture, model weights and device type.
 
     Args:
         arch (str): architecture of the model ("mobilenet_v3_small", "res_18", "dla_34")
@@ -239,4 +250,3 @@ def load_model(arch:str, model_weights:Union[str,ndarray[Any,dtype[float64]]], d
     model.eval()
 
     return model
-

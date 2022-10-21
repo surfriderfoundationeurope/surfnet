@@ -20,7 +20,7 @@ from urllib.request import urlretrieve
 import cv2
 
 
-def create_unique_folder(base_folder:str, filename:str) -> str:
+def create_unique_folder(base_folder: str, filename: str) -> str:
 
     """Creates a unique folder based on the filename and timestamp.
 
@@ -42,9 +42,11 @@ def create_unique_folder(base_folder:str, filename:str) -> str:
     return output_dir
 
 
-def download_from_url(url:str, filename:str, folder:str, logger:Logger) -> WindowsPath:
+def download_from_url(
+    url: str, filename: str, folder: str, logger: Logger
+) -> WindowsPath:
 
-    """ Download a file and place it in the corresponding folder if it does
+    """Download a file and place it in the corresponding folder if it does
         not already exists. Useful for spaces demo, do not remove.
 
     Args:
@@ -69,7 +71,7 @@ def download_from_url(url:str, filename:str, folder:str, logger:Logger) -> Windo
     return out_filename
 
 
-def load_trash_icons(folder_path:str) -> Dict:
+def load_trash_icons(folder_path: str) -> Dict:
 
     """Loads all icons using cv2 format and returns a dict class -> opened icon. Useful for spaces demo.
 
@@ -86,8 +88,7 @@ def load_trash_icons(folder_path:str) -> Dict:
         / "fragment.png",  # 'Fragment',    #'Sheet / tarp / plastic bag / fragment',
         "Insulating": folder_path
         / "mousse.png",  # 'Insulating',  #'Insulating material',
-        "Bottle": folder_path
-        / "bouteille.png",  # 'Bottle',      #'Bottle-shaped',
+        "Bottle": folder_path / "bouteille.png",  # 'Bottle',      #'Bottle-shaped',
         "Can": folder_path / "briquet.png",  # 'Can',         #'Can-shaped',
         "Drum": folder_path / "contenant.png",  # 'Drum',
         "Packaging": folder_path

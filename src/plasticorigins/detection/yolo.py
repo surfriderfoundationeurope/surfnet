@@ -43,9 +43,11 @@ categories_id = {v: k for k, v in id_categories.items()}
 get_id = lambda cat: categories_id[cat]
 
 
-def load_model(model_path:str, device:str, conf:float=0.35, iou:float=0.50) -> Any:
+def load_model(
+    model_path: str, device: str, conf: float = 0.35, iou: float = 0.50
+) -> Any:
 
-    """ Load yolo model from model_path.
+    """Load yolo model from model_path.
 
     Args:
         model_path (str): the model path
@@ -67,9 +69,9 @@ def load_model(model_path:str, device:str, conf:float=0.35, iou:float=0.50) -> A
     return model
 
 
-def voc2centerdims(bboxes:ndarray) -> ndarray:
+def voc2centerdims(bboxes: ndarray) -> ndarray:
 
-    """ Compute center coordinates of the bounding boxes and find their size (width, height).
+    """Compute center coordinates of the bounding boxes and find their size (width, height).
 
     Args:
         bboxes (ndarray): contain all positions of the bounding boxes : ``voc -> [x1, y1, x2, y2]``
@@ -84,9 +86,13 @@ def voc2centerdims(bboxes:ndarray) -> ndarray:
     return bboxes
 
 
-def predict_yolo(model, img:Mat, size:int=768, augment:bool=False) -> Tuple[ndarray[Any,dtype[int64]],ndarray[Any,dtype[float64]],ndarray[Any,dtype[int64]]]:
+def predict_yolo(
+    model, img: Mat, size: int = 768, augment: bool = False
+) -> Tuple[
+    ndarray[Any, dtype[int64]], ndarray[Any, dtype[float64]], ndarray[Any, dtype[int64]]
+]:
 
-    """ Interpret yolo prediction object.
+    """Interpret yolo prediction object.
 
     Args:
         model (Any): yolo model used for prediction
@@ -137,11 +143,11 @@ class DetectTorchScript(nn.Module):
     # YOLOv5 TorchScript class for python inference
     def __init__(
         self,
-        weights:ndarray,
-        conf:float=0.35,
-        iou:float=0.50,
-        class_names:Optional[Dict]=None,
-        data:Optional[str]=None,
+        weights: ndarray,
+        conf: float = 0.35,
+        iou: float = 0.50,
+        class_names: Optional[Dict] = None,
+        data: Optional[str] = None,
     ):
         super().__init__()
         self.class_names = class_names
@@ -165,9 +171,9 @@ class DetectTorchScript(nn.Module):
 
         self.__dict__.update(locals())  # assign all variables to self
 
-    def forward(self, image:ndarray) -> Union[torch.Tensor,nn.Module]:
+    def forward(self, image: ndarray) -> Union[torch.Tensor, nn.Module]:
 
-        """ Evaluate the yolo model predictions for the input image.
+        """Evaluate the yolo model predictions for the input image.
 
         Args:
             image (ndarray): expects image as numpy array of shape (B x H x W x C) or (H x W x C). In practice B=1 and H x W = 640.
@@ -187,9 +193,9 @@ class DetectTorchScript(nn.Module):
 
         return self.model(x)[0]
 
-    def get_label_idxs(self, preds_names:ndarray) -> ndarray:
+    def get_label_idxs(self, preds_names: ndarray) -> ndarray:
 
-        """ Give the class ids knowing the class names.
+        """Give the class ids knowing the class names.
 
         Args:
             preds_names (ndarray): list of predicted class names
@@ -202,9 +208,15 @@ class DetectTorchScript(nn.Module):
 
         return np.array(list(map(get_id, preds_names)))
 
-    def detect(self, images:ndarray) -> Tuple[ndarray[Any,dtype[int64]],ndarray[Any,dtype[float64]],ndarray[Any,dtype[int64]]]:
+    def detect(
+        self, images: ndarray
+    ) -> Tuple[
+        ndarray[Any, dtype[int64]],
+        ndarray[Any, dtype[float64]],
+        ndarray[Any, dtype[int64]],
+    ]:
 
-        """ Interpret yolo prediction object with batch size set to 1.
+        """Interpret yolo prediction object with batch size set to 1.
 
         Args:
             images (ndarray): images to predict

@@ -33,15 +33,16 @@ from plasticorigins.tracking.utils import (
     write_tracking_results_to_file,
 )
 
-def filter_by_nb_consecutive_obs(tracklets:List[List], kappa:int, tau:int) -> List:
+
+def filter_by_nb_consecutive_obs(tracklets: List[List], kappa: int, tau: int) -> List:
 
     """Filters the tracks depending on parameters ``kappa`` and ``tau`` by consecutive observations.
-    
+
     Args:
         tracklets (List[List]): list of tracks to filter
         kappa (int): size of the moving average window
         tau (int): minimum length of tracklet
-    
+
     Returns:
         results (List[Tuple]) : raw filtered tracks of minimum length ``tau``
     """
@@ -58,16 +59,16 @@ def filter_by_nb_consecutive_obs(tracklets:List[List], kappa:int, tau:int) -> Li
 
     return threshold(new_tracklets, tau)
 
-    
-def filter_tracks(tracklets:List[List], kappa:int, tau:int) -> List[Tuple]:
+
+def filter_tracks(tracklets: List[List], kappa: int, tau: int) -> List[Tuple]:
 
     """Filters the tracks depending on parameters ``kappa`` and ``tau``.
-    
+
     Args:
         tracklets (List[List]): list of tracks to filter
         kappa (int): size of the moving average window
         tau (int): minimum length of tracklet
-    
+
     Returns:
         results (List[Tuple]) : raw filtered tracks
     """
@@ -87,13 +88,15 @@ def filter_tracks(tracklets:List[List], kappa:int, tau:int) -> List[Tuple]:
     return results
 
 
-def process_class_and_confidences(class_confs:List[Tuple[int,float]]) -> Tuple[int,float]:
+def process_class_and_confidences(
+    class_confs: List[Tuple[int, float]]
+) -> Tuple[int, float]:
 
     """Finds the majority and most confident class from list `class_confs`.
 
     Args:
         class_confs (List[Tuple[int,float]]): the list of class ids and confidences such as ``[(class_id, confidence), ...]``
-    
+
     Returns:
         best class (Tuple[int,float]) : The best class and its associated confidence
     """
@@ -108,10 +111,12 @@ def process_class_and_confidences(class_confs:List[Tuple[int,float]]) -> Tuple[i
     return best_class[0], round(best_class[1][1] / best_class[1][0], 2)
 
 
-def postprocess_for_api(results:List[Tuple], class_dict:Dict=defaultdict(lambda: "fragment")) -> Dict:
+def postprocess_for_api(
+    results: List[Tuple], class_dict: Dict = defaultdict(lambda: "fragment")
+) -> Dict:
 
     """Converts tracking results into json object for API.
-    
+
     Args:
         results (List[Tuple]) : raw filtered tracks
         class_dict (Dict): the dictionnary of object classes
@@ -165,10 +170,10 @@ def postprocess_for_api(results:List[Tuple], class_dict:Dict=defaultdict(lambda:
     return {"detected_trash": result_list}
 
 
-def count_objects(input_json:Dict, class_dict:Dict) -> Dict:
+def count_objects(input_json: Dict, class_dict: Dict) -> Dict:
 
     """Counting trashs from the ``input_json`` object.
-    
+
     Args:
         input_json (Dict) : the detected trashs dictionnary ``{"detected_trash" : result_list}``
         class_dict (Dict): the dictionnary of object classes
@@ -190,7 +195,7 @@ def count_objects(input_json:Dict, class_dict:Dict) -> Dict:
     return {k + f": {str(v)}": v / total for k, v in results.items()}
 
 
-def write(results:List[Tuple], output_name:str):
+def write(results: List[Tuple], output_name: str):
 
     """Writes the results in two files:
     - tracking in a ``xxx_track.txt`` format  ``(frame, id, box_x, box_y, ...)``
@@ -213,14 +218,14 @@ def write(results:List[Tuple], output_name:str):
             out_file.write("0")
 
 
-def threshold(tracklets:List[List], tau:int) -> List:
+def threshold(tracklets: List[List], tau: int) -> List:
 
     """Filters the tracks depending on parameter ``tau``.
-    
+
     Args:
         tracklets (List[List]): list of tracks to filter
         tau (int): minimum length of tracklet
-    
+
     Returns:
         results (List) : raw filtered tracks
     """
@@ -228,14 +233,14 @@ def threshold(tracklets:List[List], tau:int) -> List:
     return [tracklet for tracklet in tracklets if len(tracklet) > tau]
 
 
-def compute_moving_average(tracklet:List[List], kappa:int) -> array:
+def compute_moving_average(tracklet: List[List], kappa: int) -> array:
 
     """Computing the moving average of the tracks depending on parameter ``kappa``.
-    
+
     Args:
         tracklet (List[List]): list of tracks to filter
         kappa (int): size of the moving average window
-    
+
     Returns:
         density_fill (array) : moving average resulting from convolution between observation points and ``kappa``
     """

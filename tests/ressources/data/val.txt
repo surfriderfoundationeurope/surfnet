@@ -1,2 +1,2 @@
-tests/ressources/data/images/78e1a1ed-5d79-4071-8a31-835a31c26d18.jpg
+tests/ressources/data/images/5f029ac2-17a7-42cc-a5c0-52eae06745d1.jpg
 tests/ressources/data/images/aa51b47b-3320-4b1a-b199-71e90b495863.jpg

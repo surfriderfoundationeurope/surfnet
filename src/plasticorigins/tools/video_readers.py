@@ -34,8 +34,8 @@ def square_crop(input_frame, out_shape):
 
 class AdvancedFrameReader:
 
-    """ Advanced reader for frames with specific parameters.
-    
+    """Advanced reader for frames with specific parameters.
+
     Args:
         video_name (str): name of the video / path to the video
         read_every (int): parameter set to ``1`` for reading the whole video (all the frames). ``0`` means "to skip".
@@ -45,12 +45,12 @@ class AdvancedFrameReader:
     """
 
     def __init__(
-        self, 
-        video_name:str, 
-        read_every:int, 
-        rescale_factor:Union[int,float], 
-        init_time_min:int, 
-        init_time_s:int,
+        self,
+        video_name: str,
+        read_every: int,
+        rescale_factor: Union[int, float],
+        init_time_min: int,
+        init_time_s: int,
     ):
 
         self.cap = cv2.VideoCapture(video_name)
@@ -73,9 +73,9 @@ class AdvancedFrameReader:
         self.init_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
         self.total_num_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    def post_process(self, ret:bool, frame:Mat) -> Tuple[bool,Mat]:
+    def post_process(self, ret: bool, frame: Mat) -> Tuple[bool, Mat]:
 
-        """ Apply a post resize process on the read image if necessary (according the ret value).
+        """Apply a post resize process on the read image if necessary (according the ret value).
 
         Args:
             ret (bool): if the ``read()`` function reads successfully the capture, ``ret = True``. Else, ``ret = False``.
@@ -96,7 +96,7 @@ class AdvancedFrameReader:
 
     def skip(self) -> None:
 
-        """ Skip if there are no frames to read. """
+        """Skip if there are no frames to read."""
 
         if not self.nb_frames_read:
             return
@@ -104,24 +104,24 @@ class AdvancedFrameReader:
             for _ in range(self.frame_skip):
                 self.cap.read()
 
-    def read_frame(self) -> Tuple[bool,Mat]:
+    def read_frame(self) -> Tuple[bool, Mat]:
 
-        """ Read a frame. 
-        
+        """Read a frame.
+
         Returns:
             ret (bool): First output of the ``post_process`` method : if the ``read()`` function reads successfully the frame, ``ret = True``. Else, ``ret = False``.
             resized_frame (Mat): Second output of the ``post_process`` method : the resized frame or the original frame. If `ret` is False, returns empty matrix.
         """
-    
+
         self.skip()
         ret, frame = self.cap.read()
         self.nb_frames_read += 1
 
         return self.post_process(ret, frame)
 
-    def set_time_position(self, time_min:int, time_s:int) -> None:
+    def set_time_position(self, time_min: int, time_s: int) -> None:
 
-        """ Set time positions in seconds.
+        """Set time positions in seconds.
 
         Args:
             time_min (int): the number of minutes for the time position
@@ -136,15 +136,15 @@ class AdvancedFrameReader:
 
     def reset_init_frame(self) -> None:
 
-        """ Reset to the initial frame."""
+        """Reset to the initial frame."""
 
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, int(self.init_frame))
         self.nb_frames_read = 0
 
-    def set_init_frame(self, init_frame:Union[int,str]) -> None:
+    def set_init_frame(self, init_frame: Union[int, str]) -> None:
 
-        """ Set and start at the initial frame.
-        
+        """Set and start at the initial frame.
+
         Args:
             init_frame (Union[int,str]): the number of the initial frame
         """
@@ -153,10 +153,10 @@ class AdvancedFrameReader:
         self.init_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
         self.nb_frames_read = 0
 
-    def set_rescale_factor(self, rescale_factor:Union[int,float]) -> None:
+    def set_rescale_factor(self, rescale_factor: Union[int, float]) -> None:
 
-        """ Rescale the size of a frame (width, height).
-        
+        """Rescale the size of a frame (width, height).
+
         Args:
             rescale_factor (Union[int,float]): the rescale factor
         """
@@ -167,10 +167,10 @@ class AdvancedFrameReader:
         self.original_shape_mode = False
         # print('Reading in {}x{}'.format(width, height))
 
-    def set_original_shape_mode(self, mode:bool) -> None:
+    def set_original_shape_mode(self, mode: bool) -> None:
 
-        """ Set the original shape mode.
-        
+        """Set the original shape mode.
+
         Args:
             mode (bool): the original shape mode is kept if ``mode = True``
         """
@@ -179,15 +179,15 @@ class AdvancedFrameReader:
 
     def reset_init_rescale_factor(self) -> None:
 
-        """ Reset the initial rescale factor. """
+        """Reset the initial rescale factor."""
 
         self.set_rescale_factor(self.init_rescale_factor)
 
 
 class IterableFrameReader:
 
-    """ Iterable reader for frames.
-    
+    """Iterable reader for frames.
+
     Args:
         video_filename (str): name of the video / path to the video
         skip_frames (int): parameter for skipping frames. Set as default to``0``. It means "read every".
@@ -199,13 +199,12 @@ class IterableFrameReader:
 
     def __init__(
         self,
-        video_filename:str,
-        skip_frames:int=0,
-        output_shape:Optional[Tuple[int,int]]=None,
-        progress_bar:bool=False,
-        preload:bool=False,
-        max_frame:int=0,
-
+        video_filename: str,
+        skip_frames: int = 0,
+        output_shape: Optional[Tuple[int, int]] = None,
+        progress_bar: bool = False,
+        preload: bool = False,
+        max_frame: int = 0,
     ):
         # store arguments for reset
         self.video_filename = video_filename
@@ -246,7 +245,7 @@ class IterableFrameReader:
 
     def update_progress_bar(self) -> None:
 
-        """ Update the bar progression about the the reading of the frames. """
+        """Update the bar progression about the the reading of the frames."""
 
         if self.progress_bar_arg:
 
@@ -264,7 +263,7 @@ class IterableFrameReader:
 
     def reset_video(self) -> None:
 
-        """ Reset the video. This method is needed as ``cv2.CAP_PROP_POS_FRAMES``
+        """Reset the video. This method is needed as ``cv2.CAP_PROP_POS_FRAMES``
         does not work on all backends
         """
 
@@ -283,8 +282,8 @@ class IterableFrameReader:
 
     def _load_all_frames(self) -> List[Mat]:
 
-        """ Load all frames after their reading.
-        
+        """Load all frames after their reading.
+
         Returns:
             frames (List[Mat]): list of the frames
         """
@@ -305,8 +304,8 @@ class IterableFrameReader:
 
     def __next__(self) -> Union[Mat, StopIteration]:
 
-        """ Attempt of reading a frame. 
-        
+        """Attempt of reading a frame.
+
         Returns:
             The read frame or a stop iteration status
         """
@@ -332,10 +331,10 @@ class IterableFrameReader:
 
         raise StopIteration
 
-    def _read_frame(self) -> Tuple[bool,Mat]:
+    def _read_frame(self) -> Tuple[bool, Mat]:
 
-        """ Read a frame. 
-        
+        """Read a frame.
+
         Returns:
             ret (bool): If the ``read()`` function reads successfully the video, ``ret = True``. Else, ``ret = False``.
             frame (Mat): The resized frame or the original frame if not skipped
@@ -348,7 +347,6 @@ class IterableFrameReader:
             self.update_progress_bar()
             frame = cv2.resize(frame, self.output_shape)
 
-
         return ret, frame
 
     def __iter__(self) -> None:
@@ -356,7 +354,7 @@ class IterableFrameReader:
 
     def _skip_frames(self) -> None:
 
-        """ Skip frames. """
+        """Skip frames."""
 
         for _ in range(self.skip_frames):
             self.counter += 1
@@ -393,14 +391,14 @@ class IterableFrameReader:
 
 class SimpleVideoReader:
 
-    """ Simple reader for frames.
-    
+    """Simple reader for frames.
+
     Args:
         video_filename (str): name of the video / path to the video
         skip_frames (int): parameter for skipping frames. Set as default to``0``. It means "read every".
     """
 
-    def __init__(self, video_filename:str, skip_frames:int=0):
+    def __init__(self, video_filename: str, skip_frames: int = 0):
         self.skip_frames = skip_frames
         self.video = cv2.VideoCapture(video_filename)
         self.shape = (
@@ -411,10 +409,10 @@ class SimpleVideoReader:
         self.frame_nb = 0
         self.num_frames = self.video.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    def read(self) -> Tuple[bool,Mat,int]:
+    def read(self) -> Tuple[bool, Mat, int]:
 
-        """ Reads a frame and increments the `frame_nb' of read frames. 
-        
+        """Reads a frame and increments the `frame_nb' of read frames.
+
         Returns:
             ret (bool): If the ``read()`` function reads successfully the video, ``ret = True``. Else, ``ret = False``.
             frame (Mat): the read frame
@@ -427,10 +425,10 @@ class SimpleVideoReader:
 
         return ret, frame, self.frame_nb - 1
 
-    def set_frame(self, frame_nb_to_set:int) -> None:
+    def set_frame(self, frame_nb_to_set: int) -> None:
 
-        """ Set ``frame_nb_to_set`` frames.
-        
+        """Set ``frame_nb_to_set`` frames.
+
         Args:
             frame_nb_to_set (int): the number of frames to set
         """
@@ -440,7 +438,7 @@ class SimpleVideoReader:
 
     def _skip_frames(self) -> None:
 
-        """ Skip frames. """
+        """Skip frames."""
 
         for _ in range(self.skip_frames):
             self.video.read()
@@ -448,20 +446,20 @@ class SimpleVideoReader:
 
 class TorchIterableFromReader(torch.utils.data.IterableDataset):
 
-    """ Torch Iterable reader for frames.
-    
+    """Torch Iterable reader for frames.
+
     Args:
         reader (torch.utils.data.IterableDataset): the dataset of read images
         transforms (Callable): the specific transformations for frames
     """
 
-    def __init__(self, reader:torch.utils.data.IterableDataset, transforms:Callable):
+    def __init__(self, reader: torch.utils.data.IterableDataset, transforms: Callable):
         self.transforms = transforms
         self.reader = reader
 
     def __iter__(self) -> None:
 
-        """ Iterable transformations on frames. """
+        """Iterable transformations on frames."""
 
         for frame in self.reader:
             if frame is not None:

@@ -12,10 +12,10 @@ from numpy import ndarray
 import torch
 
 
-def nms(heat:torch.Tensor, kernel:int=3) -> torch.Tensor :
+def nms(heat: torch.Tensor, kernel: int = 3) -> torch.Tensor:
 
-    """ Applies a 2D max pooling over an input signal heat and compare the results before 
-        and after the max pooling. 
+    """Applies a 2D max pooling over an input signal heat and compare the results before
+        and after the max pooling.
 
     Args:
         heat (torch.Tensor): input heat map tensor (value in [0,1])
@@ -33,9 +33,9 @@ def nms(heat:torch.Tensor, kernel:int=3) -> torch.Tensor :
     return heat * keep
 
 
-def detect(preprocessed_frames:Any, threshold:float, model:Any) -> ndarray:
+def detect(preprocessed_frames: Any, threshold: float, model: Any) -> ndarray:
 
-    """ Return a detection Tensor with the localisation of the detected objects.
+    """Return a detection Tensor with the localisation of the detected objects.
 
     Args:
         preprocessed_frames (Any): list of preprocessed frames from a DataLoader

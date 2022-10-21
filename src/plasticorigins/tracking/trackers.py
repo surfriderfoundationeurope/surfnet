@@ -23,8 +23,8 @@ from plasticorigins.tracking.utils import in_frame
 
 class Tracker:
 
-    """ Build a Tracker for videos. 
-    
+    """Build a Tracker for videos.
+
     Args:
         frame_nb (int): the number of the frame
         X0 (array[Any,dtype[float64]]): Array of state mean
@@ -37,13 +37,13 @@ class Tracker:
 
     def __init__(
         self,
-        frame_nb:int,
-        X0:array,
-        confidence:float,
-        class_id:int,
-        transition_variance:ndarray[Any,dtype[float64]],
-        observation_variance:ndarray[Any,dtype[float64]],
-        delta:float,
+        frame_nb: int,
+        X0: array,
+        confidence: float,
+        class_id: int,
+        transition_variance: ndarray[Any, dtype[float64]],
+        observation_variance: ndarray[Any, dtype[float64]],
+        delta: float,
     ):
         self.transition_covariance = np.diag(transition_variance)
         self.observation_covariance = np.diag(observation_variance)
@@ -53,10 +53,12 @@ class Tracker:
         self.tracklet = [(frame_nb, X0, confidence, class_id)]
         self.delta = delta
 
-    def store_observation(self, observation:array, frame_nb:int, confidence:float, class_id:int) -> None:
+    def store_observation(
+        self, observation: array, frame_nb: int, confidence: float, class_id: int
+    ) -> None:
 
-        """ Method to store observations from frames. 
-        
+        """Method to store observations from frames.
+
         Args:
             observation (array): observation of the current frame
             frame_nb (int): numero of the current frame
@@ -67,10 +69,10 @@ class Tracker:
         self.tracklet.append((frame_nb, observation, confidence, class_id))
         self.updated = True
 
-    def update_status(self, flow:Mat) -> None:
+    def update_status(self, flow: Mat) -> None:
 
-        """ Update status from input flow. 
-        
+        """Update status from input flow.
+
         Args:
             flow (Mat): the input flow for updating status
         """
@@ -83,10 +85,10 @@ class Tracker:
 
         self.updated = False
 
-    def build_confidence_function(self, flow:Mat) -> Mat:
+    def build_confidence_function(self, flow: Mat) -> Mat:
 
-        """ Build confidence function from flow.
-        
+        """Build confidence function from flow.
+
         Args:
             flow (array): the input flow
 
@@ -94,10 +96,12 @@ class Tracker:
             The computing confidence distribution based on predictive distribution from flow.
         """
 
-        def confidence_from_multivariate_distribution(coord:array, distribution:array) -> Mat:
+        def confidence_from_multivariate_distribution(
+            coord: array, distribution: array
+        ) -> Mat:
 
-            """ Computes confidence from multivariate distribution. 
-            
+            """Computes confidence from multivariate distribution.
+
             Args:
                 coord (array): coordinates of the local object
                 distribution (array): mathematical input distribution
@@ -127,10 +131,10 @@ class Tracker:
             coord, distribution
         )
 
-    def cls_score_function(self, conf:float, label:int) -> float:
+    def cls_score_function(self, conf: float, label: int) -> float:
 
-        """ Generates a score based on classes associated with observation in this tracker. 
-        
+        """Generates a score based on classes associated with observation in this tracker.
+
         Args:
             conf (float): confidence of the label
             label (int): label id
@@ -143,10 +147,10 @@ class Tracker:
         other_conf = sum(tr[2] for tr in self.tracklet)
         return (class_conf + conf) / (other_conf + conf)
 
-    def get_display_colors(self, display:Any, tracker_nb:int) -> array:
+    def get_display_colors(self, display: Any, tracker_nb: int) -> array:
 
-        """ Get the display colors for a tracker. 
-        
+        """Get the display colors for a tracker.
+
         Args:
             display (Any): display from tracker
             tracker_nb (int): the number of the current tracker
@@ -164,7 +168,7 @@ class Tracker:
 
 class EKF(Tracker):
 
-    """ Extended Kalman Filter : infinite impulse response filter that estimates the states of a dynamic system
+    """Extended Kalman Filter : infinite impulse response filter that estimates the states of a dynamic system
     from a series of incomplete or noisy measurements.
 
     Args:
@@ -179,13 +183,13 @@ class EKF(Tracker):
 
     def __init__(
         self,
-        frame_nb:int,
-        X0:array,
-        confidence:float,
-        class_id:int,
-        transition_variance:ndarray[Any,dtype[float64]],
-        observation_variance:ndarray[Any,dtype[float64]],
-        delta:float,
+        frame_nb: int,
+        X0: array,
+        confidence: float,
+        class_id: int,
+        transition_variance: ndarray[Any, dtype[float64]],
+        observation_variance: ndarray[Any, dtype[float64]],
+        delta: float,
     ):
         super().__init__(
             frame_nb,
@@ -207,10 +211,10 @@ class EKF(Tracker):
         self.filtered_state_mean = X0
         self.filtered_state_covariance = self.observation_covariance
 
-    def get_update_parameters(self, flow:Mat) -> Tuple[array,array]:
+    def get_update_parameters(self, flow: Mat) -> Tuple[array, array]:
 
-        """ Update parameters from input flow. 
-        
+        """Update parameters from input flow.
+
         Args:
             flow (Mat): the input flow for updating status
 
@@ -237,12 +241,12 @@ class EKF(Tracker):
             flow_value - grad_flow_value.dot(self.filtered_state_mean),
         )
 
-    def EKF_step(self, observation:array, flow:Mat) -> tuple:
+    def EKF_step(self, observation: array, flow: Mat) -> tuple:
 
-        """ Perform a one-step update to estimate the state at time ``t+1`` given an observation 
+        """Perform a one-step update to estimate the state at time ``t+1`` given an observation
         at time ``t+1`` and the previous estimate for time ``t`` given observations from times ``[0...t]``.
         This method is useful if one wants to track an object with streaming observations.
-        
+
         Args:
             observation (array): the input observation for EKF at time ``t+1``
             flow (Mat): the input flow for EKF
@@ -261,10 +265,17 @@ class EKF(Tracker):
             observation=observation,
         )
 
-    def update(self, observation:array, confidence:float, class_id:int, flow:Mat, frame_nb:int=None) -> bool:
+    def update(
+        self,
+        observation: array,
+        confidence: float,
+        class_id: int,
+        flow: Mat,
+        frame_nb: int = None,
+    ) -> bool:
 
-        """ Enable the update according the EKF results from the current step.
-        
+        """Enable the update according the EKF results from the current step.
+
         Args:
             observation (array): current observation of the frame
             confidence (float): confidence of the observation
@@ -290,10 +301,10 @@ class EKF(Tracker):
 
         return enabled
 
-    def predictive_distribution(self, flow:Mat) -> array:
+    def predictive_distribution(self, flow: Mat) -> array:
 
-        """ Build predictive distribution from flow.
-        
+        """Build predictive distribution from flow.
+
         Args:
             flow (Mat): the input flow
 
@@ -311,10 +322,10 @@ class EKF(Tracker):
 
         return distribution
 
-    def fill_display(self, display:Any, tracker_nb:int) -> None:
+    def fill_display(self, display: Any, tracker_nb: int) -> None:
 
-        """ Fill display of a specific tracker.
-        
+        """Fill display of a specific tracker.
+
         Args:
             display (Any): the display for tracker
             tracker_nb (int): the number of tracker
@@ -343,10 +354,10 @@ class EKF(Tracker):
 trackers = {"EKF": EKF}
 
 
-def get_tracker(algorithm_and_params:str) -> Tracker:
+def get_tracker(algorithm_and_params: str) -> Tracker:
 
-    """ Provide specific tracker according algorithm and parameters. 
-    
+    """Provide specific tracker according algorithm and parameters.
+
     Args:
         algorithm_and_params (str): specify the algorithm and the parameters used for tracker. You may specify only the algorithm.
 

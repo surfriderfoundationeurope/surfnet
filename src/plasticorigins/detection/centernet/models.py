@@ -16,10 +16,11 @@ _model_factory = {
     "mobilenetv3small": get_mobilenet_v3_small,
 }
 
-def create_model(arch:str, heads:Any, head_conv:Any) -> Any:
 
-    """ Create a model according the input architecture and the heads.
-    
+def create_model(arch: str, heads: Any, head_conv: Any) -> Any:
+
+    """Create a model according the input architecture and the heads.
+
     Args:
         arch (str): name of the model architecture
         heads (Any): heads of the model
@@ -37,8 +38,8 @@ def create_model(arch:str, heads:Any, head_conv:Any) -> Any:
     return model
 
 
-def load_model_simple(weights = "models/mobilenet_v3_pretrained.pth"):
-    model = get_mobilenet_v3_small(num_layers=0, heads={'hm': 1}, head_conv=256)
+def load_model_simple(weights="models/mobilenet_v3_pretrained.pth"):
+    model = get_mobilenet_v3_small(num_layers=0, heads={"hm": 1}, head_conv=256)
     checkpoint = torch.load(weights, map_location="cpu")
-    model.load_state_dict(checkpoint['model'], strict=True)
+    model.load_state_dict(checkpoint["model"], strict=True)
     return model

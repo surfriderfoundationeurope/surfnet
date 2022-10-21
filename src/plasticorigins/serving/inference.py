@@ -97,7 +97,7 @@ transition_variance = np.load(
 def handle_post_request() -> json:
 
     """Main function to handle a post request. The file is in `request.files`. Will create temporary folders for storing the file and intermediate results. Outputs a json.
-        
+
     Returns:
         A output json file.
     """
@@ -106,7 +106,7 @@ def handle_post_request() -> json:
 
     if "file" in request.files:
         file = request.files["file"]
-        
+
     else:
         logger.error("error no file in request")
         return None
@@ -140,9 +140,9 @@ def handle_post_request() -> json:
     return response
 
 
-def track(args:argparse) -> Tuple[List,int,int]:
+def track(args: argparse) -> Tuple[List, int, int]:
 
-    """ Tracking function for object detection in frame sequences.
+    """Tracking function for object detection in frame sequences.
 
     Args:
         args (argparse): arguments for tracking process
@@ -150,13 +150,12 @@ def track(args:argparse) -> Tuple[List,int,int]:
     Returns:
         filtered_results (list): list of filtered tracks
         num_frames (int): max number of frames for tracking
-        fps (int): number of frames per second (video speed)      
+        fps (int): number of frames per second (video speed)
     """
 
     detector = lambda frame: detect(
         frame, threshold=args.detection_threshold, model=model
     )
-
 
     logger.info(f"---Processing {args.video_path}")
 

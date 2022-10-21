@@ -18,8 +18,8 @@ from torch.nn.functional import l1_loss as torch_l1_loss
 
 class FocalLoss(nn.Module):
 
-    """ This class allows to compute the focal loss of a object detection model. 
-    
+    """This class allows to compute the focal loss of a object detection model.
+
     Args:
         alpha (int): alpha coefficient for focal loss. Set as default to ``2``.
         beta (int): beta coefficient for focal loss. Set as default to ``4``.
@@ -27,7 +27,13 @@ class FocalLoss(nn.Module):
         centernet_output (bool): ``True`` if the model used for predict outputs is Centernet. Set as default to ``True``.
     """
 
-    def __init__(self, alpha:int=2, beta:int=4, train:bool=True, centernet_output:bool=True):
+    def __init__(
+        self,
+        alpha: int = 2,
+        beta: int = 4,
+        train: bool = True,
+        centernet_output: bool = True,
+    ):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
@@ -35,10 +41,10 @@ class FocalLoss(nn.Module):
         self.loss = self.train_loss if train else self.test_loss
         self.centernet_output = centernet_output
 
-    def forward(self, pred:torch.Tensor, gt:torch.Tensor) -> float:
+    def forward(self, pred: torch.Tensor, gt: torch.Tensor) -> float:
 
-        """ Compute the loss between predictions ``pred`` and the true values ``gt`` (ground truths).
-        
+        """Compute the loss between predictions ``pred`` and the true values ``gt`` (ground truths).
+
         Args:
             pred (torch.Tensor): model predictions
             gt (torch.Tensor): ground truths
@@ -49,9 +55,9 @@ class FocalLoss(nn.Module):
 
         return self.loss(pred, gt)
 
-    def train_loss(self, pred:torch.Tensor, gt:torch.Tensor) -> float:
+    def train_loss(self, pred: torch.Tensor, gt: torch.Tensor) -> float:
 
-        """ Evaluate and compute the training loss.
+        """Evaluate and compute the training loss.
 
         Args:
             pred (torch.Tensor): model predictions
@@ -70,13 +76,11 @@ class FocalLoss(nn.Module):
         pos_inds = gt_centers.eq(1).float()
         neg_inds = gt_centers.lt(1).float()
 
-        return self.focal_loss(
-            pred_centers, gt_centers, pos_inds, neg_inds
-        ) 
+        return self.focal_loss(pred_centers, gt_centers, pos_inds, neg_inds)
 
-    def test_loss(self, pred:torch.Tensor, gt:torch.Tensor) -> float:
-        
-        """ Evaluate and compute the test loss.
+    def test_loss(self, pred: torch.Tensor, gt: torch.Tensor) -> float:
+
+        """Evaluate and compute the test loss.
 
         Args:
             pred (torch.Tensor): model predictions
@@ -97,9 +101,15 @@ class FocalLoss(nn.Module):
 
         return self.focal_loss_class_wise(pred_centers, gt_centers, pos_inds, neg_inds)
 
-    def focal_loss(self, pred_hm:torch.Tensor, gt_hm:torch.Tensor, pos_inds:torch.Tensor, neg_inds:torch.Tensor) -> float:
-        
-        """ Evaluate and compute the test loss. Modified focal loss. Exactly the same as CornerNet.
+    def focal_loss(
+        self,
+        pred_hm: torch.Tensor,
+        gt_hm: torch.Tensor,
+        pos_inds: torch.Tensor,
+        neg_inds: torch.Tensor,
+    ) -> float:
+
+        """Evaluate and compute the test loss. Modified focal loss. Exactly the same as CornerNet.
             Runs faster and costs a little bit more memory
 
         Args:
@@ -137,9 +147,15 @@ class FocalLoss(nn.Module):
 
         return loss
 
-    def focal_loss_class_wise(self, pred_hm:torch.Tensor, gt_hm:torch.Tensor, pos_inds:torch.Tensor, neg_inds:torch.Tensor) -> torch.Tensor:
-        
-        """ Evaluate and compute the test loss. Modified focal loss. Exactly the same as CornerNet.
+    def focal_loss_class_wise(
+        self,
+        pred_hm: torch.Tensor,
+        gt_hm: torch.Tensor,
+        pos_inds: torch.Tensor,
+        neg_inds: torch.Tensor,
+    ) -> torch.Tensor:
+
+        """Evaluate and compute the test loss. Modified focal loss. Exactly the same as CornerNet.
             Runs faster and costs a little bit more memory.
 
         Args:
@@ -180,9 +196,9 @@ class FocalLoss(nn.Module):
         return loss
 
 
-def sigmoid(x:torch.Tensor) -> torch.Tensor:
+def sigmoid(x: torch.Tensor) -> torch.Tensor:
 
-    """ Compute the input Tensor with the sigmoid activation function.
+    """Compute the input Tensor with the sigmoid activation function.
 
     Args:
         x (torch.Tensor): the input Tensor
@@ -196,9 +212,11 @@ def sigmoid(x:torch.Tensor) -> torch.Tensor:
     return y
 
 
-def l1_loss(pred:torch.Tensor, gt:torch.Tensor, pos_inds:torch.Tensor) -> torch.Tensor:
-    
-    """ Evaluate and compute the L1 loss on predictions `pred` and ground truths `gt` based on ``pos_inds``. L1 Loss Function is used to minimize the error which is 
+def l1_loss(
+    pred: torch.Tensor, gt: torch.Tensor, pos_inds: torch.Tensor
+) -> torch.Tensor:
+
+    """Evaluate and compute the L1 loss on predictions `pred` and ground truths `gt` based on ``pos_inds``. L1 Loss Function is used to minimize the error which is
         the sum of the all the absolute differences between the true value and the predicted value.
 
     Args:

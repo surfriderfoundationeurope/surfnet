@@ -26,18 +26,18 @@ from plasticorigins.tracking.utils import in_frame
 
 
 def init_trackers(
-    engine:Any,
-    detections:List[ndarray],
-    confs:array,
-    labels:array,
-    frame_nb:int,
-    state_variance:ndarray[Any,dtype[float64]],
-    observation_variance:ndarray[Any,dtype[float64]],
-    delta:float,
+    engine: Any,
+    detections: List[ndarray],
+    confs: array,
+    labels: array,
+    frame_nb: int,
+    state_variance: ndarray[Any, dtype[float64]],
+    observation_variance: ndarray[Any, dtype[float64]],
+    delta: float,
 ) -> List[Tracker]:
 
     """Initializes the trackers based on detections.
-    
+
     Args:
         engine (Any): the engine tracker
         detections (List[ndarray]): list of detected object positions with center coordinates such as ``list[np.array([[xcenter, ycenter], ...]), ...]``
@@ -69,10 +69,12 @@ def init_trackers(
     return trackers
 
 
-def build_confidence_function_for_trackers(trackers:Dict[int,Tracker], flow01:ndarray) -> Tuple[List[int], List]:
+def build_confidence_function_for_trackers(
+    trackers: Dict[int, Tracker], flow01: ndarray
+) -> Tuple[List[int], List]:
 
-    """ Build confidence function for trackers. 
-    
+    """Build confidence function for trackers.
+
     Args:
         trackers (Dict[int,Tracker]): the trackers
         flow01 (ndarray): the reference flow
@@ -94,15 +96,16 @@ def build_confidence_function_for_trackers(trackers:Dict[int,Tracker], flow01:nd
 
 
 def associate_detections_to_trackers(
-    detections_for_frame:List[ndarray], 
-    confs:array, 
-    labels:array, 
-    trackers:Dict[int,Tracker], 
-    flow01:ndarray, 
-    confidence_threshold:float) -> List:
+    detections_for_frame: List[ndarray],
+    confs: array,
+    labels: array,
+    trackers: Dict[int, Tracker],
+    flow01: ndarray,
+    confidence_threshold: float,
+) -> List:
 
-    """ Associate detections to trackers. 
-    
+    """Associate detections to trackers.
+
     Args:
         detections_for_frame (List[np.ndarray]): list of detected object positions with center coordinates such as ``list[np.array([[xcenter, ycenter], ...]), ...]``
         confs (array[float]): array of the confidence values
@@ -116,7 +119,8 @@ def associate_detections_to_trackers(
     """
 
     tracker_nbs, confidence_functions = build_confidence_function_for_trackers(
-        trackers, flow01)
+        trackers, flow01
+    )
 
     assigned_trackers = [None] * len(detections_for_frame)
     if len(tracker_nbs):
@@ -142,15 +146,19 @@ def associate_detections_to_trackers(
     return assigned_trackers
 
 
-def interpret_detection(detections_for_frame:List[ndarray], downsampling_factor:Union[int,float], is_yolo:bool=False) -> Tuple[List[ndarray],array,array]:
+def interpret_detection(
+    detections_for_frame: List[ndarray],
+    downsampling_factor: Union[int, float],
+    is_yolo: bool = False,
+) -> Tuple[List[ndarray], array, array]:
 
     """Normalizes the detections depending whether they come from Centernet or Yolo model
-    
+
     Args:
         detections_for_frame (List[ndarray]): list of detected object positions with center coordinates such as ``list[np.array([[xcenter, ycenter], ...]), ...]``
         downsampling_factor (Union[int,float]): downsampling factor
         is_yolo (bool): ``True`` if the model used for detection is Yolo. ``False`` if the model used for detection is Centernet.
-    
+
     Returns:
         detections_for_frame (List[ndarray]): list of detected object positions with center coordinates such as ``list[np.array([[xcenter, ycenter], ...]), ...]``
         confs (array[Any,dtype[float64]]): array of the confidence values after normalization
@@ -170,17 +178,17 @@ def interpret_detection(detections_for_frame:List[ndarray], downsampling_factor:
 
 
 def track_video(
-    reader:Any,
-    detections:List[ndarray],
-    args:argparse,
-    engine:Any,
-    transition_variance:ndarray[Any,dtype[float64]],
-    observation_variance:ndarray[Any,dtype[float64]],
-    display:Any,
-    is_yolo:bool=False,
+    reader: Any,
+    detections: List[ndarray],
+    args: argparse,
+    engine: Any,
+    transition_variance: ndarray[Any, dtype[float64]],
+    observation_variance: ndarray[Any, dtype[float64]],
+    display: Any,
+    is_yolo: bool = False,
 ) -> Iterable:
 
-    """ Original version of tracking trashs on video. Expects detections in the format ``list[np.array([[xcenter, ycenter], ...]), ...]``.
+    """Original version of tracking trashs on video. Expects detections in the format ``list[np.array([[xcenter, ycenter], ...]), ...]``.
 
     Args:
         reader (Any): the video reader

@@ -12,9 +12,9 @@ from cv2 import Mat
 from typing import Union
 
 
-def flow_opencv_dense(img:Mat, img2:Mat) -> Mat:
+def flow_opencv_dense(img: Mat, img2: Mat) -> Mat:
 
-    """ Computes a dense optical flow using the Gunnar Farneback's algorithm.
+    """Computes a dense optical flow using the Gunnar Farneback's algorithm.
 
     Args:
         img (Mat): first input image as a numpy matrix
@@ -32,9 +32,11 @@ def flow_opencv_dense(img:Mat, img2:Mat) -> Mat:
     return flow
 
 
-def compute_flow(frame0:Mat, frame1:Mat, downsampling_factor:Union[float,int]) -> Mat:
+def compute_flow(
+    frame0: Mat, frame1: Mat, downsampling_factor: Union[float, int]
+) -> Mat:
 
-    """ Resizes the input frames and computes a dense optical flow using ``flow_opencv_dense``.
+    """Resizes the input frames and computes a dense optical flow using ``flow_opencv_dense``.
 
     Args:
         frame0 (Mat): first input frame as a matrix

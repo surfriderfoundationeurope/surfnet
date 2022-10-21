@@ -46,25 +46,30 @@ from plasticorigins.tools.video_readers import TorchIterableFromReader
 
 class GaussianMixture:
 
-    """ This class contains several methods to compute gaussian Probability Density Function (pdf), 
+    """This class contains several methods to compute gaussian Probability Density Function (pdf),
     the standard LOGistic Probability Density Function (logpdf) and the Cumulative Distribution Function (cdf).
-    
+
     Args:
         means (ndarray[Any,dtype[float64]]]): the mean vector of the gaussian model
         covariance (ndarray[Any,dtype[float64]]]): the covariance matrix of the gaussian model
         weights (ndarray[Any,dtype[float64]]]): the weights of the predictive model
     """
 
-    def __init__(self, means:ndarray[Any,dtype[float64]], covariance:ndarray[Any,dtype[float64]], weights:ndarray[Any,dtype[float64]]):
+    def __init__(
+        self,
+        means: ndarray[Any, dtype[float64]],
+        covariance: ndarray[Any, dtype[float64]],
+        weights: ndarray[Any, dtype[float64]],
+    ):
         self.components = [
             multivariate_normal(mean=mean, cov=covariance) for mean in means
         ]
         self.weights = weights
 
-    def pdf(self, x:ndarray) -> ndarray:
+    def pdf(self, x: ndarray) -> ndarray:
 
-        """ This method computes the Probability Density Function (pdf) for Gaussian Mixture.
-        
+        """This method computes the Probability Density Function (pdf) for Gaussian Mixture.
+
         Args:
             x (ndarray[Any]): the input vector
 
@@ -79,10 +84,10 @@ class GaussianMixture:
 
         return result
 
-    def logpdf(self, x:ndarray) -> ndarray:
+    def logpdf(self, x: ndarray) -> ndarray:
 
-        """ This method computes the standard LOGistic (i.e, mean=0, std=π/sqrt(3)) Probability Density Function (logpdf) for Gaussian Mixture.
-        
+        """This method computes the standard LOGistic (i.e, mean=0, std=π/sqrt(3)) Probability Density Function (logpdf) for Gaussian Mixture.
+
         Args:
             x (ndarray[Any]): the input vector
 
@@ -92,10 +97,10 @@ class GaussianMixture:
 
         return np.log(self.pdf(x))
 
-    def cdf(self, x:ndarray) -> ndarray:
+    def cdf(self, x: ndarray) -> ndarray:
 
-        """ This method computes the Cumulative Density Function (pdf) for Gaussian Mixture.
-        
+        """This method computes the Cumulative Density Function (pdf) for Gaussian Mixture.
+
         Args:
             x (ndarray[Any]): the input vector
 
@@ -111,13 +116,13 @@ class GaussianMixture:
         return result
 
 
-def exp_and_normalize(lw:ndarray[Any,dtype[float64]]) -> ndarray[Any,dtype[float64]]:
+def exp_and_normalize(lw: ndarray[Any, dtype[float64]]) -> ndarray[Any, dtype[float64]]:
 
-    """ This fonction transforms a weight vector / matrix into a normalized gaussian vector / matrix.
-    
+    """This fonction transforms a weight vector / matrix into a normalized gaussian vector / matrix.
+
     Args:
         lw (ndarray[Any,dtype[float64]]): the input vector / matrix to normalize
-    
+
     Returns:
         w (ndarray[Any,dtype[float64]]): the normalized gaussian weight vector / matrix
     """
@@ -127,12 +132,14 @@ def exp_and_normalize(lw:ndarray[Any,dtype[float64]]) -> ndarray[Any,dtype[float
     return w / w.sum()
 
 
-def in_frame(position:Union[Tuple[int,int],List[int],array], 
-                shape:Union[Tuple[int,int],List[int],array], 
-                border:float=0.02) -> bool:
+def in_frame(
+    position: Union[Tuple[int, int], List[int], array],
+    shape: Union[Tuple[int, int], List[int], array],
+    border: float = 0.02,
+) -> bool:
 
     """Check if the (object) position is inside the image.
-    
+
     Args:
         position (Union[Tuple[int,int],List[int,int],array[int,int]]): the ``(x, y)`` position of the object
         shape (Union[Tuple[int,int],List[int,int],array[int,int]]): the frame shape ``(H, W)``
@@ -156,10 +163,12 @@ def in_frame(position:Union[Tuple[int,int],List[int],array],
     )
 
 
-def gather_filenames_for_video_in_annotations(video:Dict, images:List[Dict], data_dir:str) -> List[str]:
+def gather_filenames_for_video_in_annotations(
+    video: Dict, images: List[Dict], data_dir: str
+) -> List[str]:
 
-    """ Gather image names from a video for annotations.
-    
+    """Gather image names from a video for annotations.
+
     Args:
         video (Dict): the input video with its `id` key
         images (List[Dict]): the list of all images
@@ -175,10 +184,12 @@ def gather_filenames_for_video_in_annotations(video:Dict, images:List[Dict], dat
     return [os.path.join(data_dir, image["file_name"]) for image in images_for_video]
 
 
-def get_detections_for_video(reader:Any, detector:Any, batch_size:int=16, device:Optional[str]=None) -> List[array]:
+def get_detections_for_video(
+    reader: Any, detector: Any, batch_size: int = 16, device: Optional[str] = None
+) -> List[array]:
 
-    """ Get detections for video.
-    
+    """Get detections for video.
+
     Args:
         reader (Any): the video reader used
         detector (Any): the detector for video
@@ -209,10 +220,12 @@ def get_detections_for_video(reader:Any, detector:Any, batch_size:int=16, device
     return detections
 
 
-def overlay_transparent(background:ndarray, overlay:ndarray, x:int, y:int) -> ndarray[Any,dtype[float64]]:
+def overlay_transparent(
+    background: ndarray, overlay: ndarray, x: int, y: int
+) -> ndarray[Any, dtype[float64]]:
 
     """Overlays a transparent image over a background at topleft corner (x,y).
-    
+
     Args:
         background (ndarray): the input background
         overlay (ndarray): the input overlay
@@ -263,18 +276,18 @@ def overlay_transparent(background:ndarray, overlay:ndarray, x:int, y:int) -> nd
 
 
 def generate_video_with_annotations(
-    reader:Any,
-    output_detected:dict,
-    output_filename:str,
-    skip_frames:int,
-    downscale:float,
-    logger:Logger,
-    gps_data:Optional[ndarray]=None,
-    labels2icons:Optional[ndarray]=None
+    reader: Any,
+    output_detected: dict,
+    output_filename: str,
+    skip_frames: int,
+    downscale: float,
+    logger: Logger,
+    gps_data: Optional[ndarray] = None,
+    labels2icons: Optional[ndarray] = None,
 ) -> None:
 
     """Generates output video at 24 fps, with optional ``gps_data``.
-    
+
     Args:
         reader (Any): the video reader used
         output_detected (Dict): the dictionnary of detected trashs
@@ -380,10 +393,10 @@ def generate_video_with_annotations(
     logger.info("---finished writing video")
 
 
-def resize_external_detections(detections:ndarray, ratio:float) -> ndarray:
+def resize_external_detections(detections: ndarray, ratio: float) -> ndarray:
 
-    """ Resize external detections with specific ratio.
-    
+    """Resize external detections with specific ratio.
+
     Args:
         detections (ndarray): the n-dimensionnal array of detections
         ratio (float): the ratio to resize detections
@@ -403,8 +416,9 @@ def resize_external_detections(detections:ndarray, ratio:float) -> ndarray:
     return detections
 
 
-
-def write_tracking_results_to_file(results:ndarray, ratio_x:float, ratio_y:float, output_filename:str) -> None:
+def write_tracking_results_to_file(
+    results: ndarray, ratio_x: float, ratio_y: float, output_filename: str
+) -> None:
 
     """Writes the output results of a tracking in the following format:
 
@@ -440,7 +454,7 @@ def write_tracking_results_to_file(results:ndarray, ratio_x:float, ratio_y:float
             )
 
 
-def read_tracking_results(input_file:str) -> List[List]:
+def read_tracking_results(input_file: str) -> List[List]:
 
     """Read the input filename and interpret it as tracklets in this format : ``list[list,...]``.
 
@@ -469,20 +483,20 @@ def read_tracking_results(input_file:str) -> List[List]:
         tracklets[track_id].append((frame_id, center_x, center_y, conf, class_id))
 
     tracklets = list(tracklets.values())
-    
+
     return tracklets
 
 
 class FramesWithInfo:
 
     """Frames with information.
-    
+
     Args:
         frames (ndarray): the list of frames
         output_shape (Optional[ndarray]): the shape of output frames
     """
 
-    def __init__(self, frames:ndarray, output_shape:Optional[ndarray]=None):
+    def __init__(self, frames: ndarray, output_shape: Optional[ndarray] = None):
         self.frames = frames
         if output_shape is None:
             self.output_shape = frames[0].shape[:-1][::-1]
@@ -506,13 +520,13 @@ class FramesWithInfo:
 class Display:
 
     """Display tracking.
-    
+
     Args:
         on (bool): to activate display
         interactive (bool): to have interactive display. Set as default to ``True``.
     """
 
-    def __init__(self, on:bool, interactive:bool=True):
+    def __init__(self, on: bool, interactive: bool = True):
         self.on = on
         self.fig, self.ax = plt.subplots()
         self.interactive = interactive
@@ -522,10 +536,10 @@ class Display:
         self.legends = []
         self.plot_count = 0
 
-    def display(self, trackers:Iterable) -> None:
+    def display(self, trackers: Iterable) -> None:
 
-        """ To display trackers.
-        
+        """To display trackers.
+
         Args:
             trackers (Iterable): the input trackers to display
         """
@@ -560,10 +574,12 @@ class Display:
             self.legends = []
             self.plot_count += 1
 
-    def update_detections_and_frame(self, latest_detections:ndarray[Any,dtype[generic]], frame:Mat) -> None:
+    def update_detections_and_frame(
+        self, latest_detections: ndarray[Any, dtype[generic]], frame: Mat
+    ) -> None:
 
         """Update detections and frame.
-        
+
         Args:
             latest_detections (ndarray): the lastest detections
             frame (Mat): the frame to update for resize
