@@ -88,7 +88,8 @@ def load_trash_icons(folder_path: str) -> Dict:
         / "fragment.png",  # 'Fragment',    #'Sheet / tarp / plastic bag / fragment',
         "Insulating": folder_path
         / "mousse.png",  # 'Insulating',  #'Insulating material',
-        "Bottle": folder_path / "bouteille.png",  # 'Bottle',      #'Bottle-shaped',
+        "Bottle": folder_path
+        / "bouteille.png",  # 'Bottle',      #'Bottle-shaped',
         "Can": folder_path / "briquet.png",  # 'Can',         #'Can-shaped',
         "Drum": folder_path / "contenant.png",  # 'Drum',
         "Packaging": folder_path

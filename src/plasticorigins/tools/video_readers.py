@@ -385,7 +385,10 @@ class IterableFrameReader:
             w_new * downsampling_factor / self.output_shape[1],
         )
 
-        mapping = lambda x, y: (int(x * ratio_x + x_top), int(y * ratio_y + y_left))
+        mapping = lambda x, y: (
+            int(x * ratio_x + x_top),
+            int(y * ratio_y + y_left),
+        )
         return mapping
 
 
@@ -453,7 +456,9 @@ class TorchIterableFromReader(torch.utils.data.IterableDataset):
         transforms (Callable): the specific transformations for frames
     """
 
-    def __init__(self, reader: torch.utils.data.IterableDataset, transforms: Callable):
+    def __init__(
+        self, reader: torch.utils.data.IterableDataset, transforms: Callable
+    ):
         self.transforms = transforms
         self.reader = reader
 

@@ -10,7 +10,7 @@ def main():
     elif REQUIRED_PYTHON == "python3":
         required_major = 3
     else:
-        raise ValueError("Unrecognized python interpreter: {}".format(REQUIRED_PYTHON))
+        raise ValueError(f"Unrecognized python interpreter: {REQUIRED_PYTHON}")
 
     if system_major != required_major:
         raise TypeError(

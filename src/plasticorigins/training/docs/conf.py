@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Yolov5_test_train documentation build configuration file, created by
 # sphinx-quickstart.

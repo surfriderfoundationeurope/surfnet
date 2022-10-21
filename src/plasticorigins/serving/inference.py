@@ -74,7 +74,10 @@ elif config_track.arch == "yolo":
     from plasticorigins.detection.yolo import load_model, predict_yolo
 
     model_path = download_from_url(
-        config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger
+        config_track.url_model_yolo,
+        config_track.file_model_yolo,
+        "./models",
+        logger,
     )
     model_yolo = load_model(
         model_path,
@@ -87,10 +90,14 @@ else:
     logger.error(f"unrecognized model {config_track.arch}")
 
 observation_variance = np.load(
-    os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
+    os.path.join(
+        config_track.noise_covariances_path, "observation_variance.npy"
+    )
 )
 transition_variance = np.load(
-    os.path.join(config_track.noise_covariances_path, "transition_variance.npy")
+    os.path.join(
+        config_track.noise_covariances_path, "transition_variance.npy"
+    )
 )
 
 
@@ -114,7 +121,9 @@ def handle_post_request() -> json:
     # file and folder handling
     filename = secure_filename(file.filename)
     logger.info("--- received filename: " + filename)
-    working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
+    working_dir = Path(
+        create_unique_folder(config_track.upload_folder, filename)
+    )
     full_filepath = working_dir / filename
     if os.path.isfile(full_filepath):
         os.remove(full_filepath)
@@ -185,7 +194,10 @@ def track(args: argparse) -> Tuple[List, int, int]:
                 detections.append(detector(frame))
     elif args.arch == "mobilenet_v3_small":
         detections = get_detections_for_video(
-            reader, detector, batch_size=args.detection_batch_size, device=device
+            reader,
+            detector,
+            batch_size=args.detection_batch_size,
+            device=device,
         )
 
     logger.info("---Tracking...")

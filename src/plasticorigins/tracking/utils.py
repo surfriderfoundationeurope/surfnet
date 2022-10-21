@@ -116,7 +116,9 @@ class GaussianMixture:
         return result
 
 
-def exp_and_normalize(lw: ndarray[Any, dtype[float64]]) -> ndarray[Any, dtype[float64]]:
+def exp_and_normalize(
+    lw: ndarray[Any, dtype[float64]]
+) -> ndarray[Any, dtype[float64]]:
 
     """This fonction transforms a weight vector / matrix into a normalized gaussian vector / matrix.
 
@@ -178,14 +180,24 @@ def gather_filenames_for_video_in_annotations(
         list_img_names (List[Any,type[str]]): the list of the image paths from data directory
     """
 
-    images_for_video = [image for image in images if image["video_id"] == video["id"]]
-    images_for_video = sorted(images_for_video, key=lambda image: image["frame_id"])
+    images_for_video = [
+        image for image in images if image["video_id"] == video["id"]
+    ]
+    images_for_video = sorted(
+        images_for_video, key=lambda image: image["frame_id"]
+    )
 
-    return [os.path.join(data_dir, image["file_name"]) for image in images_for_video]
+    return [
+        os.path.join(data_dir, image["file_name"])
+        for image in images_for_video
+    ]
 
 
 def get_detections_for_video(
-    reader: Any, detector: Any, batch_size: int = 16, device: Optional[str] = None
+    reader: Any,
+    detector: Any,
+    batch_size: int = 16,
+    device: Optional[str] = None,
 ) -> List[array]:
 
     """Get detections for video.
@@ -216,7 +228,9 @@ def get_detections_for_video(
                 else:
                     detections.append(np.array([]))
 
-    print(f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps")
+    print(
+        f"Frame-wise inference time: {batch_size/np.mean(average_times)} fps"
+    )
     return detections
 
 
@@ -318,8 +332,12 @@ def generate_video_with_annotations(
                 next_x = next_trash[0]
                 next_y = next_trash[1]
                 for i in range(1, skip_frames + 1):
-                    new_x = center_x + (next_x - center_x) * i / (skip_frames + 1)
-                    new_y = center_y + (next_y - center_y) * i / (skip_frames + 1)
+                    new_x = center_x + (next_x - center_x) * i / (
+                        skip_frames + 1
+                    )
+                    new_y = center_y + (next_y - center_y) * i / (
+                        skip_frames + 1
+                    )
                     results[frame_nb * (skip_frames + 1) + i].append(
                         (object_nb, new_x, new_y, object_class)
                     )
@@ -384,7 +402,9 @@ def generate_video_with_annotations(
                     cv2.LINE_AA,
                 )
 
-        frame = downscale_local_mean(frame, (downscale, downscale, 1)).astype(np.uint8)
+        frame = downscale_local_mean(frame, (downscale, downscale, 1)).astype(
+            np.uint8
+        )
         writer.writeFrame(frame[:, :, ::-1])
 
     writer.close()
@@ -480,7 +500,9 @@ def read_tracking_results(input_file: str) -> List[List]:
         center_y = top + height / 2
         conf = result[6]
         class_id = int(result[7])
-        tracklets[track_id].append((frame_id, center_x, center_y, conf, class_id))
+        tracklets[track_id].append(
+            (frame_id, center_x, center_y, conf, class_id)
+        )
 
     tracklets = list(tracklets.values())
 
@@ -496,7 +518,9 @@ class FramesWithInfo:
         output_shape (Optional[ndarray]): the shape of output frames
     """
 
-    def __init__(self, frames: ndarray, output_shape: Optional[ndarray] = None):
+    def __init__(
+        self, frames: ndarray, output_shape: Optional[ndarray] = None
+    ):
         self.frames = frames
         if output_shape is None:
             self.output_shape = frames[0].shape[:-1][::-1]

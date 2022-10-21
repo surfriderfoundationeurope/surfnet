@@ -89,7 +89,9 @@ def voc2centerdims(bboxes: ndarray) -> ndarray:
 def predict_yolo(
     model, img: Mat, size: int = 768, augment: bool = False
 ) -> Tuple[
-    ndarray[Any, dtype[int64]], ndarray[Any, dtype[float64]], ndarray[Any, dtype[int64]]
+    ndarray[Any, dtype[int64]],
+    ndarray[Any, dtype[float64]],
+    ndarray[Any, dtype[int64]],
 ]:
 
     """Interpret yolo prediction object.

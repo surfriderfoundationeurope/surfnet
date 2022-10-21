@@ -39,7 +39,9 @@ class Compose:
     def __init__(self, transforms: Callable):
         self.transforms = transforms
 
-    def __call__(self, image: Image, target: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __call__(
+        self, image: Image, target: Any
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         """Apply transformations on image according to the given target.
 
@@ -199,8 +201,12 @@ class TrainTransforms:
                     }
                 ),
                 iaa.Fliplr(p=self.hflip_prob),
-                iaa.PadToFixedSize(width=self.crop_width, height=self.crop_height),
-                iaa.CropToFixedSize(width=self.crop_width, height=self.crop_height),
+                iaa.PadToFixedSize(
+                    width=self.crop_width, height=self.crop_height
+                ),
+                iaa.CropToFixedSize(
+                    width=self.crop_width, height=self.crop_height
+                ),
             ]
         )
         self.last_transforms = Compose(
@@ -324,7 +330,9 @@ class TransformFrames:
     def __init__(self):
         transforms = []
 
-        transforms.append(T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))
+        transforms.append(
+            T.Lambda(lambda img: cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        )
         transforms.append(T.ToTensor())
         transforms.append(
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

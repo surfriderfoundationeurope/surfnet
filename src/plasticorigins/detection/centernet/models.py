@@ -39,7 +39,9 @@ def create_model(arch: str, heads: Any, head_conv: Any) -> Any:
 
 
 def load_model_simple(weights="models/mobilenet_v3_pretrained.pth"):
-    model = get_mobilenet_v3_small(num_layers=0, heads={"hm": 1}, head_conv=256)
+    model = get_mobilenet_v3_small(
+        num_layers=0, heads={"hm": 1}, head_conv=256
+    )
     checkpoint = torch.load(weights, map_location="cpu")
     model.load_state_dict(checkpoint["model"], strict=True)
     return model

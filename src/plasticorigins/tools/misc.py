@@ -23,7 +23,9 @@ from numpy import ndarray, array, dtype, float64
 import torch
 import torchvision.transforms.functional as F
 
-from plasticorigins.detection.centernet.models import create_model as create_base
+from plasticorigins.detection.centernet.models import (
+    create_model as create_base,
+)
 
 
 class ResizeForCenterNet:
@@ -62,7 +64,9 @@ class ResizeForCenterNet:
         return image
 
 
-def gaussian_radius(det_size: Tuple[int, int], min_overlap: float = 0.7) -> float:
+def gaussian_radius(
+    det_size: Tuple[int, int], min_overlap: float = 0.7
+) -> float:
 
     """Compute the minimal gaussian radius.
 
@@ -155,7 +159,9 @@ def draw_umich_gaussian(
     masked_gaussian = gaussian[
         radius - top : radius + bottom, radius - left : radius + right
     ]
-    if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0:  # TODO debug
+    if (
+        min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0
+    ):  # TODO debug
         np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
 
     # return masked_heatmap # TODO debug
@@ -181,7 +187,9 @@ def blob_for_bbox(
     """
 
     if downsampling_factor is not None:
-        left, top, w, h = (bbox_coord // downsampling_factor for bbox_coord in bbox)
+        left, top, w, h = (
+            bbox_coord // downsampling_factor for bbox_coord in bbox
+        )
     else:
         left, top, w, h = (bbox_coord for bbox_coord in bbox)
 
@@ -191,7 +199,9 @@ def blob_for_bbox(
     if h > 0 and w > 0:
         radius = gaussian_radius((math.ceil(h), math.ceil(w)))
         radius = max(0, int(radius))
-        ct = np.array([(left + right) / 2, (top + bottom) / 2], dtype=np.float32)
+        ct = np.array(
+            [(left + right) / 2, (top + bottom) / 2], dtype=np.float32
+        )
         ct_int = ct.astype(np.int32)
         heatmap = draw_umich_gaussian(heatmap, ct_int, radius)
 
@@ -217,7 +227,9 @@ def load_checkpoint(model: Any, trained_model_weights_filename: str) -> Any:
 
 
 def load_model(
-    arch: str, model_weights: Union[str, ndarray[Any, dtype[float64]]], device: str
+    arch: str,
+    model_weights: Union[str, ndarray[Any, dtype[float64]]],
+    device: str,
 ) -> Any:
 
     """Load a prediction model with specific architecture, model weights and device type.

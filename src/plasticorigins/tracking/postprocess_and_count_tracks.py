@@ -34,7 +34,9 @@ from plasticorigins.tracking.utils import (
 )
 
 
-def filter_by_nb_consecutive_obs(tracklets: List[List], kappa: int, tau: int) -> List:
+def filter_by_nb_consecutive_obs(
+    tracklets: List[List], kappa: int, tau: int
+) -> List:
 
     """Filters the tracks depending on parameters ``kappa`` and ``tau`` by consecutive observations.
 
@@ -81,7 +83,9 @@ def filter_tracks(tracklets: List[List], kappa: int, tau: int) -> List[Tuple]:
     results = []
     for tracker_nb, dets in enumerate(tracks):
         for det in dets:
-            results.append((det[0], tracker_nb, det[1], det[2], det[3], det[4]))
+            results.append(
+                (det[0], tracker_nb, det[1], det[2], det[3], det[4])
+            )
 
     results = sorted(results, key=lambda x: x[0])
 
@@ -153,7 +157,9 @@ def postprocess_for_api(
         # otherwise, retrieve the jsonline and append the box
         else:
             result_list[id_list[id]]["frame_to_box"][str(frame_number)] = box
-            result_list[id_list[id]]["frame_to_class_conf"][str(frame_number)] = (
+            result_list[id_list[id]]["frame_to_class_conf"][
+                str(frame_number)
+            ] = (
                 res[5],
                 conf,
             )
@@ -256,7 +262,9 @@ def compute_moving_average(tracklet: List[List], kappa: int) -> array:
         frame_id = observation[0] - 1
         observation_points[frame_id - first_frame_id] = 1
 
-    density_fill = convolve(observation_points, np.ones(kappa) / kappa, mode="same")
+    density_fill = convolve(
+        observation_points, np.ones(kappa) / kappa, mode="same"
+    )
 
     if pad > 0 and len(observation_points) >= kappa:
         density_fill[:pad] = density_fill[pad : 2 * pad]

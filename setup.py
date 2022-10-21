@@ -7,9 +7,6 @@ requires = [
 ]
 
 
-
-
-
 setuptools.setup(
     name="plastic-origins",
     version="0.0.7",
