@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from plasticorigins.tools.files import download_from_url
 from plasticorigins.detection.yolo import load_model, predict_yolo

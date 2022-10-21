@@ -73,7 +73,7 @@ def voc2centerdims(bboxes:ndarray) -> ndarray:
 
     Args:
         bboxes (ndarray): contain all positions of the bounding boxes : ``voc -> [x1, y1, x2, y2]``
-    
+
     Returns:
         bboxes (ndarray): the updates bboxes with the center coordinates and (width, height) : ``output -> [x_center, y_center, w, h]``
     """
@@ -93,7 +93,7 @@ def predict_yolo(model, img:Mat, size:int=768, augment:bool=False) -> Tuple[ndar
         img (Mat): image to predict
         size (int): image size. Set as default to 768.
         augment (bool): Data augmentation if True. Set as default to False.
-    
+
     Returns:
        bboxes (ndarray[Any,dtype[int64]]): The bounding boxes with center coordinates and W, H. Empty array if bboxes is empty.
        confs (ndarray[Any,dtype[float64]]): The confidence values from predictions. Empty array if bboxes is empty.
@@ -121,7 +121,7 @@ def predict_yolo(model, img:Mat, size:int=768, augment:bool=False) -> Tuple[ndar
 class DetectTorchScript(nn.Module):
 
     """Torch script yolo class.
-    
+
     Args:
         weights (ndarray): weights of the object detection model
         conf (float): confidence value. Set as default to ``0.35``.
@@ -165,13 +165,13 @@ class DetectTorchScript(nn.Module):
 
         self.__dict__.update(locals())  # assign all variables to self
 
-    def forward(self, image:ndarray) -> Union[torch.Tensor,torch.Module]:
+    def forward(self, image:ndarray) -> Union[torch.Tensor,nn.Module]:
 
         """ Evaluate the yolo model predictions for the input image.
 
         Args:
             image (ndarray): expects image as numpy array of shape (B x H x W x C) or (H x W x C). In practice B=1 and H x W = 640.
-        
+
         Returns:
             The model predictions.
         """
@@ -212,9 +212,9 @@ class DetectTorchScript(nn.Module):
         Returns:
             bboxes (ndarray[Any,dtype[int64]]): The bounding boxes with center coordinates and W, H. Empty array if bboxes is empty.
             confs (ndarray[Any,dtype[float64]]): The confidence values from predictions. Empty array if bboxes is empty.
-            labels (ndarray[Any,dtype[int64]]): The list of label ids from predictions. Empty array if bboxes is empty.  
+            labels (ndarray[Any,dtype[int64]]): The list of label ids from predictions. Empty array if bboxes is empty.
         """
-        
+
         pred = self.forward(images)
         pred2 = non_max_suppression(
             pred,
