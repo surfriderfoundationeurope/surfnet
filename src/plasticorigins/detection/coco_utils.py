@@ -6,8 +6,10 @@ import imageio
 import torch
 import torch.utils.data
 import torchvision
-from PIL import Image
-from pycocotools import mask as coco_mask
+
+# from PIL import Image
+
+# from pycocotools import mask as coco_mask
 
 from .transforms import Compose
 
@@ -27,40 +29,40 @@ class FilterAndRemapCocoCategories:
         return image, anno
 
 
-def convert_coco_poly_to_mask(segmentations, height, width):
-    masks = []
-    for polygons in segmentations:
-        rles = coco_mask.frPyObjects(polygons, height, width)
-        mask = coco_mask.decode(rles)
-        if len(mask.shape) < 3:
-            mask = mask[..., None]
-        mask = torch.as_tensor(mask, dtype=torch.uint8)
-        mask = mask.any(dim=2)
-        masks.append(mask)
-    if masks:
-        masks = torch.stack(masks, dim=0)
-    else:
-        masks = torch.zeros((0, height, width), dtype=torch.uint8)
-    return masks
+# def convert_coco_poly_to_mask(segmentations, height, width):
+#     masks = []
+#     for polygons in segmentations:
+#         rles = coco_mask.frPyObjects(polygons, height, width)
+#         mask = coco_mask.decode(rles)
+#         if len(mask.shape) < 3:
+#             mask = mask[..., None]
+#         mask = torch.as_tensor(mask, dtype=torch.uint8)
+#         mask = mask.any(dim=2)
+#         masks.append(mask)
+#     if masks:
+#         masks = torch.stack(masks, dim=0)
+#     else:
+#         masks = torch.zeros((0, height, width), dtype=torch.uint8)
+#     return masks
 
 
-class ConvertCocoPolysToMask:
-    def __call__(self, image, anno):
-        w, h = image.size
-        segmentations = [obj["segmentation"] for obj in anno]
-        cats = [obj["category_id"] for obj in anno]
-        if segmentations:
-            masks = convert_coco_poly_to_mask(segmentations, h, w)
-            cats = torch.as_tensor(cats, dtype=masks.dtype)
-            # merge all instance masks into a single segmentation map
-            # with its corresponding categories
-            target, _ = (masks * cats[:, None, None]).max(dim=0)
-            # discard overlapping instances
-            target[masks.sum(0) > 1] = 255
-        else:
-            target = torch.zeros((h, w), dtype=torch.uint8)
-        target = Image.fromarray(target.numpy())
-        return image, target
+# class ConvertCocoPolysToMask:
+#     def __call__(self, image, anno):
+#         w, h = image.size
+#         segmentations = [obj["segmentation"] for obj in anno]
+#         cats = [obj["category_id"] for obj in anno]
+#         if segmentations:
+#             masks = convert_coco_poly_to_mask(segmentations, h, w)
+#             cats = torch.as_tensor(cats, dtype=masks.dtype)
+#             # merge all instance masks into a single segmentation map
+#             # with its corresponding categories
+#             target, _ = (masks * cats[:, None, None]).max(dim=0)
+#             # discard overlapping instances
+#             target[masks.sum(0) > 1] = 255
+#         else:
+#             target = torch.zeros((h, w), dtype=torch.uint8)
+#         target = Image.fromarray(target.numpy())
+#         return image, target
 
 
 class ConvertCocoPolysToBboxes:
@@ -108,7 +110,10 @@ def get_coco(root, image_set, transforms):
             "train2017",
             os.path.join("annotations", "instances_train2017.json"),
         ),
-        "val": ("val2017", os.path.join("annotations", "instances_val2017.json"),),
+        "val": (
+            "val2017",
+            os.path.join("annotations", "instances_val2017.json"),
+        ),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     CAT_LIST = [
@@ -138,7 +143,7 @@ def get_coco(root, image_set, transforms):
     transforms = Compose(
         [
             FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-            ConvertCocoPolysToMask(),
+            # ConvertCocoPolysToMask(),
             transforms,
         ]
     )
@@ -159,8 +164,14 @@ def get_coco(root, image_set, transforms):
 
 def get_surfrider_old(root, image_set, transforms):
     PATHS = {
-        "train": ("Images_md5", os.path.join("annotations", "instances_train.json"),),
-        "val": ("Images_md5", os.path.join("annotations", "instances_val.json"),),
+        "train": (
+            "Images_md5",
+            os.path.join("annotations", "instances_train.json"),
+        ),
+        "val": (
+            "Images_md5",
+            os.path.join("annotations", "instances_val.json"),
+        ),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     # CAT_LIST = [0, 1, 2, 3]
@@ -168,7 +179,7 @@ def get_surfrider_old(root, image_set, transforms):
     transforms = Compose(
         [
             # FilterAndRemapCocoCategories(CAT_LIST, remap=True),
-            ConvertCocoPolysToMask(),
+            # ConvertCocoPolysToMask(),
             # ConvertCocoPolysToBboxes(),
             transforms,
         ]
@@ -190,7 +201,10 @@ def get_surfrider_old(root, image_set, transforms):
 
 def get_surfrider(root, image_set, transforms):
     PATHS = {
-        "train": ("images", os.path.join("annotations", "instances_train.json"),),
+        "train": (
+            "images",
+            os.path.join("annotations", "instances_train.json"),
+        ),
         "val": ("images", os.path.join("annotations", "instances_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
@@ -219,7 +233,10 @@ def get_surfrider(root, image_set, transforms):
 
 def get_surfrider_video_frames(root, image_set, transforms):
     PATHS = {
-        "train": ("data", os.path.join("annotations", "annotations_train.json"),),
+        "train": (
+            "data",
+            os.path.join("annotations", "annotations_train.json"),
+        ),
         "val": ("data", os.path.join("annotations", "annotations_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }

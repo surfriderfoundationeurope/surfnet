@@ -106,7 +106,10 @@ class TrainTransforms:
         self.seq = iaa.Sequential(
             [
                 iaa.Resize(
-                    {"height": self.random_size_range, "width": "keep-aspect-ratio",}
+                    {
+                        "height": self.random_size_range,
+                        "width": "keep-aspect-ratio",
+                    }
                 ),
                 iaa.Fliplr(p=self.hflip_prob),
                 iaa.PadToFixedSize(width=self.crop_width, height=self.crop_height),
@@ -155,7 +158,10 @@ class ValTransforms:
         self.seq = iaa.Sequential(
             [
                 iaa.Resize(
-                    {"height": int(self.base_size), "width": "keep-aspect-ratio",}
+                    {
+                        "height": int(self.base_size),
+                        "width": "keep-aspect-ratio",
+                    }
                 ),
                 # iaa.Rotate((-45,45)),
                 iaa.CenterPadToFixedSize(
