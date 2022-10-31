@@ -71,9 +71,7 @@ def test_track():
         content_type="video/mpeg",
     )
 
-    working_dir = Path(
-        create_unique_folder(config_track.upload_folder, filename)
-    )
+    working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
     full_filepath = working_dir / filename
     if os.path.isfile(full_filepath):
         os.remove(full_filepath)

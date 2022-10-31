@@ -1,10 +1,10 @@
 # from pycocotools.coco import COCO
 import numpy as np
 import pylab
-
-pylab.rcParams["figure.figsize"] = (8.0, 10.0)
 import os
 import cv2
+
+pylab.rcParams["figure.figsize"] = (8.0, 10.0)
 
 
 def draw_bbox(image, anns, ratio):

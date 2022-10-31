@@ -1,7 +1,5 @@
-import json
-
 # from pycocotools.coco import COCO
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 # coco = COCO(annotation_file = 'data/images/annotations/instances_multiclass.json')

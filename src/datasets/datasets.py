@@ -4,7 +4,6 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import torchvision
-from tqdm import tqdm as tqdm
 import torch
 import pickle
 
@@ -244,6 +243,7 @@ def plot_loader(video_loader):
             fig, ((ax0, ax1), (ax2, ax3), (ax4, ax5)) = plt.subplots(
                 3, 2, figsize=(10, 10)
             )
+
             ax0.imshow(Z_0, cmap="gray")
             ax0.set_title("$Z_0$")
 
@@ -251,19 +251,18 @@ def plot_loader(video_loader):
             ax1.set_title("$T(Z_0,d_{01})$")
 
             ax2.imshow(Phi_0_tilde, cmap="gray")
-            ax2.set_title("$\widetilde{\Phi}_0$")
+            ax2.set_title(r"$\widetilde{\Phi}_0$")
 
             ax3.imshow(Phi_1_tilde, cmap="gray")
-            ax3.set_title("$\widetilde{\Phi}_1$")
+            ax3.set_title(r"$\widetilde{\Phi}_1$")
 
             ax4.imshow(torch.sigmoid(Phi_0_tilde), cmap="gray")
-            ax4.set_title("$\Phi_0$")
+            ax4.set_title(r"$\Phi_0$")
 
             ax5.imshow(torch.sigmoid(Phi_1_tilde), cmap="gray")
-            ax5.set_title("$\Phi_1$")
+            ax5.set_title(r"$\Phi_1$")
 
             plt.suptitle("$d_{01} = $" + str(d_01.numpy()))
-
             plt.show()
 
     else:

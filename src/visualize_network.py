@@ -8,16 +8,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-writer = SummaryWriter("experiments")
 from tqdm import tqdm
-import torch
-from torch import nn
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from plasticorigins.tools.misc import load_model
 from plasticorigins.detection.coco_utils import get_surfrider
 from plasticorigins.detection.transforms import TrainTransforms
+
+writer = SummaryWriter("experiments")
 
 
 def extract_features():

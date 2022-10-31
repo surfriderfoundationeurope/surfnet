@@ -10,16 +10,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-writer = SummaryWriter("experiments")
 from tqdm import tqdm
-import torch
-from torch import nn
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from plasticorigins.tools.misc import load_model
 from plasticorigins.detection.coco_utils import get_surfrider
 from plasticorigins.detection.transforms import TrainTransforms, ValTransforms
+
+writer = SummaryWriter("experiments")
 
 
 def extract_features():
@@ -181,18 +180,18 @@ def train_ae():
     pl.seed_everything(1234)
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     device = torch.device("cuda")
-    model = AutoEncoder(model="unet")
-    trainer = pl.Trainer(
-        gpus=1, check_val_every_n_epoch=5, default_root_dir="experiments/autoencoder"
-    )
+    # model = AutoEncoder(model="unet")
+    # trainer = pl.Trainer(
+    #     gpus=1, check_val_every_n_epoch=5, default_root_dir="experiments/autoencoder"
+    # )
 
     train_dataset = FeatureDataset("data/images/image_features_train", device=device)
-    val_dataset = FeatureDataset("data/images/image_features_val", device=device)
+    # val_dataset = FeatureDataset("data/images/image_features_val", device=device)
 
     train_dataloader = DataLoader(
         train_dataset, shuffle=True, batch_size=64, pin_memory=True
     )
-    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=64)
+    # val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=64)
 
     # trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 

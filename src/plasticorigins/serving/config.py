@@ -29,7 +29,7 @@ config_track = DotDict(
         "noise_covariances_path": "data/tracking_parameters",
         "output_shape": (960, 544),
         "skip_frames": 3,  # 3
-        "arch": "mobilenet_v3_small",
+        # "arch": "mobilenet_v3_small",
         "arch": "yolo",
         "device": "cpu",
         "detection_batch_size": 1,
