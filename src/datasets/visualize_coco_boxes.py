@@ -1,30 +1,38 @@
 # from pycocotools.coco import COCO
 import numpy as np
 import pylab
-pylab.rcParams['figure.figsize'] = (8.0, 10.0)
-from PIL import Image, ExifTags
-import os 
+
+pylab.rcParams["figure.figsize"] = (8.0, 10.0)
+import os
 import cv2
+
 
 def draw_bbox(image, anns, ratio):
     """
     Display the specified annotations.
     :param anns (array of object): annotations to display
     :return: None
-    # """
+    #"""
     for ann in anns:
 
-        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
-        
-        cv2.rectangle(image, (bbox_x,bbox_y),(bbox_x+bbox_w,bbox_y+bbox_h), color=(255,0,0),thickness=3)
+        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio * np.array(ann["bbox"])).astype(int)
+
+        cv2.rectangle(
+            image,
+            (bbox_x, bbox_y),
+            (bbox_x + bbox_w, bbox_y + bbox_h),
+            color=(255, 0, 0),
+            thickness=3,
+        )
 
     return image
 
-dir = 'data/images'
 
-ann_dir = os.path.join(dir,'annotations')
-data_dir = os.path.join(dir,'images')
-ann_file = os.path.join(ann_dir, 'instances_train.json')
+dir = "data/images"
+
+ann_dir = os.path.join(dir, "annotations")
+data_dir = os.path.join(dir, "images")
+ann_file = os.path.join(ann_dir, "instances_train.json")
 # coco = COCO(ann_file)
 
 # imgIds = np.array(coco.getImgIds())
@@ -39,7 +47,7 @@ ann_file = os.path.join(ann_dir, 'instances_train.json')
 #         for orientation in ExifTags.TAGS.keys():
 #             if ExifTags.TAGS[orientation]=='Orientation':
 #                 break
-        
+
 #         exif = image._getexif()
 #         if exif is not None:
 #             if exif[orientation] == 3:
@@ -58,12 +66,8 @@ ann_file = os.path.join(ann_dir, 'instances_train.json')
 #     h,w = image.shape[:-1]
 #     target_h = 1080
 #     ratio = target_h/h
-#     target_w = int(ratio*w) 
+#     target_w = int(ratio*w)
 #     image = cv2.resize(image,(target_w,target_h))
 #     image = draw_bbox(image,anns,ratio)
 #     cv2.imshow('image',image)
 #     cv2.waitKey(0)
-
-
-
-

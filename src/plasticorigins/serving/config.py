@@ -30,6 +30,7 @@ config_track = DotDict(
         "output_shape": (960, 544),
         "skip_frames": 3,  # 3
         "arch": "mobilenet_v3_small",
+        "arch": "yolo",
         "device": "cpu",
         "detection_batch_size": 1,
         "display": 0,
