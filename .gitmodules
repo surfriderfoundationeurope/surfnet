@@ -1,0 +1,3 @@
+[submodule "src/surfnet_train/models/yolov5"]
+	path = src/surfnet_train/models/yolov5
+	url = git@github.com:ultralytics/yolov5.git

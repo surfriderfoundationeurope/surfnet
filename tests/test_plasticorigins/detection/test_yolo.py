@@ -21,7 +21,10 @@ config_track = Namespace(
 
 def test_detect():
     model_path = download_from_url(
-        config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger
+        config_track.url_model_yolo,
+        config_track.file_model_yolo,
+        "./models",
+        logger,
     )
     model_yolo = load_model(
         model_path,
@@ -29,7 +32,9 @@ def test_detect():
         config_track.yolo_conf_thrld,
         config_track.yolo_iou_thrld,
     )
-    res = predict_yolo(model_yolo, frame, config_track.output_shape[0], augment=False)
+    res = predict_yolo(
+        model_yolo, frame, config_track.output_shape[0], augment=False
+    )
 
     assert len(res) == 3
     assert res[0].shape == (2, 4)

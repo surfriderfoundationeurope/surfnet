@@ -1,9 +1,16 @@
 import json
 
-with open("dataset.json", "r") as surfrider_annotations_file:
-    surfrider_annotations = [json.loads(line) for line in surfrider_annotations_file]
+with open("dataset.json") as surfrider_annotations_file:
+    surfrider_annotations = [
+        json.loads(line) for line in surfrider_annotations_file
+    ]
 
-cat_name_to_cat_id = {"__background__": 0, "fragments": 1, "bottles": 1, "others": 1}
+cat_name_to_cat_id = {
+    "__background__": 0,
+    "fragments": 1,
+    "bottles": 1,
+    "others": 1,
+}
 
 
 coco_info_train = {
@@ -84,7 +91,10 @@ for ann_nb, surfrider_annotation in enumerate(surfrider_annotations):
         top_left_x, top_left_y, width, height = bbox
         top_right_x, top_right_y = top_left_x + width, top_left_y
         bottom_left_x, bottom_left_y = top_left_x, top_left_y + height
-        bottom_right_x, bottom_right_y = top_left_x + width, top_left_y + height
+        bottom_right_x, bottom_right_y = (
+            top_left_x + width,
+            top_left_y + height,
+        )
 
         segmentation = [
             (

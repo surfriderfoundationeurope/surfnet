@@ -13,6 +13,9 @@ BN_MOMENTUM = 0.1
 
 
 class MobiletNetHM(nn.Module):
+
+    """MobileNetHM main class. Adapted code."""
+
     def __init__(self, heads, head_conv, **kwargs):
         self.inplanes = 576
         self.deconv_with_bias = False
@@ -33,7 +36,9 @@ class MobiletNetHM(nn.Module):
             num_output = self.heads[head]
             if head_conv > 0:
                 fc = nn.Sequential(
-                    nn.Conv2d(256, head_conv, kernel_size=3, padding=1, bias=True),
+                    nn.Conv2d(
+                        256, head_conv, kernel_size=3, padding=1, bias=True
+                    ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         head_conv,
@@ -78,7 +83,9 @@ class MobiletNetHM(nn.Module):
 
         layers = []
         for i in range(num_layers):
-            kernel, padding, output_padding = self._get_deconv_cfg(num_kernels[i], i)
+            kernel, padding, output_padding = self._get_deconv_cfg(
+                num_kernels[i], i
+            )
 
             planes = num_filters[i]
             layers.append(

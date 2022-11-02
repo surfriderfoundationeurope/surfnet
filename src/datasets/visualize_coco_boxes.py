@@ -15,7 +15,9 @@ def draw_bbox(image, anns, ratio):
     #"""
     for ann in anns:
 
-        [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio * np.array(ann["bbox"])).astype(int)
+        [bbox_x, bbox_y, bbox_w, bbox_h] = (
+            ratio * np.array(ann["bbox"])
+        ).astype(int)
 
         cv2.rectangle(
             image,

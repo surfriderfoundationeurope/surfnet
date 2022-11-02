@@ -3,7 +3,7 @@ from PIL import Image
 
 from plasticorigins.detection.transforms import TrainTransforms, ValTransforms
 
-image = np.array(Image.open("tests/ressources/test_image.jpeg"))
+image = np.array(Image.open("tests/ressources/test_images/test_image.jpeg"))
 target = {"bboxes": [[100, 100, 20, 20]], "cats": [1]}
 
 

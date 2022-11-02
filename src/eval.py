@@ -10,7 +10,10 @@ from plasticorigins.detection.detect import nms
 from tqdm import tqdm
 import math
 from scipy.spatial.distance import cdist
-from plasticorigins.tools.misc import load_model, _calculate_euclidean_similarity
+from plasticorigins.tools.misc import (
+    load_model,
+    _calculate_euclidean_similarity,
+)
 from plasticorigins.detection.coco_utils import get_surfrider
 from plasticorigins.detection.transforms import TrainTransforms, ValTransforms
 
@@ -51,7 +54,9 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
                     ]
 
                     if np.isscalar(distances_to_detections):
-                        distances_to_detections = np.array([distances_to_detections])
+                        distances_to_detections = np.array(
+                            [distances_to_detections]
+                        )
 
                     similarities = _calculate_euclidean_similarity(
                         distances_to_detections, zero_distance=max_allowed_cost

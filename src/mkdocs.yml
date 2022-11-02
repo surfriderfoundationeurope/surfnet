@@ -1,0 +1,19 @@
+site_name: Plastic Origins
+
+theme:
+  name: material
+
+plugins:
+  - mkdocstrings
+
+nav:
+    - Plastic Origins: index.md
+    - Tutorials: tutorials.md 
+    - Installation: installation.md
+    - How to guide: how-to-guides.md
+    - Modules:
+        - Detection: ['detection/models.md', 'detection/coco_utils.md','detection/detect.md','detection/losses.md','detection/transforms.md','detection/yolo.md']
+        - Serving: ['serving/inference.md']
+        - Tools: ['tools/files.md','tools/misc.md','tools/optical_flow.md','tools/video_readers.md']
+        - Tracking: ['tracking/postprocess_and_count_tracks.md',tracking/track_video.md,tracking/trackers.md,tracking/utils.md]
+        - Training: ['training/data_processing.md', 'training/make_dataset.md']

@@ -1,6 +1,25 @@
+"""The ``inference`` submodule provides several functions for tracking and handling post request.
+
+The submodule configures :
+
+- the device type
+- the logger
+- the prediction model
+
+This submodule contains the following functions:
+
+- ``handle_post_request()`` : Main function to handle a post request.
+- ``track(args:argparse)`` : Tracking function for object detection in frame sequences.
+
+"""
+
+from typing import List
+import argparse
+import json
 import logging
 import os
 from pathlib import Path
+from typing import Tuple
 
 import warnings
 import numpy as np
@@ -31,10 +50,12 @@ from plasticorigins.serving.config import id_categories
 from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()
+
 if config_track.device is None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 else:
     device = config_track.device
+
 device = torch.device(device)
 
 engine = get_tracker("EKF")
@@ -53,7 +74,10 @@ elif config_track.arch == "yolo":
     from plasticorigins.detection.yolo import load_model, predict_yolo
 
     model_path = download_from_url(
-        config_track.url_model_yolo, config_track.file_model_yolo, "./models", logger
+        config_track.url_model_yolo,
+        config_track.file_model_yolo,
+        "./models",
+        logger,
     )
     model_yolo = load_model(
         model_path,
@@ -66,23 +90,30 @@ else:
     logger.error(f"unrecognized model {config_track.arch}")
 
 observation_variance = np.load(
-    os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
+    os.path.join(
+        config_track.noise_covariances_path, "observation_variance.npy"
+    )
 )
 transition_variance = np.load(
-    os.path.join(config_track.noise_covariances_path, "transition_variance.npy")
+    os.path.join(
+        config_track.noise_covariances_path, "transition_variance.npy"
+    )
 )
 
 
-def handle_post_request():
-    """main function to handle a post request.
-    The file is in `request.files`
+def handle_post_request() -> json:
 
-    Will create tmp folders for storing the file and intermediate results
-    Outputs a json
+    """Main function to handle a post request. The file is in `request.files`. Will create temporary folders for storing the file and intermediate results. Outputs a json.
+
+    Returns:
+        A output json file.
     """
+
     logger.info("---receiving request")
+
     if "file" in request.files:
         file = request.files["file"]
+
     else:
         logger.error("error no file in request")
         return None
@@ -90,7 +121,9 @@ def handle_post_request():
     # file and folder handling
     filename = secure_filename(file.filename)
     logger.info("--- received filename: " + filename)
-    working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
+    working_dir = Path(
+        create_unique_folder(config_track.upload_folder, filename)
+    )
     full_filepath = working_dir / filename
     if os.path.isfile(full_filepath):
         os.remove(full_filepath)
@@ -116,19 +149,25 @@ def handle_post_request():
     return response
 
 
-def track(args):
-    if args.arch == "mobilenet_v3_small":
-        detector = lambda frame: detect(
-            frame, threshold=args.detection_threshold, model=model
-        )
-    elif args.arch == "yolo":
-        detector = lambda frame: predict_yolo(
-            model_yolo, frame, size=config_track.output_shape[0], augment=False
-        )
-    else:
-        logger.error("bad model arch")
+def track(args: argparse) -> Tuple[List, int, int]:
+
+    """Tracking function for object detection in frame sequences.
+
+    Args:
+        args (argparse): arguments for tracking process
+
+    Returns:
+        filtered_results (list): list of filtered tracks
+        num_frames (int): max number of frames for tracking
+        fps (int): number of frames per second (video speed)
+    """
+
+    detector = lambda frame: detect(
+        frame, threshold=args.detection_threshold, model=model
+    )
 
     logger.info(f"---Processing {args.video_path}")
+
     reader = IterableFrameReader(
         video_filename=args.video_path,
         skip_frames=args.skip_frames,
@@ -155,7 +194,10 @@ def track(args):
                 detections.append(detector(frame))
     elif args.arch == "mobilenet_v3_small":
         detections = get_detections_for_video(
-            reader, detector, batch_size=args.detection_batch_size, device=device
+            reader,
+            detector,
+            batch_size=args.detection_batch_size,
+            device=device,
         )
 
     logger.info("---Tracking...")
@@ -172,6 +214,7 @@ def track(args):
         is_yolo=args.arch == "yolo",
     )
     reader.video.release()
+
     # store unfiltered results
     output_filename = Path(args.output_dir) / "results_unfiltered.txt"
     coord_mapping = reader.get_inv_mapping(args.downsampling_factor)
@@ -185,6 +228,7 @@ def track(args):
     # read from the file
     results = read_tracking_results(output_filename)
     filtered_results = filter_tracks(results, args.kappa, args.tau)
+
     # store filtered results
     output_filename = Path(args.output_dir) / "results.txt"
     write_tracking_results_to_file(

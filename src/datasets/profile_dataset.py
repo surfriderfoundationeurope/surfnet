@@ -24,7 +24,9 @@ heatmaps_folder = "data/extracted_heatmaps/"
 annotations_dir = "data/generated_videos/"
 
 video_dataset = SurfnetDatasetFlow(
-    annotations_dir=annotations_dir, heatmaps_folder=heatmaps_folder, split="val"
+    annotations_dir=annotations_dir,
+    heatmaps_folder=heatmaps_folder,
+    split="val",
 )
 
 test = next(iter(video_dataset))
