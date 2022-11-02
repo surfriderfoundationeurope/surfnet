@@ -6,7 +6,6 @@ from plasticorigins.tools.misc import (
     load_model,
 )
 
-
 def test_load_model():
     model_mbn = load_model(arch="mobilenet_v3_small", model_weights=None, device="cpu")
     assert type(model_mbn) == MobiletNetHM

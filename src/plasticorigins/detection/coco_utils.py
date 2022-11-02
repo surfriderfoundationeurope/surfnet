@@ -117,42 +117,42 @@ class FilterAndRemapCocoCategories:
 #     return masks
 
 
-class ConvertCocoPolysToMask:
+# class ConvertCocoPolysToMask:
 
-    """Convert Coco Polygons to Masks."""
+#     """Convert Coco Polygons to Masks."""
 
-    def __call__(self, image: Image, anno: List[Dict]) -> Tuple[Any, Any]:
+#     def __call__(self, image: Image, anno: List[Dict]) -> Tuple[Any, Any]:
 
-        """Generating target image from masks.
+#         """Generating target image from masks.
 
-        Args:
-            image (Image): Image, from the instance file
-            anno (List[Dict]): Annotations linked to the specified image, from instance file
+#         Args:
+#             image (Image): Image, from the instance file
+#             anno (List[Dict]): Annotations linked to the specified image, from instance file
 
-        Returns:
-            image (Image): Image, from the instance file
-            target (Image): Target image resulting from the product between categories and masks
-        """
+#         Returns:
+#             image (Image): Image, from the instance file
+#             target (Image): Target image resulting from the product between categories and masks
+#         """
 
-        w, h = image.size
-        segmentations = [obj["segmentation"] for obj in anno]
-        cats = [obj["category_id"] for obj in anno]
+#         w, h = image.size
+#         segmentations = [obj["segmentation"] for obj in anno]
+#         cats = [obj["category_id"] for obj in anno]
 
-        if segmentations:
-            masks = convert_coco_poly_to_mask(segmentations, h, w)
-            cats = torch.as_tensor(cats, dtype=masks.dtype)
-            # merge all instance masks into a single segmentation map
-            # with its corresponding categories
-            target, _ = (masks * cats[:, None, None]).max(dim=0)
-            # discard overlapping instances
-            target[masks.sum(0) > 1] = 255
+#         if segmentations:
+#             masks = convert_coco_poly_to_mask(segmentations, h, w)
+#             cats = torch.as_tensor(cats, dtype=masks.dtype)
+#             # merge all instance masks into a single segmentation map
+#             # with its corresponding categories
+#             target, _ = (masks * cats[:, None, None]).max(dim=0)
+#             # discard overlapping instances
+#             target[masks.sum(0) > 1] = 255
 
-        else:
-            target = torch.zeros((h, w), dtype=torch.uint8)
+#         else:
+#             target = torch.zeros((h, w), dtype=torch.uint8)
 
-        target = Image.fromarray(target.numpy())
+#         target = Image.fromarray(target.numpy())
 
-        return image, target
+#         return image, target
 
 
 class ConvertCocoPolysToBboxes:
