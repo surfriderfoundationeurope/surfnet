@@ -72,14 +72,10 @@ def test_bbox2yolo():
 
     h, w = image.shape[:-1]
     target_h = 1080  # the target height of the image
-    ratio = (
-        target_h / h
-    )  # We get the ratio of the target and the actual height
+    ratio = target_h / h  # We get the ratio of the target and the actual height
 
     anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
-    bboxes = (
-        anns[["location_x", "location_y", "width", "height"]].values * ratio
-    )
+    bboxes = anns[["location_x", "location_y", "width", "height"]].values * ratio
 
     assert (bbox2yolo(bboxes, h, w) <= 1).all()
 
@@ -95,9 +91,7 @@ def test_process_annotations():
 
     h, w = image.shape[:-1]
     target_h = 1080  # the target height of the image
-    ratio = (
-        target_h / h
-    )  # We get the ratio of the target and the actual height
+    ratio = target_h / h  # We get the ratio of the target and the actual height
     target_w = int(ratio * w)
 
     anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
@@ -256,9 +250,7 @@ def test_convert_bboxes_to_initial_locations_from_txt_labels():
 
     h, w = image.shape[:-1]
     target_h = 1080  # the target height of the image
-    ratio = (
-        target_h / h
-    )  # We get the ratio of the target and the actual height
+    ratio = target_h / h  # We get the ratio of the target and the actual height
     target_w = int(ratio * w)
 
     labels, bboxes = convert_bboxes_to_initial_locations_from_txt_labels(

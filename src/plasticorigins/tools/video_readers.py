@@ -14,6 +14,7 @@ import cv2
 from cv2 import Mat
 import torch
 from tqdm import tqdm
+from numpy import ndarray
 
 
 def square_crop(input_frame, out_shape):
@@ -205,6 +206,7 @@ class IterableFrameReader:
         progress_bar: bool = False,
         preload: bool = False,
         max_frame: int = 0,
+        crop: Optional[ndarray] = None,
     ):
         # store arguments for reset
         self.video_filename = video_filename
@@ -456,9 +458,7 @@ class TorchIterableFromReader(torch.utils.data.IterableDataset):
         transforms (Callable): the specific transformations for frames
     """
 
-    def __init__(
-        self, reader: torch.utils.data.IterableDataset, transforms: Callable
-    ):
+    def __init__(self, reader: torch.utils.data.IterableDataset, transforms: Callable):
         self.transforms = transforms
         self.reader = reader
 

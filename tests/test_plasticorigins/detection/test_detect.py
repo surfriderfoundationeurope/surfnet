@@ -18,6 +18,4 @@ def test_detect():
 
     assert len(res) == 1
     assert res[0].shape == (3, 2)
-    np.testing.assert_array_equal(
-        res[0], np.array([[149, 76], [33, 83], [177, 85]])
-    )
+    np.testing.assert_array_equal(res[0], np.array([[149, 76], [33, 83], [177, 85]]))

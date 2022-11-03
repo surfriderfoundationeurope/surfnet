@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from plasticorigins.tools.files import download_from_url
 from plasticorigins.detection.yolo import load_model, predict_yolo
@@ -18,7 +19,6 @@ config_track = Namespace(
     device="cpu",
 )
 
-
 def test_detect():
     model_path = download_from_url(
         config_track.url_model_yolo,
@@ -32,9 +32,7 @@ def test_detect():
         config_track.yolo_conf_thrld,
         config_track.yolo_iou_thrld,
     )
-    res = predict_yolo(
-        model_yolo, frame, config_track.output_shape[0], augment=False
-    )
+    res = predict_yolo(model_yolo, frame, config_track.output_shape[0], augment=False)
 
     assert len(res) == 3
     assert res[0].shape == (2, 4)

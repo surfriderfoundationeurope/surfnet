@@ -37,9 +37,7 @@ class FocalLoss(nn.Module):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
-        self.focal_loss = (
-            self.focal_loss if train else self.focal_loss_class_wise
-        )
+        self.focal_loss = self.focal_loss if train else self.focal_loss_class_wise
         self.loss = self.train_loss if train else self.test_loss
         self.centernet_output = centernet_output
 
@@ -101,9 +99,7 @@ class FocalLoss(nn.Module):
         pos_inds = gt_centers.eq(1).float()
         neg_inds = gt_centers.lt(1).float()
 
-        return self.focal_loss_class_wise(
-            pred_centers, gt_centers, pos_inds, neg_inds
-        )
+        return self.focal_loss_class_wise(pred_centers, gt_centers, pos_inds, neg_inds)
 
     def focal_loss(
         self,
@@ -132,9 +128,7 @@ class FocalLoss(nn.Module):
 
         loss = 0.0
 
-        pos_loss = (
-            torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
-        )
+        pos_loss = torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
         neg_loss = (
             torch.log(1 - pred_hm)
             * torch.pow(pred_hm, self.alpha)
@@ -178,9 +172,7 @@ class FocalLoss(nn.Module):
 
         neg_weights = torch.pow(1 - gt_hm, self.beta)
 
-        pos_loss = (
-            torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
-        )
+        pos_loss = torch.log(pred_hm) * torch.pow(1 - pred_hm, self.alpha) * pos_inds
         neg_loss = (
             torch.log(1 - pred_hm)
             * torch.pow(pred_hm, self.alpha)
@@ -199,9 +191,7 @@ class FocalLoss(nn.Module):
             if num_poss_class == 0:
                 loss[i] = loss[i] - neg_loss[i]
             else:
-                loss[i] = (
-                    loss[i] - (pos_loss[i] + neg_loss[i]) / num_poss_class
-                )
+                loss[i] = loss[i] - (pos_loss[i] + neg_loss[i]) / num_poss_class
 
         return loss
 

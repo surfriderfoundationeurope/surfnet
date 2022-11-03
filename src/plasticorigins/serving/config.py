@@ -29,8 +29,7 @@ config_track = DotDict(
         "noise_covariances_path": "data/tracking_parameters",
         "output_shape": (960, 544),
         "skip_frames": 3,  # 3
-        # "arch": "mobilenet_v3_small",
-        "arch": "yolo",
+        "arch": "mobilenet_v3_small",
         "device": "cpu",
         "detection_batch_size": 1,
         "display": 0,
@@ -66,9 +65,7 @@ config_track_yolo = DotDict(
 logging_config = {
     "version": 1,
     "formatters": {
-        "default": {
-            "format": "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
-        }
+        "default": {"format": "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"}
     },
     "handlers": {
         "wsgi": {

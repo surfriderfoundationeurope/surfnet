@@ -46,8 +46,8 @@ from plasticorigins.tracking.utils import (
 from plasticorigins.serving.config import id_categories
 
 # centernet / yolo version
-# from plasticorigins.serving.config import config_track
-from plasticorigins.serving.config import config_track_yolo as config_track
+from plasticorigins.serving.config import config_track
+# from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()
 
@@ -79,7 +79,7 @@ elif config_track.arch == "yolo":
         "./models",
         logger,
     )
-    model_yolo = load_model(
+    model = load_model(
         model_path,
         config_track.device,
         config_track.yolo_conf_thrld,
@@ -90,14 +90,10 @@ else:
     logger.error(f"unrecognized model {config_track.arch}")
 
 observation_variance = np.load(
-    os.path.join(
-        config_track.noise_covariances_path, "observation_variance.npy"
-    )
+    os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
 )
 transition_variance = np.load(
-    os.path.join(
-        config_track.noise_covariances_path, "transition_variance.npy"
-    )
+    os.path.join(config_track.noise_covariances_path, "transition_variance.npy")
 )
 
 
@@ -121,9 +117,7 @@ def handle_post_request() -> json:
     # file and folder handling
     filename = secure_filename(file.filename)
     logger.info("--- received filename: " + filename)
-    working_dir = Path(
-        create_unique_folder(config_track.upload_folder, filename)
-    )
+    working_dir = Path(create_unique_folder(config_track.upload_folder, filename))
     full_filepath = working_dir / filename
     if os.path.isfile(full_filepath):
         os.remove(full_filepath)

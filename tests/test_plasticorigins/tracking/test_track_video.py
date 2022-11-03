@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 
 from plasticorigins.tools.video_readers import IterableFrameReader
@@ -13,14 +12,10 @@ def test_track_video():
     detections = list(detections)
 
     transition_variance = np.load(
-        os.path.join(
-            config_track.noise_covariances_path, "transition_variance.npy"
-        )
+        os.path.join(config_track.noise_covariances_path, "transition_variance.npy")
     )
     observation_variance = np.load(
-        os.path.join(
-            config_track.noise_covariances_path, "observation_variance.npy"
-        )
+        os.path.join(config_track.noise_covariances_path, "observation_variance.npy")
     )
 
     reader = IterableFrameReader(

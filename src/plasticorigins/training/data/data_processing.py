@@ -113,13 +113,9 @@ def plot_image_and_bboxes_yolo(image: image, annotation_list: ndarray) -> None:
     for ann in transformed_annotations:
         obj_cls, x0, y0, x1, y1 = ann
 
-        plotted_image.rectangle(
-            ((x0, y0), (x1, y1)), outline="#ff8300", width=5
-        )
+        plotted_image.rectangle(((x0, y0), (x1, y1)), outline="#ff8300", width=5)
 
-        plotted_image.text(
-            (x0, y0 - 10), class_id_to_name_mapping[(int(obj_cls))]
-        )
+        plotted_image.text((x0, y0 - 10), class_id_to_name_mapping[(int(obj_cls))])
 
     plt.figure(figsize=(12, 10))
     plt.imshow(np.array(image))
@@ -198,9 +194,7 @@ def process_annotations(
     """
 
     labels = anns["id_ref_trash_type_fk"].values - 1
-    bboxes = (
-        anns[["location_x", "location_y", "width", "height"]].values * ratio
-    )
+    bboxes = anns[["location_x", "location_y", "width", "height"]].values * ratio
     bboxes = bbox2yolo(bboxes, target_h, target_w)
     return labels, bboxes
 
@@ -295,20 +289,14 @@ def build_yolo_annotations_for_images(
             image = np.array(image)
             h, w = image.shape[:-1]
             target_h = 1080  # the target height of the image
-            ratio = (
-                target_h / h
-            )  # We get the ratio of the target and the actual height
+            ratio = target_h / h  # We get the ratio of the target and the actual height
             target_w = int(ratio * w)
             image = cv2.resize(image, (target_w, target_h))
             h, w = image.shape[:-1]
 
             # getting annotations and converting to yolo
-            anns = df_bboxes[
-                df_bboxes["id_ref_images_for_labelling"] == img_id
-            ]
-            labels, bboxes = process_annotations(
-                anns, ratio, target_h, target_w
-            )
+            anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
+            labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
             yolo_strs = [
                 str(cat) + " " + " ".join(bbox.astype(str))
                 for (cat, bbox) in zip(labels, bboxes)
@@ -329,9 +317,7 @@ def build_yolo_annotations_for_images(
             print("Exists : ", count_exists)
             print("Missing : ", count_missing)
 
-    print(
-        f"Process finished successfully with {count_missing} missing images !"
-    )
+    print(f"Process finished successfully with {count_missing} missing images !")
 
     return valid_imagenames, count_exists, count_missing
 
@@ -531,7 +517,9 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     sslmode = "require"
 
     # Construct connection string
-    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn_string = (
+        f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    )
     conn = psycopg2.connect(conn_string)
     print("Connection established")
 
@@ -741,7 +729,9 @@ def update_bounding_boxes_database(
     sslmode = "require"
 
     # Construct connection string
-    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn_string = (
+        f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    )
     conn = psycopg2.connect(conn_string)
     print("Connection established")
 
@@ -755,9 +745,7 @@ def update_bounding_boxes_database(
         except:
             continue
 
-        infos_df_bboxes = df_bboxes[
-            df_bboxes["id_ref_images_for_labelling"] == img_id
-        ]
+        infos_df_bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
 
         nb_trashs = len(infos_df_bboxes)
 
@@ -773,9 +761,7 @@ def update_bounding_boxes_database(
         image = np.array(image)
         h, w = image.shape[:-1]
         target_h = 1080  # the target height of the image
-        ratio = (
-            target_h / h
-        )  # We get the ratio of the target and the actual height
+        ratio = target_h / h  # We get the ratio of the target and the actual height
         target_w = int(ratio * w)
         image = cv2.resize(image, (target_w, target_h))
         h, w = image.shape[:-1]
@@ -873,9 +859,7 @@ def update_bounding_boxes_database(
     conn.close()
     print("The PostgreSQL connection is close")
 
-    print(
-        f"Process finished successfully with {count_exists} updated images !"
-    )
+    print(f"Process finished successfully with {count_exists} updated images !")
 
 
 """--------- UPDATE BOUNDING BOXES DATABASE FROM CSV FILE ----------"""
@@ -957,17 +941,12 @@ def build_bboxes_csv_file_for_DB(
             image = np.array(image)
             h, w = image.shape[:-1]
             target_h = 1080  # the target height of the image
-            ratio = (
-                target_h / h
-            )  # We get the ratio of the target and the actual height
+            ratio = target_h / h  # We get the ratio of the target and the actual height
             target_w = int(ratio * w)
             image = cv2.resize(image, (target_w, target_h))
             h, w = image.shape[:-1]
 
-            (
-                labels,
-                bboxes,
-            ) = convert_bboxes_to_initial_locations_from_txt_labels(
+            (labels, bboxes,) = convert_bboxes_to_initial_locations_from_txt_labels(
                 labels_folder_path, img_id, target_h, ratio, target_w
             )
 
@@ -1045,9 +1024,7 @@ def build_bboxes_csv_file_for_DB(
         except:
             exceptions.append(img_id)
 
-    print(
-        f"Process finished successfully with {count_exists} updated images !"
-    )
+    print(f"Process finished successfully with {count_exists} updated images !")
 
     return new_df_bboxes, exceptions
 
@@ -1070,7 +1047,9 @@ def fill_bounding_boxes_table_with_corrections(
     sslmode = "require"
 
     # Construct connection string
-    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn_string = (
+        f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    )
     conn = psycopg2.connect(conn_string)
     print("Connection established")
 
@@ -1119,7 +1098,9 @@ def update_bounding_boxes_table_with_corrections(
     sslmode = "require"
 
     # Construct connection string
-    conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    conn_string = (
+        f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+    )
     conn = psycopg2.connect(conn_string)
     print("Connection established")
 
@@ -1132,10 +1113,7 @@ def update_bounding_boxes_table_with_corrections(
 
         row = tuple(new_df_bboxes.loc[i])
         row = tuple(
-            [
-                int(val) if (type(val) != str and val is not None) else val
-                for val in row
-            ]
+            [int(val) if (type(val) != str and val is not None) else val for val in row]
         )
 
         if row[0] is None:

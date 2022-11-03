@@ -74,13 +74,9 @@ def main(args: Namespace) -> None:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Build dataset")
-    parser.add_argument(
-        "--data-dir", type=str, help="path to main data folder"
-    )
+    parser.add_argument("--data-dir", type=str, help="path to main data folder")
     parser.add_argument("--images-dir", type=str, help="path to image folder")
-    parser.add_argument(
-        "--password", type=str, help="password for connection to DB"
-    )
+    parser.add_argument("--password", type=str, help="password for connection to DB")
     parser.add_argument("--bboxes-filename", type=str, default="")
     parser.add_argument("--images-filename", type=str, default="")
     parser.add_argument(

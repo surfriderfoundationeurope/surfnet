@@ -54,9 +54,7 @@ class FilterAndRemapCocoCategories:
         self.categories = categories
         self.remap = remap
 
-    def __call__(
-        self, image: Image, anno: List[Dict]
-    ) -> Tuple[Any, List[Dict]]:
+    def __call__(self, image: Image, anno: List[Dict]) -> Tuple[Any, List[Dict]]:
 
         """Remapping the images with true category ids.
 
@@ -360,9 +358,7 @@ def get_surfrider(root: str, image_set: str, transforms: Callable) -> Dataset:
     img_folder = os.path.join(root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = CocoDetectionWithExif(
-        img_folder, ann_file, transforms=transforms
-    )
+    dataset = CocoDetectionWithExif(img_folder, ann_file, transforms=transforms)
 
     return dataset
 
@@ -423,9 +419,7 @@ class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
         target_transform: Optional[Callable] = None,
         transforms: Optional[Callable] = None,
     ):
-        super().__init__(
-            root, annFile, transform, target_transform, transforms
-        )
+        super().__init__(root, annFile, transform, target_transform, transforms)
 
     def __getitem__(self, index: int) -> Tuple[ndarray, ndarray]:
 

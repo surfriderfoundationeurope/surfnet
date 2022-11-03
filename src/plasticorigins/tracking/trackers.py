@@ -165,9 +165,7 @@ class Tracker:
 
         colors = display.colors
         color = colors[tracker_nb % len(colors)]
-        display.legends.append(
-            mpatches.Patch(color=color, label=len(self.tracklet))
-        )
+        display.legends.append(mpatches.Patch(color=color, label=len(self.tracklet)))
 
         return colors[tracker_nb % len(colors)]
 
@@ -302,9 +300,7 @@ class EKF(Tracker):
         ) = self.EKF_step(observation, flow)
 
         enabled = (
-            False
-            if not in_frame(self.filtered_state_mean, flow.shape[:-1])
-            else True
+            False if not in_frame(self.filtered_state_mean, flow.shape[:-1]) else True
         )
 
         return enabled
@@ -320,9 +316,7 @@ class EKF(Tracker):
             The computed predictive distribution from normal multivariate model.
         """
 
-        filtered_state_mean, filtered_state_covariance = self.EKF_step(
-            None, flow
-        )
+        filtered_state_mean, filtered_state_covariance = self.EKF_step(None, flow)
 
         distribution = multivariate_normal(
             filtered_state_mean,
