@@ -6,7 +6,7 @@ __pycache__/
 *.mp4
 *.pyc
 scripts/shell_variables.sh
-*.png
+#*.png
 *.log
 experiments/evaluations
 experiments/extension
