@@ -12,4 +12,4 @@ def test_track_video_simple():
 
     assert reader.read()[0]
     assert reader.read()[1].shape == (360, 640, 3)
-    #assert reader.read()[-1] == 1
+    # assert reader.read()[-1] == 1

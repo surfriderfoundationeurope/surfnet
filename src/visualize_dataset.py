@@ -14,9 +14,7 @@ class Args:
         self.data_path = data_path
 
 
-args = Args(
-    "./data/images", "surfrider", downsampling_factor=4, old_train=False
-)
+args = Args("./data/images", "surfrider", downsampling_factor=4, old_train=False)
 
 
 dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)

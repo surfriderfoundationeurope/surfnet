@@ -70,15 +70,11 @@ def train_one_epoch(
 ):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter(
-        "lr", utils.SmoothedValue(window_size=1, fmt="{value}")
-    )
+    metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value}"))
     header = f"Epoch: [{epoch}]"
     i = 0
     running_loss = 0.0
-    for image, target in metric_logger.log_every(
-        data_loader, print_freq, header
-    ):
+    for image, target in metric_logger.log_every(data_loader, print_freq, header):
 
         image, target = image.to(device), target.to(device)
 
@@ -91,9 +87,7 @@ def train_one_epoch(
         loss.backward()
         optimizer.step()
 
-        metric_logger.update(
-            loss=loss.item(), lr=optimizer.param_groups[0]["lr"]
-        )
+        metric_logger.update(loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
 
         writer.add_scalar(
             "Training loss (mini-batch)",
@@ -120,18 +114,12 @@ def main(args):
 
     device = torch.device(args.device)
 
-    dataset, num_classes = get_dataset(
-        args.data_path, args.dataset, "train", args
-    )
+    dataset, num_classes = get_dataset(args.data_path, args.dataset, "train", args)
     dataset_test, _ = get_dataset(args.data_path, args.dataset, "val", args)
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            dataset
-        )
-        test_sampler = torch.utils.data.distributed.DistributedSampler(
-            dataset_test
-        )
+        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test)
     else:
         train_sampler = torch.utils.data.RandomSampler(dataset)
         test_sampler = torch.utils.data.SequentialSampler(dataset_test)
@@ -153,9 +141,7 @@ def main(args):
         collate_fn=utils.collate_fn,
     )
 
-    model = create_model(
-        arch=args.model, heads={"hm": num_classes}, head_conv=256
-    )
+    model = create_model(arch=args.model, heads={"hm": num_classes}, head_conv=256)
 
     model.to(device)
 
@@ -165,9 +151,7 @@ def main(args):
     model_without_ddp = model
 
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[args.gpu]
-        )
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
@@ -218,9 +202,7 @@ def main(args):
             {str(i): v for i, v in enumerate(class_wise_eval_focal_loss)},
             epoch,
         )
-        print(
-            "Class-wise evaluation loss:", class_wise_eval_focal_loss.numpy()
-        )
+        print("Class-wise evaluation loss:", class_wise_eval_focal_loss.numpy())
         for name, param in model.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
@@ -243,9 +225,7 @@ def main(args):
 def parse_args():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="PyTorch Segmentation Training"
-    )
+    parser = argparse.ArgumentParser(description="PyTorch Segmentation Training")
 
     parser.add_argument(
         "--data-path",
@@ -274,12 +254,8 @@ def parse_args():
         metavar="N",
         help="number of data loading workers (default: 16)",
     )
-    parser.add_argument(
-        "--lr", default=0.01, type=float, help="initial learning rate"
-    )
-    parser.add_argument(
-        "--lr_step", default=140, type=int, help="when to decrease lr"
-    )
+    parser.add_argument("--lr", default=0.01, type=float, help="initial learning rate")
+    parser.add_argument("--lr_step", default=140, type=int, help="when to decrease lr")
     parser.add_argument(
         "--momentum", default=0.9, type=float, metavar="M", help="momentum"
     )
@@ -292,9 +268,7 @@ def parse_args():
         help="weight decay (default: 1e-4)",
         dest="weight_decay",
     )
-    parser.add_argument(
-        "--print-freq", default=10, type=int, help="print frequency"
-    )
+    parser.add_argument("--print-freq", default=10, type=int, help="print frequency")
     parser.add_argument("--resume", default="", help="resume from checkpoint")
     parser.add_argument(
         "--start-epoch", default=0, type=int, metavar="N", help="start epoch"

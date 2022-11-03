@@ -47,6 +47,7 @@ from plasticorigins.serving.config import id_categories
 
 # centernet / yolo version
 from plasticorigins.serving.config import config_track
+
 # from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()

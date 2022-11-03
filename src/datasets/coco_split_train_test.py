@@ -9,9 +9,7 @@ def subset_from_image_ids(coco_dataset, image_ids):
     annotation_nb = 0
     for image_nb, image_id in enumerate(image_ids):
         image = next(
-            image.copy()
-            for image in coco_dataset["images"]
-            if image["id"] == image_id
+            image.copy() for image in coco_dataset["images"] if image["id"] == image_id
         ).copy()
         image["id"] = image_nb
         new_images.append(image)
@@ -40,9 +38,7 @@ if __name__ == "__main__":
         full_dataset = json.load(f)
 
     image_ids = [image["id"] for image in full_dataset["images"]]
-    image_ids = np.array(image_ids)[
-        np.random.permutation(len(image_ids))
-    ].tolist()
+    image_ids = np.array(image_ids)[np.random.permutation(len(image_ids))].tolist()
     image_ids_train = image_ids[: int(train_proportion * len(image_ids))]
     image_ids_val = image_ids[int(train_proportion * len(image_ids)) :]
 

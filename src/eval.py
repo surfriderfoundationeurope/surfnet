@@ -54,9 +54,7 @@ def prec_recall_for_thres(thres, thres_nb, gt, pred, radius):
                     ]
 
                     if np.isscalar(distances_to_detections):
-                        distances_to_detections = np.array(
-                            [distances_to_detections]
-                        )
+                        distances_to_detections = np.array([distances_to_detections])
 
                     similarities = _calculate_euclidean_similarity(
                         distances_to_detections, zero_distance=max_allowed_cost

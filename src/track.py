@@ -24,9 +24,7 @@ def main(args, display):
     engine = get_tracker("EKF")
 
     print("---Loading model...")
-    model = load_model(
-        arch=args.arch, model_weights=args.model_weights, device=device
-    )
+    model = load_model(arch=args.arch, model_weights=args.model_weights, device=device)
     print("Model loaded.")
 
     detector = lambda frame: detect(
@@ -58,12 +56,8 @@ def main(args, display):
 
         input_shape = reader.input_shape
         output_shape = reader.output_shape
-        ratio_y = input_shape[0] / (
-            output_shape[0] // args.downsampling_factor
-        )
-        ratio_x = input_shape[1] / (
-            output_shape[1] // args.downsampling_factor
-        )
+        ratio_y = input_shape[0] / (output_shape[0] // args.downsampling_factor)
+        ratio_x = input_shape[1] / (output_shape[1] // args.downsampling_factor)
 
         print("Detecting...")
         detections = get_detections_for_video(

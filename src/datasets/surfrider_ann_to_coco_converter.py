@@ -1,9 +1,7 @@
 import json
 
 with open("dataset.json") as surfrider_annotations_file:
-    surfrider_annotations = [
-        json.loads(line) for line in surfrider_annotations_file
-    ]
+    surfrider_annotations = [json.loads(line) for line in surfrider_annotations_file]
 
 cat_name_to_cat_id = {
     "__background__": 0,

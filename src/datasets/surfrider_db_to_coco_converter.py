@@ -10,7 +10,9 @@ password = "SurfReader!"
 sslmode = "require"
 
 # Construct connection string
-conn_string = f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+conn_string = (
+    f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
+)
 conn = psycopg2.connect(conn_string)
 print("Connection established")
 
@@ -60,18 +62,13 @@ for raw_image_info in raw_images_info:
         "blob_name": raw_image_info[8],
     }
 
-image_db_id_to_image_filename = {
-    k: v["filename"] for k, v in images_db_infos.items()
-}
+image_db_id_to_image_filename = {k: v["filename"] for k, v in images_db_infos.items()}
 
 images_db_ids = list(
     {annotation["id_ref_images_for_labelling"] for annotation in annotations}
 )
 image_filenames = list(
-    {
-        image_db_id_to_image_filename[image_db_id]
-        for image_db_id in images_db_ids
-    }
+    {image_db_id_to_image_filename[image_db_id] for image_db_id in images_db_ids}
 )
 image_filename_to_image_coco_id = {
     image_filename: image_coco_id
@@ -83,9 +80,7 @@ coco_images = [
     for image_filename, image_coco_id in image_filename_to_image_coco_id.items()
 ]
 
-coco_categories = [
-    {"id": 0, "name": "__background__", "supercategory": "unknown"}
-] + [
+coco_categories = [{"id": 0, "name": "__background__", "supercategory": "unknown"}] + [
     {"id": raw_category[0], "name": raw_category[1], "supercategory": "trash"}
     for raw_category in raw_category_info
 ]

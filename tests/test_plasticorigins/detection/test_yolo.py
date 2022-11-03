@@ -19,6 +19,7 @@ config_track = Namespace(
     device="cpu",
 )
 
+
 def test_detect():
     model_path = download_from_url(
         config_track.url_model_yolo,
