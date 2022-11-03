@@ -18,7 +18,7 @@ def test_create_unique_folder():
 
 def test_load_trash_icons():
 
-    folder_path = "tests/ressources/icons/"
+    folder_path = "tests/ressources/data/icons/"
 
     dict_trash_icons = load_trash_icons(folder_path)
 
