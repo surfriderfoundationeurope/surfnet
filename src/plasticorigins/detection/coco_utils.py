@@ -108,7 +108,10 @@ def get_coco(root, image_set, transforms):
             "train2017",
             os.path.join("annotations", "instances_train2017.json"),
         ),
-        "val": ("val2017", os.path.join("annotations", "instances_val2017.json"),),
+        "val": (
+            "val2017",
+            os.path.join("annotations", "instances_val2017.json"),
+        ),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     CAT_LIST = [
@@ -159,8 +162,14 @@ def get_coco(root, image_set, transforms):
 
 def get_surfrider_old(root, image_set, transforms):
     PATHS = {
-        "train": ("Images_md5", os.path.join("annotations", "instances_train.json"),),
-        "val": ("Images_md5", os.path.join("annotations", "instances_val.json"),),
+        "train": (
+            "Images_md5",
+            os.path.join("annotations", "instances_train.json"),
+        ),
+        "val": (
+            "Images_md5",
+            os.path.join("annotations", "instances_val.json"),
+        ),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
     # CAT_LIST = [0, 1, 2, 3]
@@ -190,7 +199,10 @@ def get_surfrider_old(root, image_set, transforms):
 
 def get_surfrider(root, image_set, transforms):
     PATHS = {
-        "train": ("images", os.path.join("annotations", "instances_train.json"),),
+        "train": (
+            "images",
+            os.path.join("annotations", "instances_train.json"),
+        ),
         "val": ("images", os.path.join("annotations", "instances_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
@@ -219,7 +231,10 @@ def get_surfrider(root, image_set, transforms):
 
 def get_surfrider_video_frames(root, image_set, transforms):
     PATHS = {
-        "train": ("data", os.path.join("annotations", "annotations_train.json"),),
+        "train": (
+            "data",
+            os.path.join("annotations", "annotations_train.json"),
+        ),
         "val": ("data", os.path.join("annotations", "annotations_val.json")),
         # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
     }
