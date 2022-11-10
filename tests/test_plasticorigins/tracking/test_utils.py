@@ -17,12 +17,14 @@ from plasticorigins.tracking.utils import (
 from plasticorigins.serving.inference import config_track, device
 from plasticorigins.detection.centernet.models import load_model_simple
 
+# from plasticorigins.detection.centernet.networks.mobilenet import get_mobilenet_v3_small
+
+
 results = np.load("tests/ressources/results.npy", allow_pickle=True)
 results = [tuple(res) for res in results]
 
-from plasticorigins.detection.centernet.networks.mobilenet import get_mobilenet_v3_small
-
 model = load_model_simple()
+
 
 def test_get_detections_for_video():
     config_track.video_path = "tests/ressources/validation_videos/T1_trim.mp4"
@@ -48,13 +50,9 @@ def test_get_detections_for_video():
 def test_write_tracking_results_to_file():
     input_shape = (640, 360)
     output_shape = (960, 544)
-    ratio_y = input_shape[0] / (
-        output_shape[0] // config_track.downsampling_factor
-    )
-    ratio_x = input_shape[1] / (
-        output_shape[1] // config_track.downsampling_factor
-    )
-    coord_mapping = lambda x,y: (x*ratio_x, y*ratio_y)
+    ratio_y = input_shape[0] / (output_shape[0] // config_track.downsampling_factor)
+    ratio_x = input_shape[1] / (output_shape[1] // config_track.downsampling_factor)
+    coord_mapping = lambda x, y: (x * ratio_x, y * ratio_y)
 
     tmp_folder = "tests/ressources/tmp"
     output_filename = os.path.join(tmp_folder, "results.txt")
@@ -76,13 +74,9 @@ def test_write_tracking_results_to_file():
 def test_read_tracking_results():
     input_shape = (640, 360)
     output_shape = (960, 544)
-    ratio_y = input_shape[0] / (
-        output_shape[0] // config_track.downsampling_factor
-    )
-    ratio_x = input_shape[1] / (
-        output_shape[1] // config_track.downsampling_factor
-    )
-    coord_mapping = lambda x,y: (x*ratio_x, y*ratio_y)
+    ratio_y = input_shape[0] / (output_shape[0] // config_track.downsampling_factor)
+    ratio_x = input_shape[1] / (output_shape[1] // config_track.downsampling_factor)
+    coord_mapping = lambda x, y: (x * ratio_x, y * ratio_y)
 
     tmp_folder = "tests/ressources/tmp"
     output_filename = os.path.join(tmp_folder, "results.txt")
@@ -134,27 +128,19 @@ def test_exp_and_normalise():
 def test_gather_filename_for_video_annotations():
 
     images = [
-        {"frame_id": i, "video_id": 1, "file_name": f"1_{i}_.mp4"}
-        for i in range(10)
+        {"frame_id": i, "video_id": 1, "file_name": f"1_{i}_.mp4"} for i in range(10)
     ]
     images.extend(
-        [
-            {"frame_id": i, "video_id": 2, "file_name": f"2_{i}_.mp4"}
-            for i in range(10)
-        ]
+        [{"frame_id": i, "video_id": 2, "file_name": f"2_{i}_.mp4"} for i in range(10)]
     )
     video = {
         "id": 1,
     }
     data_dir = "ressources"
 
-    file_paths = gather_filenames_for_video_in_annotations(
-        video, images, data_dir
-    )
+    file_paths = gather_filenames_for_video_in_annotations(video, images, data_dir)
     dir_ = np.unique([p.split("/")[0] for p in file_paths])[0]
-    video_id = np.unique([p.split("/")[1].split("_")[0] for p in file_paths])[
-        0
-    ]
+    video_id = np.unique([p.split("/")[1].split("_")[0] for p in file_paths])[0]
     assert len(file_paths) == 10
     assert dir_ == data_dir
     assert int(video_id) == video.get("id")
