@@ -1,5 +1,8 @@
-import cProfile, pstats, io
+import cProfile
+import pstats
+import io
 from pstats import SortKey
+
 
 def profile_dataset(dataset):
 
@@ -7,7 +10,7 @@ def profile_dataset(dataset):
 
     pr.enable()
 
-    next(iter(dataset))    
+    next(iter(dataset))
 
     pr.disable()
     s = io.StringIO()
@@ -16,9 +19,12 @@ def profile_dataset(dataset):
     ps.print_stats()
     print(s.getvalue())
 
+
 heatmaps_folder = "data/extracted_heatmaps/"
-annotations_dir = 'data/generated_videos/'
+annotations_dir = "data/generated_videos/"
 
-video_dataset = SurfnetDatasetFlow(annotations_dir=annotations_dir, heatmaps_folder=heatmaps_folder, split='val')
+# video_dataset = SurfnetDatasetFlow(
+#     annotations_dir=annotations_dir, heatmaps_folder=heatmaps_folder, split="val"
+# )
 
-test = next(iter(video_dataset))
+# test = next(iter(video_dataset))
