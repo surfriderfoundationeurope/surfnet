@@ -140,16 +140,17 @@ def image_orientation(image: image) -> image:
     exif = image._getexif()
 
     if exif is not None:
-        try :
-            if exif[orientation] == 3:
-                image = image.rotate(180, expand=True)
-            if exif[orientation] == 6:
-                image = image.rotate(270, expand=True)
-            if exif[orientation] == 8:
-                image = image.rotate(90, expand=True)
-        except:
-            pass
+        if orientation == 274:
+            return image
+        elif exif[orientation] == 3:
+            image = image.rotate(180, expand=True)
+        elif exif[orientation] == 6:
+            image = image.rotate(270, expand=True)
+        elif exif[orientation] == 8:
+            image = image.rotate(90, expand=True)
+
     return image
+
 
 def bbox2yolo(
     bbox: ndarray, image_height: int = 1080, image_width: int = 1080
@@ -917,9 +918,7 @@ def build_bboxes_csv_file_for_DB(
 
         img_name = df_images.loc[img_id]["filename"]
 
-        infos_df_bboxes = df_bboxes[
-            df_bboxes["id_ref_images_for_labelling"] == img_id
-        ]
+        infos_df_bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
         nb_trashs = len(infos_df_bboxes)
 
         image = Image.open(input_img_folder / img_name)

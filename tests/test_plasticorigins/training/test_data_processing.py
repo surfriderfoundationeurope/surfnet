@@ -6,7 +6,7 @@ from plasticorigins.training.data.data_processing import (
     generate_yolo_files,
     get_train_valid,
     get_annotations_from_files,
-    get_annotations_from_db,
+    # get_annotations_from_db,
     save_annotations_to_files,
     find_img_ids_to_exclude,
     convert_bboxes_to_initial_locations_from_txt_labels,
@@ -56,9 +56,8 @@ def test_image_orientation():
 
     image_orient = image_orientation(image)
 
-    # rotation of 90°
-    assert image_orient.size[0] == image.size[1]
-    assert image_orient.size[1] == image.size[0]
+    assert image_orient.size[0] == 4000
+    assert image_orient.size[1] == 3000
 
 
 def test_bbox2yolo():
