@@ -17,11 +17,10 @@ from numpy import ndarray
 from typing import Callable, List, Tuple, Union, Optional
 
 
-
-def square_crop(input_frame:Mat, out_shape:Tuple[int, int]):
+def square_crop(input_frame: Mat, out_shape: Tuple[int, int]):
 
     """Crops the largest square in the center of the image.
-    
+
     Args:
         input_frame (Mat): input image in ``cv2 Mat`` format.
         out_shape (Tuple[int, int]): the output shape of the resized image.
@@ -29,27 +28,27 @@ def square_crop(input_frame:Mat, out_shape:Tuple[int, int]):
     Returns:
         The resized image with ``out_shape`` shape.
     """
-    
+
     h, w, _ = input_frame.shape
 
     if h > w:
         new_h = w
         xtop = h // 2 - new_h // 2
         crop = input_frame[xtop : xtop + new_h, :, :]
-    
+
     elif h < w:
         new_w = h
         yleft = w // 2 - new_w // 2
         crop = input_frame[:, yleft : yleft + new_w, :]
-    
+
     else:
         crop = input_frame
-    
+
     return cv2.resize(crop, out_shape)
 
 
 class AdvancedFrameReader:
-    
+
     """Advanced reader for frames with specific parameters.
 
     Args:
@@ -200,7 +199,7 @@ class AdvancedFrameReader:
 
 
 class IterableFrameReader:
-    
+
     """Iterable reader for frames.
 
     Args:
@@ -364,10 +363,10 @@ class IterableFrameReader:
 
             if self.crop:
                 frame = square_crop(frame, self.output_shape)
-            
+
             else:
                 frame = cv2.resize(frame, self.output_shape)
-        
+
         return ret, frame
 
     def __iter__(self) -> None:
@@ -381,7 +380,7 @@ class IterableFrameReader:
             self.counter += 1
             self.video.read()
 
-    def get_inv_mapping(self, downsampling_factor:float):
+    def get_inv_mapping(self, downsampling_factor: float):
 
         """Returns a mapping between coordinates in cropped space
         and coordinates in the original video"""
@@ -468,7 +467,7 @@ class SimpleVideoReader:
 
 
 class TorchIterableFromReader(torch.utils.data.IterableDataset):
-    
+
     """Torch Iterable reader for frames.
 
     Args:
@@ -483,7 +482,7 @@ class TorchIterableFromReader(torch.utils.data.IterableDataset):
     def __iter__(self) -> None:
 
         """Iterable transformations on frames."""
-        
+
         for frame in self.reader:
             if frame is not None:
                 yield self.transforms(frame)

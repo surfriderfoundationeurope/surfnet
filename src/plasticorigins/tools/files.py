@@ -34,10 +34,10 @@ def create_unique_folder(base_folder: str, filename: str) -> str:
     folder_name = op.splitext(op.basename(filename))[0] + "_out_"
     folder_name += datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
     output_dir = op.join(base_folder, folder_name)
-    
+
     if not op.isdir(output_dir):
         os.mkdir(output_dir)
-    
+
     return output_dir
 
 
@@ -59,14 +59,14 @@ def download_from_url(
     """
 
     out_filename = Path(folder) / filename
-    
+
     if not op.exists(out_filename):
         logger.info("---Downloading file...")
         urlretrieve(url, out_filename.resolve().as_posix())
-    
+
     else:
         logger.info("---File already downloaded.")
-    
+
     return out_filename
 
 
@@ -99,10 +99,10 @@ def load_trash_icons(folder_path: str) -> Dict:
         "Unclear": folder_path / "dechet.png",  # 'Unclear'
     }
     out_dict = {}
-    
+
     for idx, path in id_path.items():
         img = cv2.imread(path.resolve().as_posix(), cv2.IMREAD_UNCHANGED)
         resized_img = cv2.resize(img, (100, 60), interpolation=cv2.INTER_AREA)
         out_dict[idx] = resized_img
-    
+
     return out_dict

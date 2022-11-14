@@ -33,7 +33,7 @@ class ResizeForCenterNet:
         fix_res (bool): fixe resize for images with ``(H, W) = (512, 512).`` Set as default to ``False``.
     """
 
-    def __init__(self, fix_res:bool = False):
+    def __init__(self, fix_res: bool = False):
         self.fix_res = fix_res
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
@@ -50,14 +50,14 @@ class ResizeForCenterNet:
         if self.fix_res:
             new_h = 512
             new_w = 512
-        
+
         else:
             w, h = image.size
             new_h = (h | 31) + 1
             new_w = (w | 31) + 1
-        
+
         image = F.resize(image, (new_h, new_w))
-        
+
         return image
 
 
@@ -95,7 +95,7 @@ def gaussian_radius(det_size: Tuple[int, int], min_overlap: float = 0.7) -> floa
     c3 = (min_overlap - 1) * width * height
     sq3 = np.sqrt(b3**2 - 4 * a3 * c3)
     r3 = (b3 + sq3) / 2
-    
+
     return min(r1, r2, r3)
 
 
@@ -179,7 +179,7 @@ def blob_for_bbox(
 
     if downsampling_factor is not None:
         left, top, w, h = (bbox_coord // downsampling_factor for bbox_coord in bbox)
-    
+
     else:
         left, top, w, h = (bbox_coord for bbox_coord in bbox)
 
@@ -192,7 +192,7 @@ def blob_for_bbox(
         ct = np.array([(left + right) / 2, (top + bottom) / 2], dtype=np.float32)
         ct_int = ct.astype(np.int32)
         heatmap = draw_umich_gaussian(heatmap, ct_int, radius)
-    
+
     return heatmap, ct_int
 
 
@@ -243,7 +243,7 @@ def load_model(
 
     model = create_base(arch, heads=heads, head_conv=256).to(device)
     model = load_checkpoint(model, model_weights)
-    
+
     for param in model.parameters():
         param.requires_grad = False
     model.eval()
