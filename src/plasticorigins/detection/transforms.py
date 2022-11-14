@@ -119,7 +119,7 @@ class ToTensorBboxes:
                 if ct_x < blobs.shape[2] and ct_y < blobs.shape[1]:
                     blobs[-2, ct_y, ct_x] = bbox[3]
                     blobs[-1, ct_y, ct_x] = bbox[2]
-                
+
         target = torch.from_numpy(blobs)
 
         return image, target
@@ -153,7 +153,7 @@ class Normalize:
         """
 
         image = F.normalize(image, mean=self.mean, std=self.std)
-        
+
         return image, target
 
 
@@ -232,15 +232,15 @@ class TrainTransforms:
             )
             for bbox, cat in zip(target["bboxes"], target["cats"])
         ]
-        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=img.shape)
+        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=image.shape)
 
-        img, bboxes_imgaug = self.seq(image=img, bounding_boxes=bboxes)
-        
-        return self.last_transforms(img, bboxes_imgaug)
+        image, bboxes_imgaug = self.seq(image=image, bounding_boxes=bboxes)
+
+        return self.last_transforms(image, bboxes_imgaug)
 
 
 class ValTransforms:
-    
+
     """Apply transformations on images for validation.
 
     Args:
@@ -311,11 +311,11 @@ class ValTransforms:
             )
             for bbox, cat in zip(target["bboxes"], target["cats"])
         ]
-        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=img.shape)
+        bboxes = BoundingBoxesOnImage(bboxes_imgaug, shape=image.shape)
 
-        img, bboxes_imgaug = self.seq(image=img, bounding_boxes=bboxes)
-        
-        return self.last_transforms(img, bboxes_imgaug)
+        image, bboxes_imgaug = self.seq(image=image, bounding_boxes=bboxes)
+
+        return self.last_transforms(image, bboxes_imgaug)
 
 
 class TransformFrames:

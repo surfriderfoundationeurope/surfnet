@@ -11,6 +11,7 @@ import torch
 from numpy import ndarray
 from typing import Any
 
+
 def nms(heat: torch.Tensor, kernel: int = 3) -> torch.Tensor:
 
     """Applies a 2D max pooling over an input signal heat and compare the results before
@@ -48,5 +49,5 @@ def detect(preprocessed_frames: Any, threshold: float, model: Any) -> ndarray:
     batch_result = torch.sigmoid(model(preprocessed_frames)["hm"])
     batch_peaks = nms(batch_result).gt(threshold).squeeze(dim=1)
     detections = [torch.nonzero(peaks).cpu().numpy()[:, ::-1] for peaks in batch_peaks]
-    
+
     return detections

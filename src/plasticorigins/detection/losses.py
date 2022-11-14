@@ -17,7 +17,7 @@ from torch.nn.functional import l1_loss as torch_l1_loss
 
 
 class FocalLoss(nn.Module):
-    
+
     """This class allows to compute the focal loss of a object detection model.
 
     Args:

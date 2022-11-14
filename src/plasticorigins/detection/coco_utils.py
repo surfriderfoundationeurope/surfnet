@@ -4,9 +4,9 @@ This submodule allows the user to :
 
 - filter and remap coco categories
 - convert coco objects (polygons) to masks (torch tensors)
-- convert coco objects (polygons) to bounding boxes 
+- convert coco objects (polygons) to bounding boxes
 - check validated conversion
- 
+
 This submodule contains the following classes:
 
 - ``CocoDetectionWithExif`` : Perform Coco detection with exif.
@@ -74,9 +74,11 @@ class FilterAndRemapCocoCategories:
         return image, anno
 
 
-def convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) -> torch.Tensor:
+def convert_coco_poly_to_mask(
+    segmentations: List[Any], height: int, width: int
+) -> torch.Tensor:
 
-    """ Converting Coco polygons to masks (torch tensors).
+    """Converting Coco polygons to masks (torch tensors).
 
     Args:
         segmentations (List): list of polygons
@@ -105,7 +107,7 @@ def convert_coco_poly_to_mask(segmentations:List[Any], height:int, width:int) ->
 
     else:
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
-    
+
     return masks
 
 
@@ -231,21 +233,21 @@ def coco_remove_images_without_annotations(
         return sum(obj["area"] for obj in anno) > 1000
 
     assert isinstance(dataset, torchvision.datasets.CocoDetection)
-    
+
     ids = []
-    
+
     for ds_idx, img_id in enumerate(dataset.ids):
         ann_ids = dataset.coco.getAnnIds(imgIds=img_id, iscrowd=None)
         anno = dataset.coco.loadAnns(ann_ids)
-        
+
         if cat_list:
             anno = [obj for obj in anno if obj["category_id"] in cat_list]
-        
+
         if has_valid_annotation(anno):
             ids.append(ds_idx)
 
     dataset = torch.utils.data.Subset(dataset, ids)
-    
+
     return dataset
 
 
@@ -415,7 +417,7 @@ def get_surfrider_video_frames(
 
 
 class CocoDetectionWithExif(torchvision.datasets.CocoDetection):
-    
+
     """Perform Coco detection with exif.
 
     Args:
