@@ -1,7 +1,14 @@
+""" The ``centernet.models`` submodule provides functions to create deep learning model for object detection.
+
+This submodule contains the following functions:
+
+- ``create_model(arch:str, heads:Any, head_conv:Any)`` : Create a model according the input architecture and the heads.
+
+"""
+
 import logging
-
 import torch
-
+from typing import Any
 from .networks.mobilenet import get_mobilenet_v3_small
 
 logger = logging.getLogger()
@@ -12,7 +19,19 @@ _model_factory = {
 }
 
 
-def create_model(arch, heads, head_conv):
+def create_model(arch: str, heads: Any, head_conv: Any) -> Any:
+
+    """Create a model according the input architecture and the heads.
+
+    Args:
+        arch (str): name of the model architecture
+        heads (Any): heads of the model
+        head_conv (Any): convolution head
+
+    Returns:
+        The model according the input architecture.
+    """
+
     num_layers = int(arch[arch.find("_") + 1 :]) if "_" in arch else 0
     arch = arch[: arch.find("_")] if "_" in arch else arch
     get_model = _model_factory[arch]
