@@ -1,10 +1,40 @@
+"""The ``utils`` submodule provides several useful functions for computes, annotations, detection and tracking.
+
+This submodule contains the following class:
+
+- ``Display`` : Display tracking.
+- ``FramesWithInfo`` : Frames with information.
+- ``GaussianMixture`` : This class contains several methods to compute gaussian Probability Density Function.
+
+This submodule contains the following functions:
+
+- ``exp_and_normalize(lw:ndarray[Any,dtype[float64]])`` : This fonction transforms a weight vector / matrix into a normalized gaussian vector / matrix.
+- ``gather_filenames_for_video_in_annotations(video:Dict, images:List[Dict], data_dir:str)`` : Gather image names from a video for annotations.
+- ``generate_video_with_annotations(reader:Any,output_detected:Dict,output_filename:str,skip_frames:int,downscale:float,
+    logger:Logger,gps_data:Optional[ndarray]=None,labels2icons:Optional[ndarray]=None)`` : Generates output video at 24 fps, with optional ``gps_data``.
+- ``get_detections_for_video(reader:Any, detector:Any, batch_size:int=16, device:Optional[str]=None)`` : Get detections for video.
+- ``in_frame(position:Union[Tuple[int,int],List[int,int],array[int,int]],
+                shape:Union[Tuple[int,int],List[int,int],array[int,int]],
+                border:float=0.02)`` : Check if the (object) position is inside the image.
+- ``overlay_transparent(background:ndarray, overlay:ndarray, x:int, y:int)`` : Overlays a transparent image over a background at topleft corner (x,y).
+- ``read_tracking_results(input_file:str) `` : Read the input filename and interpret it as tracklets.
+- ``resize_external_detections(detections:ndarray, ratio:float)`` : Resize external detections with specific ratio.
+- ``write_tracking_results_to_file(results:ndarray, ratio_x:float, ratio_y:float, output_filename:str)`` : Writes the output results of a tracking
+
+"""
+
 import os
 from collections import defaultdict
 from time import time
+from logging import Logger
+from typing import Any, Iterable, Union, Tuple, List, Dict, Optional
 
 import cv2
+from cv2 import Mat
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import array, generic, ndarray, dtype, float64
+
 import torch
 from scipy.stats import multivariate_normal
 from torch.utils.data import DataLoader
@@ -16,34 +46,107 @@ from plasticorigins.tools.video_readers import TorchIterableFromReader
 
 
 class GaussianMixture:
-    def __init__(self, means, covariance, weights):
+
+    """This class contains several methods to compute gaussian Probability Density Function (pdf),
+    the standard LOGistic Probability Density Function (logpdf) and the Cumulative Distribution Function (cdf).
+
+    Args:
+        means (ndarray[Any,dtype[float64]]]): the mean vector of the gaussian model
+        covariance (ndarray[Any,dtype[float64]]]): the covariance matrix of the gaussian model
+        weights (ndarray[Any,dtype[float64]]]): the weights of the predictive model
+    """
+
+    def __init__(
+        self,
+        means: ndarray[Any, dtype[float64]],
+        covariance: ndarray[Any, dtype[float64]],
+        weights: ndarray[Any, dtype[float64]],
+    ):
         self.components = [
             multivariate_normal(mean=mean, cov=covariance) for mean in means
         ]
         self.weights = weights
 
-    def pdf(self, x):
+    def pdf(self, x: ndarray) -> ndarray:
+
+        """This method computes the Probability Density Function (pdf) for Gaussian Mixture.
+
+        Args:
+            x (ndarray[Any]): the input vector
+
+        Returns:
+            result (ndarray[Any,dtype[float64]]) : the Probability Density Function for the input vector x
+        """
+
         result = 0
         for weight, component in zip(self.weights, self.components):
             result += weight * component.pdf(x)
         return result
 
-    def logpdf(self, x):
+    def logpdf(self, x: ndarray) -> ndarray:
+
+        """This method computes the standard LOGistic (i.e, mean=0, std=π/sqrt(3)) Probability Density Function (logpdf) for Gaussian Mixture.
+
+        Args:
+            x (ndarray[Any]): the input vector
+
+        Returns:
+            result (ndarray[Any,dtype[float64]]) : the standard LOGistic Probability Density Function for the input vector x
+        """
+
         return np.log(self.pdf(x))
 
-    def cdf(self, x):
+    def cdf(self, x: ndarray) -> ndarray:
+
+        """This method computes the Cumulative Density Function (pdf) for Gaussian Mixture.
+
+        Args:
+            x (ndarray[Any]): the input vector
+
+        Returns:
+            result (ndarray[Any,dtype[float64]]) : the Cumulative Density Function for the input vector x
+        """
+
         result = 0
         for weight, component in zip(self.weights, self.components):
             result += weight * component.cdf(x)
         return result
 
 
-def exp_and_normalise(lw):
+def exp_and_normalize(lw: ndarray[Any, dtype[float64]]) -> ndarray[Any, dtype[float64]]:
+
+    """This fonction transforms a weight vector / matrix into a normalized gaussian vector / matrix.
+
+    Args:
+        lw (ndarray[Any,dtype[float64]]): the input vector / matrix to normalize
+
+    Returns:
+        w (ndarray[Any,dtype[float64]]): the normalized gaussian weight vector / matrix
+    """
+
     w = np.exp(lw - lw.max())
+
     return w / w.sum()
 
 
-def in_frame(position, shape, border=0.02):
+def in_frame(
+    position: Union[Tuple[int, int], List[int], array],
+    shape: Union[Tuple[int, int], List[int], array],
+    border: float = 0.02,
+) -> bool:
+
+    """Check if the (object) position is inside the image.
+
+    Args:
+        position (Union[Tuple[int,int],List[int,int],array[int,int]]): the ``(x, y)`` position of the object
+        shape (Union[Tuple[int,int],List[int,int],array[int,int]]): the frame shape ``(H, W)``
+        border (float): the thickness of the image border. Set as default to ``0.02``.
+
+    Returns:
+        in_frame (bool): ``True`` if the object is in the frame, ``False`` if not
+
+    """
+
     shape_x = shape[1]
     shape_y = shape[0]
     x = position[0]
@@ -57,14 +160,46 @@ def in_frame(position, shape, border=0.02):
     )
 
 
-def gather_filenames_for_video_in_annotations(video, images, data_dir):
+def gather_filenames_for_video_in_annotations(
+    video: Dict, images: List[Dict], data_dir: str
+) -> List[str]:
+
+    """Gather image names from a video for annotations.
+
+    Args:
+        video (Dict): the input video with its `id` key
+        images (List[Dict]): the list of all images
+        data_dir (str): the data path for images
+
+    Returns:
+        list_img_names (List[Any,type[str]]): the list of the image paths from data directory
+    """
+
     images_for_video = [image for image in images if image["video_id"] == video["id"]]
     images_for_video = sorted(images_for_video, key=lambda image: image["frame_id"])
 
     return [os.path.join(data_dir, image["file_name"]) for image in images_for_video]
 
 
-def get_detections_for_video(reader, detector, batch_size=16, device=None):
+def get_detections_for_video(
+    reader: Any,
+    detector: Any,
+    batch_size: int = 16,
+    device: Optional[str] = None,
+) -> List[array]:
+
+    """Get detections for video.
+
+    Args:
+        reader (Any): the video reader used
+        detector (Any): the detector for video
+        batch_size (int): the batch size. Set as default to ``16``.
+        device (Optional[str]): the device used ("cpu", "cuda",...). Set as default to ``None``.
+
+    Returns:
+        detections (List[array]): the list of built detections from the input video
+    """
+
     detections = []
     dataset = TorchIterableFromReader(reader, TransformFrames())
     loader = DataLoader(dataset, batch_size=batch_size)
@@ -83,8 +218,22 @@ def get_detections_for_video(reader, detector, batch_size=16, device=None):
     return detections
 
 
-def overlay_transparent(background, overlay, x, y):
-    """Overlays a transparent image over a background at topleft corner (x,y)"""
+def overlay_transparent(
+    background: ndarray, overlay: ndarray, x: int, y: int
+) -> ndarray[Any, dtype[float64]]:
+
+    """Overlays a transparent image over a background at topleft corner (x,y).
+
+    Args:
+        background (ndarray): the input background
+        overlay (ndarray): the input overlay
+        x (int): the x-position of the topleft corner
+        y (int): the y-position of the topleft corner
+
+    Returns:
+        background (ndarray[Any,dtype[float64]]): the transformed background
+    """
+
     background_width = background.shape[1]
     background_height = background.shape[0]
 
@@ -120,21 +269,34 @@ def overlay_transparent(background, overlay, x, y):
     background[y : y + h, x : x + w] = (1.0 - mask) * background[
         y : y + h, x : x + w
     ] + mask * overlay_image
+
     return background
 
 
 def generate_video_with_annotations(
-    reader,
-    output_detected,
-    output_filename,
-    skip_frames,
-    maxframes,
-    downscale,
-    logger,
-    gps_data=None,
-    labels2icons=None,
-):
-    """Generates output video at 24 fps, with optional gps_data"""
+    reader: Any,
+    output_detected: dict,
+    output_filename: str,
+    skip_frames: int,
+    downscale: float,
+    logger: Logger,
+    gps_data: Optional[ndarray] = None,
+    labels2icons: Optional[ndarray] = None,
+) -> None:
+
+    """Generates output video at 24 fps, with optional ``gps_data``.
+
+    Args:
+        reader (Any): the video reader used
+        output_detected (Dict): the dictionnary of detected trashs
+        output_filename (str): the name of the output file
+        skip_frames (int): the frequence to skip frames
+        downscale (float): the downscale factor
+        logger (Logger): the logger to use
+        gps_data (Optional[ndarray]): the gps data. Set as default to ``None``.
+        labels2icons (Optional[ndarray]): the multi-dimensionnal array with labels to icons. Set as default to ``None``.
+    """
+
     fps = 24
     logger.info("---Intepreting json")
     results = defaultdict(list)
@@ -229,7 +391,18 @@ def generate_video_with_annotations(
     logger.info("---finished writing video")
 
 
-def resize_external_detections(detections, ratio):
+def resize_external_detections(detections: ndarray, ratio: float) -> ndarray:
+
+    """Resize external detections with specific ratio.
+
+    Args:
+        detections (ndarray): the n-dimensionnal array of detections
+        ratio (float): the ratio to resize detections
+
+    Returns:
+        detections (ndarray): the resized external detections
+    """
+
     for detection_nb in range(len(detections)):
         detection = detections[detection_nb]
         if len(detection):
@@ -240,14 +413,24 @@ def resize_external_detections(detections, ratio):
     return detections
 
 
-def write_tracking_results_to_file(results, coord_mapping, output_filename):
-    """writes the output result of a tracking the following format:
+def write_tracking_results_to_file(
+    results: ndarray, coord_mapping, output_filename: str
+) -> None:
+
+    """Writes the output results of a tracking in the following format:
+
     - frame
     - id
     - x_tl, y_tl, w=0, h=0
-    - score, classid
-    - 2x unused=-1
+    - 4x unused=-1
+
+    Args:
+        results (ndarray): the output results
+        coord_mapping (function): the mapping function for coordonates with ratio scaling
+        output_filename (str): the name of the output file
+
     """
+
     with open(output_filename, "w") as output_file:
         for result in results:
             x, y = coord_mapping(result[2], result[3])
@@ -267,10 +450,17 @@ def write_tracking_results_to_file(results, coord_mapping, output_filename):
             )
 
 
-def read_tracking_results(input_file):
-    """read the input filename and interpret it as tracklets
-    i.e. lists of lists
+def read_tracking_results(input_file: str) -> List[List]:
+
+    """Read the input filename and interpret it as tracklets in this format : ``list[list,...]``.
+
+    Args:
+        input_file (str): the input file to read tracking results
+
+    Returns:
+        tracklets (List[List]): the tracking results stored in tracklets
     """
+
     raw_results = np.loadtxt(input_file, delimiter=",")
     if raw_results.ndim == 1:
         raw_results = np.expand_dims(raw_results, axis=0)
@@ -292,23 +482,16 @@ def read_tracking_results(input_file):
     return tracklets
 
 
-# def gather_tracklets(tracklist):
-#     """ Converts a list of flat tracklets into a list of lists
-#     """
-#     tracklets = defaultdict(list)
-#     for track in tracklist:
-#         frame_id = track[0]
-#         track_id = track[1]
-#         center_x = track[2]
-#         center_y = track[3]
-#         tracklets[track_id].append((frame_id, center_x, center_y))
-
-#     tracklets = list(tracklets.values())
-#     return tracklets
-
-
 class FramesWithInfo:
-    def __init__(self, frames, output_shape=None):
+
+    """Frames with information.
+
+    Args:
+        frames (ndarray): the list of frames
+        output_shape (Optional[ndarray]): the shape of output frames
+    """
+
+    def __init__(self, frames: ndarray, output_shape: Optional[ndarray] = None):
         self.frames = frames
         if output_shape is None:
             self.output_shape = frames[0].shape[:-1][::-1]
@@ -330,9 +513,15 @@ class FramesWithInfo:
 
 
 class Display:
-    """Display tracking"""
 
-    def __init__(self, on, interactive=True):
+    """Display tracking.
+
+    Args:
+        on (bool): to activate display
+        interactive (bool): to have interactive display. Set as default to ``True``.
+    """
+
+    def __init__(self, on: bool, interactive: bool = True):
         self.on = on
         self.fig, self.ax = plt.subplots()
         self.interactive = interactive
@@ -342,7 +531,13 @@ class Display:
         self.legends = []
         self.plot_count = 0
 
-    def display(self, trackers):
+    def display(self, trackers: Iterable) -> None:
+
+        """To display trackers.
+
+        Args:
+            trackers (Iterable): the input trackers to display
+        """
 
         something_to_show = False
         for tracker_nb, tracker in enumerate(trackers):
@@ -374,7 +569,17 @@ class Display:
             self.legends = []
             self.plot_count += 1
 
-    def update_detections_and_frame(self, latest_detections, frame):
+    def update_detections_and_frame(
+        self, latest_detections: ndarray[Any, dtype[generic]], frame: Mat
+    ) -> None:
+
+        """Update detections and frame.
+
+        Args:
+            latest_detections (ndarray): the lastest detections
+            frame (Mat): the frame to update for resize
+        """
+
         self.latest_detections = latest_detections
         self.latest_frame_to_show = cv2.cvtColor(
             cv2.resize(frame, self.display_shape), cv2.COLOR_BGR2RGB
