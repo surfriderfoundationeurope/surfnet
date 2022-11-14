@@ -1,0 +1,11 @@
+id,id_creator_fk,createdon,filename,view,image_quality,context,container_url,blob_name
+5ec8e4a4-d2e9-4d03-99ed-12e2744ca5ae,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:15:17.409,img3316.jpg,side,good,river,,
+4aa4b452-ce49-4578-a71b-39d99c305e59,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:15:40.239,img630.jpg,above,good,river,,
+ed5d193b-c897-4ebb-9d2d-e1583653923e,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:14:53.892,img2387.jpg,side,good,river,,
+f76656ed-bd4c-4672-b2c0-bc7ddaba2ba3,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:14:59.798,img2611.jpg,side,medium,river,,
+78e1a1ed-5d79-4071-8a31-835a31c26d18,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:15:31.863,img3894.jpg,side,medium,river,,
+2247af7a-e86c-48d5-87f9-9cbebba073da,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:15:13.206,img3148.JPG,above,good,underwater,,
+0519ff01-754d-41ae-8748-f09af50c7ae6,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:15:38.176,img548.jpg,above,good,river,,
+5f029ac2-17a7-42cc-a5c0-52eae06745d1,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:14:17.998,img(83).jpeg,side,good,river,,
+1fc7ecfb-5705-48dc-abac-2b52e6fa2ed5,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:14:47.844,img2156.JPG,side,good,nature,,
+aa51b47b-3320-4b1a-b199-71e90b495863,954dfaf0-cf84-4e5d-ad9d-0d0d6badb884,2021-05-27 12:14:50.001,img2240.JPG,above,medium,river,,
