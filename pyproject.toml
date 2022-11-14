@@ -60,7 +60,10 @@ omit = ["src/plasticorigins/detection/centernet/networks/dlav0.py",
         "src/plasticorigins/serving/wsgi.py",
         "src/plasticorigins/detection/coco_utils.py",
         "src/plasticorigins/detection/losses.py",
-        "src/plasticorigins/detection/yolo.py"]
+        "src/plasticorigins/detection/yolo.py",
+        "src/plasticorigins/training/data/make_dataset.py",
+        "src/plasticorigins/training/visualization/categories.py"
+        ]
 
 [tool.coverage.report]
 show_missing = true
