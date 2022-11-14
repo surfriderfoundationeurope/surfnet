@@ -214,12 +214,12 @@ def test_get_annotations_from_files():
     assert df_images.shape == (10, 8)
 
 
-# def test_get_annotations_from_db():
+def test_get_annotations_from_db():
 
-#     df_bboxes, df_images = get_annotations_from_db('SurfReader!')
+    df_bboxes, df_images = get_annotations_from_db('')
 
-#     assert df_bboxes.shape == (13,9)
-#     assert df_images.shape == (10,8)
+    assert df_bboxes.shape == (13,9)
+    assert df_images.shape == (10,8)
 
 
 def test_save_annotations_to_files():

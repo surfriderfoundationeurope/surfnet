@@ -509,8 +509,8 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "reader_user@pgdb-plastico-prod"
-    password = "SurfReader!"
+    user = "surfriderrootuser@pgdb-plastico-prod"
+    password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string
@@ -523,7 +523,8 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     # Fetch all rows from table
     cursor = conn.cursor()
 
-    cursor.execute('SELECT * FROM "label".bounding_boxes')
+    # cursor.execute('SELECT * FROM "label".bounding_boxes')
+    cursor.execute('SELECT * FROM "label".bounding_boxes_with_corrections')
     raw_annotations = cursor.fetchall()
 
     cursor.execute('SELECT * FROM "label".images_for_labelling')
