@@ -214,12 +214,12 @@ def test_get_annotations_from_files():
     assert df_images.shape == (10, 8)
 
 
-def test_get_annotations_from_db():
+# def test_get_annotations_from_db():
 
-    df_bboxes, df_images = get_annotations_from_db('')
+#     df_bboxes, df_images = get_annotations_from_db('')
 
-    assert df_bboxes.shape == (13,9)
-    assert df_images.shape == (10,8)
+#     assert df_bboxes.shape == (13,9)
+#     assert df_images.shape == (10,8)
 
 
 def test_save_annotations_to_files():
@@ -265,14 +265,12 @@ def test_convert_bboxes_to_initial_locations_from_txt_labels():
 
 def test_build_bboxes_csv_file_for_DB():
 
-    images_dir = path_images
     labels_dir = path_data + "labels_modif/"
-    new_df_bboxes, exceptions = build_bboxes_csv_file_for_DB(
-        args.data_dir, images_dir, labels_dir, df_bboxes, df_images
+    new_df_bboxes = build_bboxes_csv_file_for_DB(
+        args.data_dir, args.images_dir, labels_dir, df_bboxes, df_images
     )
 
-    assert new_df_bboxes.shape == (11, 9)
-    assert len(exceptions) == 2
+    assert new_df_bboxes.shape == (12, 9)
 
 
 def test_plot_image_and_bboxes():
