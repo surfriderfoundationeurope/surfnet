@@ -4,7 +4,7 @@ This submodule contains the following functions :
 
 - ``bbox2yolo(bbox:ndarray, image_height:int=1080, image_width:int=1080)`` : Function to normalize the representation of the bounding box, such that
     there are in the yolo format.
-- ``build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str, 
+- ``build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str,
                                         df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
                                          img_folder_name:str, label_folder_name:str, exclude_ids:Optional[set]=None)`` : Generates the .txt files that are necessary for yolo training.
 - ``find_img_ids_to_exclude(data_dir:WindowsPath)`` : Find image ids to exclude from list of images used for building the annotation files.
@@ -281,10 +281,7 @@ def build_yolo_annotations_for_images(
             image = Image.open(input_img_folder / img_name)
 
             # in place rotation of the image using Exif data
-            try:
-                image = image_orientation(image)
-            except:
-                pass
+            image = image_orientation(image)
 
             image = np.array(image)
             h, w = image.shape[:-1]
@@ -740,10 +737,7 @@ def update_bounding_boxes_database(
 
     for img_id in tqdm(modified_ids):
 
-        try:
-            img_name = df_images.loc[img_id]["filename"]
-        except:
-            continue
+        img_name = df_images.loc[img_id]["filename"]
 
         infos_df_bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
 
@@ -752,11 +746,7 @@ def update_bounding_boxes_database(
         image = Image.open(input_img_folder / img_name)
 
         # in place rotation of the image using Exif data
-
-        try:
-            image = image_orientation(image)
-        except:
-            pass
+        image = image_orientation(image)
 
         image = np.array(image)
         h, w = image.shape[:-1]
@@ -912,7 +902,6 @@ def build_bboxes_csv_file_for_DB(
     )
 
     count_exists = 0
-    exceptions = []
 
     new_df_bboxes = df_bboxes[
         df_bboxes["id_ref_images_for_labelling"].isin(none_modified_imgs)
@@ -924,109 +913,105 @@ def build_bboxes_csv_file_for_DB(
 
     for img_id in tqdm(modified_ids):
 
-        try:
-            img_name = df_images.loc[img_id]["filename"]
+        img_name = df_images.loc[img_id]["filename"]
 
-            infos_df_bboxes = df_bboxes[
-                df_bboxes["id_ref_images_for_labelling"] == img_id
-            ]
-            nb_trashs = len(infos_df_bboxes)
+        infos_df_bboxes = df_bboxes[
+            df_bboxes["id_ref_images_for_labelling"] == img_id
+        ]
+        nb_trashs = len(infos_df_bboxes)
 
-            image = Image.open(input_img_folder / img_name)
+        image = Image.open(input_img_folder / img_name)
 
-            # in place rotation of the image using Exif data
+        # in place rotation of the image using Exif data
 
-            image = image_orientation(image)
+        image = image_orientation(image)
 
-            image = np.array(image)
-            h, w = image.shape[:-1]
-            target_h = 1080  # the target height of the image
-            ratio = target_h / h  # We get the ratio of the target and the actual height
-            target_w = int(ratio * w)
-            image = cv2.resize(image, (target_w, target_h))
-            h, w = image.shape[:-1]
+        image = np.array(image)
+        h, w = image.shape[:-1]
+        target_h = 1080  # the target height of the image
+        ratio = target_h / h  # We get the ratio of the target and the actual height
+        target_w = int(ratio * w)
+        image = cv2.resize(image, (target_w, target_h))
+        h, w = image.shape[:-1]
 
-            (labels, bboxes,) = convert_bboxes_to_initial_locations_from_txt_labels(
-                labels_folder_path, img_id, target_h, ratio, target_w
-            )
+        (labels, bboxes,) = convert_bboxes_to_initial_locations_from_txt_labels(
+            labels_folder_path, img_id, target_h, ratio, target_w
+        )
 
-            row_diff = nb_trashs - len(labels)
+        row_diff = nb_trashs - len(labels)
 
-            if row_diff < 0:
+        if row_diff < 0:
 
-                for i in range(nb_trashs):
-                    index = index + 1
-                    new_df_bboxes.loc[index] = [
-                        infos_df_bboxes.iloc[i]["id"],
-                        infos_df_bboxes.iloc[i]["id_creator_fk"],
-                        infos_df_bboxes.iloc[i]["createdon"],
-                        labels[i],
-                        img_id,
-                        bboxes[i, 0],
-                        bboxes[i, 1],
-                        bboxes[i, 2],
-                        bboxes[i, 3],
-                    ]
+            for i in range(nb_trashs):
+                index = index + 1
+                new_df_bboxes.loc[index] = [
+                    infos_df_bboxes.iloc[i]["id"],
+                    infos_df_bboxes.iloc[i]["id_creator_fk"],
+                    infos_df_bboxes.iloc[i]["createdon"],
+                    labels[i],
+                    img_id,
+                    bboxes[i, 0],
+                    bboxes[i, 1],
+                    bboxes[i, 2],
+                    bboxes[i, 3],
+                ]
 
-                index += 20
-                # add new rows for new trashs:
-                for i in range(nb_trashs, nb_trashs + row_diff):
-                    index = index + 1
-                    new_df_bboxes.loc[index] = [
-                        None,
-                        None,
-                        datetime.now(),
-                        labels[i],
-                        img_id,
-                        bboxes[i, 0],
-                        bboxes[i, 1],
-                        bboxes[i, 2],
-                        bboxes[i, 3],
-                    ]
+            index += 20
+            # add new rows for new trashs:
+            for i in range(nb_trashs, nb_trashs + row_diff):
+                index = index + 1
+                new_df_bboxes.loc[index] = [
+                    None,
+                    None,
+                    datetime.now(),
+                    labels[i],
+                    img_id,
+                    bboxes[i, 0],
+                    bboxes[i, 1],
+                    bboxes[i, 2],
+                    bboxes[i, 3],
+                ]
 
-                index += 20
+            index += 20
 
-            elif row_diff > 0:
+        elif row_diff > 0:
 
-                for i in range(len(labels)):
-                    index = index + 1
-                    new_df_bboxes.loc[index] = [
-                        infos_df_bboxes.iloc[i]["id"],
-                        infos_df_bboxes.iloc[i]["id_creator_fk"],
-                        infos_df_bboxes.iloc[i]["createdon"],
-                        labels[i],
-                        img_id,
-                        bboxes[i, 0],
-                        bboxes[i, 1],
-                        bboxes[i, 2],
-                        bboxes[i, 3],
-                    ]
-                index += 20
-            else:
+            for i in range(len(labels)):
+                index = index + 1
+                new_df_bboxes.loc[index] = [
+                    infos_df_bboxes.iloc[i]["id"],
+                    infos_df_bboxes.iloc[i]["id_creator_fk"],
+                    infos_df_bboxes.iloc[i]["createdon"],
+                    labels[i],
+                    img_id,
+                    bboxes[i, 0],
+                    bboxes[i, 1],
+                    bboxes[i, 2],
+                    bboxes[i, 3],
+                ]
+            index += 20
+        else:
 
-                for i in range(nb_trashs):
-                    index = index + 1
-                    new_df_bboxes.loc[index] = [
-                        infos_df_bboxes.iloc[i]["id"],
-                        infos_df_bboxes.iloc[i]["id_creator_fk"],
-                        infos_df_bboxes.iloc[i]["createdon"],
-                        labels[i],
-                        img_id,
-                        bboxes[i, 0],
-                        bboxes[i, 1],
-                        bboxes[i, 2],
-                        bboxes[i, 3],
-                    ]
-                index += 20
+            for i in range(nb_trashs):
+                index = index + 1
+                new_df_bboxes.loc[index] = [
+                    infos_df_bboxes.iloc[i]["id"],
+                    infos_df_bboxes.iloc[i]["id_creator_fk"],
+                    infos_df_bboxes.iloc[i]["createdon"],
+                    labels[i],
+                    img_id,
+                    bboxes[i, 0],
+                    bboxes[i, 1],
+                    bboxes[i, 2],
+                    bboxes[i, 3],
+                ]
+            index += 20
 
-            count_exists += 1
-
-        except:
-            exceptions.append(img_id)
+        count_exists += 1
 
     print(f"Process finished successfully with {count_exists} updated images !")
 
-    return new_df_bboxes, exceptions
+    return new_df_bboxes
 
 
 def fill_bounding_boxes_table_with_corrections(

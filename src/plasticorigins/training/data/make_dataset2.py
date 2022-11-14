@@ -1,4 +1,4 @@
-"""The ``make_dataset`` submodule provides only one main function to get annotations, 
+"""The ``make_dataset`` submodule provides only one main function to get annotations,
 build annotations files for yolo and build dataset for training.
 
 """
@@ -27,7 +27,6 @@ def main(args: Namespace) -> None:
     """
 
     data_dir = Path(args.data_dir)
-    image_dir = Path(args.images_dir)
 
     if args.bboxes_filename and args.images_filename:
         df_bboxes, df_images = get_annotations_from_files(
