@@ -56,13 +56,13 @@ def test_image_orientation():
 
     image_orient = image_orientation(image)
 
-    assert image_orient.size[0] == 4000
-    assert image_orient.size[1] == 3000
+    assert image_orient.size[0] == 591
+    assert image_orient.size[1] == 443
 
 
 def test_bbox2yolo():
 
-    img_id = "aa51b47b-3320-4b1a-b199-71e90b495863"
+    img_id = "ed5d193b-c897-4ebb-9d2d-e1583653923e"
     img_name = df_images.loc[img_id]["filename"]
 
     image = Image.open(path_images + img_name)
@@ -81,7 +81,7 @@ def test_bbox2yolo():
 
 def test_process_annotations():
 
-    img_id = "aa51b47b-3320-4b1a-b199-71e90b495863"
+    img_id = "ed5d193b-c897-4ebb-9d2d-e1583653923e"
     img_name = df_images.loc[img_id]["filename"]
 
     image = Image.open(path_images + img_name)
@@ -97,10 +97,10 @@ def test_process_annotations():
 
     labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
 
-    assert np.array_equal(labels, np.array([0, 0]))
+    assert np.array_equal(labels, np.array([0]))
     assert np.array_equal(
         np.round(bboxes, 2),
-        np.array([[0.53, 0.66, 0.08, 0.08], [0.43, 0.76, 0.03, 0.04]]),
+        np.array([[0.71, 0.49, 0.33, 0.06]]),
     )
 
 
