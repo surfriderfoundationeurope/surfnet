@@ -1,0 +1,15 @@
+names:
+- Sheet / tarp / plastic bag / fragment
+- Insulating material
+- Bottle-shaped
+- Can-shaped
+- Drum
+- Other packaging
+- Tire
+- Fishing net / cord
+- Easily namable
+- Unclear
+nc: 10
+path: ./../
+train: tests/ressources/data/outputs/train.txt
+val: tests/ressources/data/outputs/val.txt
