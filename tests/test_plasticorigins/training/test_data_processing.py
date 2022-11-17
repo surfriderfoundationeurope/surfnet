@@ -215,7 +215,8 @@ def test_get_annotations_from_files():
 
 # def test_get_annotations_from_db():
 
-#     df_bboxes, df_images = get_annotations_from_db('')
+#     password = ""
+#     df_bboxes, df_images = get_annotations_from_db(password)
 
 #     assert df_bboxes.shape == (13,9)
 #     assert df_images.shape == (10,8)

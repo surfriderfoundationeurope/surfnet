@@ -54,6 +54,20 @@ class_id_to_name_mapping = {
     11: "Black Tarp / Plastic",
 }
 
+mapping_12cl_to_10cl = {
+    "0":0,
+    "1":1,
+    "2":2,
+    "3":3,
+    "4":4,
+    "5":5,
+    "6":6,
+    "7":7,
+    "8":8,
+    "9":9,
+    "10":0,
+    "11":0,
+}
 
 # def plot_image_and_bboxes(img:image, anns:list, ratio:float) -> None:
 
@@ -454,7 +468,7 @@ def get_train_valid(
 
 
 def generate_yolo_files(
-    output_dir: WindowsPath, train_files: List[str], val_files: List[str]
+    output_dir: WindowsPath, train_files: List[str], val_files: List[str], nb_classes: int = 10
 ) -> None:
 
     """Generates data files for yolo training: train.txt, val.txt and data.yaml.
@@ -463,6 +477,7 @@ def generate_yolo_files(
         output_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         train_files (List[Any,type[str]]): list of image names for training step
         val_files (List[Any,type[str]]): list of image names for validation step
+        nb_classes (int): number of waste classes used for classification
     """
 
     with open(output_dir / "train.txt", "w") as f:
@@ -473,12 +488,24 @@ def generate_yolo_files(
         for path in val_files:
             f.write(path + "\n")
 
-    data = dict(
-        path="./../",
-        train=(output_dir / "train.txt").as_posix(),
-        val=(output_dir / "val.txt").as_posix(),
-        nc=10,
-        names=[
+    if nb_classes == 12:
+        names = [
+            "Tarp fragment",
+            "Insulating material",
+            "Bottle-shaped",
+            "Can-shaped",
+            "Drum",
+            "Other packaging",
+            "Tire",
+            "Fishing net / cord",
+            "Easily namable",
+            "Unclear",
+            "Sheet",
+            "Black Plastic"
+        ]
+
+    else: # nc = 10
+        names = [
             "Sheet / tarp / plastic bag / fragment",
             "Insulating material",
             "Bottle-shaped",
@@ -489,7 +516,14 @@ def generate_yolo_files(
             "Fishing net / cord",
             "Easily namable",
             "Unclear",
-        ],
+        ]
+
+    data = dict(
+        path="./../",
+        train=(output_dir / "train.txt").as_posix(),
+        val=(output_dir / "val.txt").as_posix(),
+        nc=nb_classes,
+        names=names,
     )
 
     with open(output_dir / "data.yaml", "w") as outfile:
@@ -501,7 +535,7 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     """Gets the data from the database. Requires that your IP is configured in Azure.
 
     Args:
-        password (str): password to connect to the SQL DataBase
+        password (str): password to connect to the SQL DataBase with reading access
 
     Returns:
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
@@ -512,7 +546,7 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
     user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
+    # password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string
@@ -658,7 +692,7 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
 
     for bbox in lines:
         bbox = bbox.split(" ")
-        labels.append(bbox[0])
+        labels.append(mapping_12cl_to_10cl[bbox[0]])
         bboxes.append(bbox[1:])
 
     labels = np.array(labels).astype(int) + 1
@@ -686,6 +720,8 @@ def update_bounding_boxes_database(
     labels_folder_name: Union[str, WindowsPath],
     df_bboxes: DataFrame,
     df_images: DataFrame,
+    user: str,
+    password: str,
 ) -> None:
 
     """Update directly the Bounding Boxes DataBase from label folder.
@@ -696,6 +732,8 @@ def update_bounding_boxes_database(
         labels_folder_name (Union[str,WindowsPath]): the name of the labels folder or the path od this folder.
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
+        user (str): username with writing access to the PostgreSql Database
+        password (str): Password to connect to the Database
     """
 
     input_img_folder = Path(images_dir)
@@ -724,8 +762,8 @@ def update_bounding_boxes_database(
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
+    # user = "surfriderrootuser@pgdb-plastico-prod"
+    # password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string
@@ -1016,20 +1054,24 @@ def build_bboxes_csv_file_for_DB(
 
 
 def fill_bounding_boxes_table_with_corrections(
-    new_csv_bounding_boxes: Union[WindowsPath, str]
+    new_csv_bounding_boxes: Union[WindowsPath, str],
+    user: str,
+    password: str,
 ) -> None:
 
     """Fill the bounding boxes DataBase from scratch. Requires that your IP is configured in Azure.
 
     Args:
         new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
+        user (str): username with writing access to the PostgreSql Database
+        password (str): password to connect to the PostgreSql Database
     """
 
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
+    # user = "surfriderrootuser@pgdb-plastico-prod"
+    # password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string
@@ -1067,20 +1109,24 @@ def fill_bounding_boxes_table_with_corrections(
 
 
 def update_bounding_boxes_table_with_corrections(
-    new_csv_bounding_boxes,
+    new_csv_bounding_boxes: Union[WindowsPath,str],
+    user: str,
+    password: str,
 ) -> None:
 
     """Update the bounding boxes DataBase from a csv file with annotation corrections. Requires that your IP is configured in Azure.
 
     Args:
-        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
+        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections
+        user (str): username with writing access to the PostgreSql Database
+        password (str): password to connect to the PostgreSql Database
     """
 
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
+    # user = "surfriderrootuser@pgdb-plastico-prod"
+    # password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string

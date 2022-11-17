@@ -67,7 +67,7 @@ def main(args: Namespace) -> None:
 
     train_files, val_files = get_train_valid(yolo_filelist, args.split)
 
-    generate_yolo_files(data_dir, train_files, val_files)
+    generate_yolo_files(data_dir, train_files, val_files, args.nb_classes)
 
 
 if __name__ == "__main__":
@@ -90,6 +90,7 @@ if __name__ == "__main__":
         help="quality filters to apply",
         default=None,
     )
+    parser.add_argument("--nb-classes", type=int, default=10)
     parser.add_argument("--split", type=float, default=0.85)
     parser.add_argument("--limit-data", type=int, default=0)
     parser.add_argument(
