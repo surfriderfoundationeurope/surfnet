@@ -199,8 +199,13 @@ def test_generate_yolo_files():
     generate_yolo_files(Path(path_outputs), train_files, val_files)
 
     assert os.path.exists(path_outputs + "train.txt")
+    os.remove(path_outputs + "train.txt")
+
     assert os.path.exists(path_outputs + "val.txt")
+    os.remove(path_outputs + "val.txt")
+
     assert os.path.exists(path_outputs + "data.yaml")
+    os.remove(path_outputs + "data.yaml")
 
 
 def test_get_annotations_from_files():

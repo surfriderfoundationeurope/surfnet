@@ -1,2 +1,0 @@
-tests/ressources/data/images/f76656ed-bd4c-4672-b2c0-bc7ddaba2ba3.jpg
-tests/ressources/data/images/1fc7ecfb-5705-48dc-abac-2b52e6fa2ed5.jpg
