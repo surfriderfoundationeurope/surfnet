@@ -2,11 +2,27 @@
 
 This submodule contains the following functions :
 
+- ``apply_image_transformations(input_img_folder:WindowsPath, img_name:str)`` : Apply image transformations (orientation, rescaling / resizing).
 - ``bbox2yolo(bbox:ndarray, image_height:int=1080, image_width:int=1080)`` : Function to normalize the representation of the bounding box, such that
     there are in the yolo format.
+- ``build_bboxes_csv_file_for_DB(
+    data_dir: Union[WindowsPath, str],
+    images_dir: Union[WindowsPath, str],
+    labels_folder_name: Union[str, WindowsPath],
+    df_bboxes: DataFrame,
+    df_images: DataFrame,
+    )`` : Generates the .csv file for updating the DataBase.
 - ``build_yolo_annotations_for_images(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str,
                                         df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
                                          img_folder_name:str, label_folder_name:str, exclude_ids:Optional[set]=None)`` : Generates the .txt files that are necessary for yolo training.
+- ``convert_bboxes_to_initial_locations_from_txt_labels(
+    labels_folder_path: Union[str, WindowsPath],
+    img_id: str,
+    target_h: int,
+    ratio: float,
+    target_w: int,
+    )`` : Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.
+- ``fill_bounding_boxes_table_with_corrections(new_csv_bounding_boxes: Union[WindowsPath, str], user: str, password: str)`` : Fill the bounding boxes DataBase from scratch.
 - ``find_img_ids_to_exclude(data_dir:WindowsPath)`` : Find image ids to exclude from list of images used for building the annotation files.
 - ``generate_yolo_files(output_dir:WindowsPath, train_files:List[Any,type[str]], val_files:List[Any,type[str]])`` : Generates data files for yolo training: train.txt, val.txt and data.yaml.
 - ``get_annotations_from_db(password:str)`` : Gets the data from the database. Requires that your IP is configured in Azure.
@@ -16,6 +32,16 @@ This submodule contains the following functions :
 - ``plot_image_and_bboxes(img:image, anns:list, ratio:float)`` : Plots the image and the bounding box(es) associated to the detected object(s).
 - ``process_annotations(anns:DataFrame, ratio:float, target_h:int=1080, target_w:int=1080)`` : Processes the annotations to match the yolo format.
 - ``save_annotations_to_files(output_dir:WindowsPath, df_bboxes:DataFrame, df_images:DataFrame)`` : Save the annotations in csv format.
+- ``update_bounding_boxes_database(
+    data_dir: Union[WindowsPath, str],
+    images_dir: Union[WindowsPath, str],
+    labels_folder_name: Union[str, WindowsPath],
+    new_csv_bounding_boxes: Union[WindowsPath, str],
+    df_bboxes: DataFrame,
+    df_images: DataFrame,
+    user: str,
+    password: str,
+    )`` : Update directly the Bounding Boxes DataBase from csv file or label folder.
 
 """
 
@@ -33,6 +59,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from pandas import DataFrame
 import cv2
+from cv2 import Mat
 
 from matplotlib import image
 import matplotlib.pyplot as plt
@@ -54,28 +81,20 @@ class_id_to_name_mapping = {
     11: "Black Tarp / Plastic",
 }
 
-
-# def plot_image_and_bboxes(img:image, anns:list, ratio:float) -> None:
-
-#     """ Plots the image and the bounding box(es) associated to the detected object(s).
-
-#     Args:
-#         img (image): Image, from the instance file
-#         anns (list): Annotations linked to the specified image, from instance file
-#         ratio (float): Ratio - most often defined at the (1080/height of the image)
-#     """
-
-#     _, ax = plt.subplots(1, figsize=(12, 10))
-#     ax.imshow(img)
-
-#     for ann in anns:
-#         [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
-#         # Obtains the new coordinates of the bboxes - normalized via the ratio.
-#         rect = patches.Rectangle((bbox_x, bbox_y), bbox_w, bbox_h, linewidth=2, edgecolor='r', facecolor="none")
-#         ax.add_patch(rect)
-
-#     plt.show()
-#     # Prints out a 12 * 10 image with bounding box(es).
+mapping_12cl_to_10cl = {
+    "0": 0,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 0,
+    "11": 0,
+}
 
 
 def plot_image_and_bboxes_yolo(image: image, annotation_list: ndarray) -> None:
@@ -201,6 +220,40 @@ def process_annotations(
     return labels, bboxes
 
 
+def apply_image_transformations(
+    input_img_folder: WindowsPath, img_name: str
+) -> Tuple[Mat, float, int, int]:
+
+    """Apply image transformations (orientation, rescaling / resizing).
+
+    Args:
+        input_img_folder (WindowsPath): the image directory
+        img_name (str): the image name from df_images
+
+    Returns:
+        image (Mat): the resized and transformed image
+        ratio (float): the ratio `target_h / h` with `target_h = 1080`
+        target_h (int): the target height of the resized image. Set as default to `1080`
+        target_w (int): the target weight of the resized image computed as `ratio * w`
+
+    """
+
+    image = Image.open(input_img_folder / img_name)
+
+    # in place rotation of the image using Exif data
+    image = image_orientation(image)
+
+    image = np.array(image)
+    h, w = image.shape[:-1]
+    target_h = 1080  # the target height of the image
+    ratio = target_h / h  # We get the ratio of the target and the actual height
+    target_w = int(ratio * w)
+    image = cv2.resize(image, (target_w, target_h))
+    h, w = image.shape[:-1]
+
+    return image, ratio, target_h, target_w
+
+
 def build_yolo_annotations_for_images(
     data_dir: WindowsPath,
     images_dir: WindowsPath,
@@ -280,18 +333,9 @@ def build_yolo_annotations_for_images(
             if limit_data > 0 and count_exists > limit_data:
                 break
 
-            image = Image.open(input_img_folder / img_name)
-
-            # in place rotation of the image using Exif data
-            image = image_orientation(image)
-
-            image = np.array(image)
-            h, w = image.shape[:-1]
-            target_h = 1080  # the target height of the image
-            ratio = target_h / h  # We get the ratio of the target and the actual height
-            target_w = int(ratio * w)
-            image = cv2.resize(image, (target_w, target_h))
-            h, w = image.shape[:-1]
+            image, ratio, target_h, target_w = apply_image_transformations(
+                input_img_folder, img_name
+            )
 
             # getting annotations and converting to yolo
             anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
@@ -321,116 +365,6 @@ def build_yolo_annotations_for_images(
     return valid_imagenames, count_exists, count_missing
 
 
-# def build_yolo_annotations_for_images_VM(data_dir:WindowsPath, images_dir:WindowsPath, path_bboxes:str,
-#                                         df_bboxes:DataFrame, df_images:DataFrame, limit_data:int,
-#                                         exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
-
-#     """ Generates the .txt files that are necessary for yolo training. See
-#     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format.
-
-#     Args:
-#         data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
-#         images_dir (WindowsPath): path of the image directory. It should contain a folder with all images.
-#         path_bboxes (str): path of the bounding_boxes csv file
-#         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
-#         df_images (DataFrame): DataFrame with the image informations
-#         limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
-#         exclude_ids (Optional[set]): Set of image id to exclude from the process. Set as default to ``None``.
-
-#     Returns:
-#         valid_imagenames (List): list of image names that have been processed with success
-#         cpos (int): number of images with success
-#         cneg (int): number of images with fail
-#     """
-
-#     valid_imagenames = []
-
-#     list_imgs = sorted(os.listdir(images_dir))
-#     used_imgs = set(df_bboxes["id_ref_images_for_labelling"].values)
-
-#     print(f"number of images in images folder: {len(list_imgs)}")
-#     print(f"number of images referenced in database: {len(df_images)}")
-#     print(f"number of images with a bbox in database: {len(used_imgs)}")
-
-#     if exclude_ids:
-#         used_imgs = used_imgs - exclude_ids
-#         print(f"after exclusion, number of images with a bbox in database: {len(used_imgs)}")
-
-#     if not Path.exists(data_dir / "images"):
-#         os.mkdir(data_dir / "images")
-#     if not Path.exists(data_dir / "labels"):
-#         os.mkdir(data_dir / "labels")
-
-#     # to determine which methods or annotation processing we will use
-#     # (it depends if we work with the whole dataset or not)
-#     fast_ann_process = False
-#     if path_bboxes.split("/")[-1].split("_")[0] == "filter":
-#         fast_ann_process = True
-
-#     count_exists, count_missing = 0, 0
-
-#     print("Start building the annotations ...")
-
-#     for img_id in used_imgs:
-#         img_name = df_images.loc[img_id]["filename"]
-#         if Path.exists(images_dir / img_name):
-#             count_exists += 1
-#             if limit_data > 0 and count_exists > limit_data:
-#                 break
-
-#             image = Image.open(images_dir / img_name)
-
-#             # in place rotation of the image using Exif data
-#             try :
-#                 image = image_orientation(image)
-#             except :
-#                 pass
-
-#             image    = np.array(image)
-#             h, w     = image.shape[:-1]
-#             target_h = 1080 # the target height of the image
-#             ratio    = target_h / h # We get the ratio of the target and the actual height
-#             target_w = int(ratio*w)
-#             image    = cv2.resize(image, (target_w, target_h))
-#             h, w     = image.shape[:-1]
-
-#             # getting annotations and converting to yolo
-
-#             if fast_ann_process:
-
-#                 bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]["bboxes"]
-#                 bboxes = bboxes.iloc[0]
-#                 bboxes = bboxes[1:-1].replace("'","").split(", ")
-#                 yolo_strs = []
-#                 for bbox in bboxes:
-#                     yolo_strs.append(bbox.strip("\\n"))
-
-#             else :
-
-#                 anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
-#                 labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
-#                 yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
-
-#             # writing the image and annotation
-#             img_file_name   = data_dir / "images" / (img_id + ".jpg")
-#             label_file_name = data_dir / "labels" / (img_id + ".txt")
-#             Image.fromarray(image).save(img_file_name)
-#             with open(label_file_name, 'w') as f:
-#                 f.write('\n'.join(yolo_strs))
-
-#             valid_imagenames.append(img_file_name.as_posix())
-#         else:
-#             count_missing +=1
-
-#         if count_exists%500==0:
-#                 print("Exists : ", count_exists)
-#                 print("Missing : ",count_missing)
-
-#     print(f"Process finished successfully with {count_missing} missing images !")
-
-#     return valid_imagenames, count_exists, count_missing
-
-
 def get_train_valid(
     list_files: List[str], split: float = 0.85
 ) -> Tuple[List[str], List[str]]:
@@ -454,7 +388,10 @@ def get_train_valid(
 
 
 def generate_yolo_files(
-    output_dir: WindowsPath, train_files: List[str], val_files: List[str]
+    output_dir: WindowsPath,
+    train_files: List[str],
+    val_files: List[str],
+    nb_classes: int = 10,
 ) -> None:
 
     """Generates data files for yolo training: train.txt, val.txt and data.yaml.
@@ -463,6 +400,7 @@ def generate_yolo_files(
         output_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         train_files (List[Any,type[str]]): list of image names for training step
         val_files (List[Any,type[str]]): list of image names for validation step
+        nb_classes (int): number of waste classes used for classification
     """
 
     with open(output_dir / "train.txt", "w") as f:
@@ -473,12 +411,24 @@ def generate_yolo_files(
         for path in val_files:
             f.write(path + "\n")
 
-    data = dict(
-        path="./../",
-        train=(output_dir / "train.txt").as_posix(),
-        val=(output_dir / "val.txt").as_posix(),
-        nc=10,
-        names=[
+    if nb_classes == 12:
+        names = [
+            "Tarp fragment",
+            "Insulating material",
+            "Bottle-shaped",
+            "Can-shaped",
+            "Drum",
+            "Other packaging",
+            "Tire",
+            "Fishing net / cord",
+            "Easily namable",
+            "Unclear",
+            "Sheet",
+            "Black Plastic",
+        ]
+
+    else:  # nc = 10
+        names = [
             "Sheet / tarp / plastic bag / fragment",
             "Insulating material",
             "Bottle-shaped",
@@ -489,7 +439,14 @@ def generate_yolo_files(
             "Fishing net / cord",
             "Easily namable",
             "Unclear",
-        ],
+        ]
+
+    data = dict(
+        path="./../",
+        train=(output_dir / "train.txt").as_posix(),
+        val=(output_dir / "val.txt").as_posix(),
+        nc=nb_classes,
+        names=names,
     )
 
     with open(output_dir / "data.yaml", "w") as outfile:
@@ -501,7 +458,7 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     """Gets the data from the database. Requires that your IP is configured in Azure.
 
     Args:
-        password (str): password to connect to the SQL DataBase
+        password (str): password to connect to the SQL DataBase with reading access
 
     Returns:
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
@@ -511,8 +468,7 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
+    user = "po_shared_read@pgdb-plastico-prod"
     sslmode = "require"
 
     # Construct connection string
@@ -658,7 +614,7 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
 
     for bbox in lines:
         bbox = bbox.split(" ")
-        labels.append(bbox[0])
+        labels.append(mapping_12cl_to_10cl[bbox[0]])
         bboxes.append(bbox[1:])
 
     labels = np.array(labels).astype(int) + 1
@@ -684,18 +640,24 @@ def update_bounding_boxes_database(
     data_dir: Union[WindowsPath, str],
     images_dir: Union[WindowsPath, str],
     labels_folder_name: Union[str, WindowsPath],
+    new_csv_bounding_boxes: Union[WindowsPath, str],
     df_bboxes: DataFrame,
     df_images: DataFrame,
+    user: str,
+    password: str,
 ) -> None:
 
-    """Update directly the Bounding Boxes DataBase from label folder.
+    """Update directly the Bounding Boxes DataBase from csv file or label folder. Requires that your IP is configured in Azure.
 
     Args:
-        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
-        images_dir (WindowsPath): path of the image directory. It should contain a folder with all images.
-        labels_folder_name (Union[str,WindowsPath]): the name of the labels folder or the path od this folder.
+        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations
+        images_dir (WindowsPath): path of the image directory. It should contain a folder with all images
+        labels_folder_name (Union[str,WindowsPath]): the name of the labels folder or the path od this folder
+        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
+        user (str): username with writing access to the PostgreSql Database
+        password (str): Password to connect to the Database
     """
 
     input_img_folder = Path(images_dir)
@@ -705,7 +667,11 @@ def update_bounding_boxes_database(
     labels_folder_path = Path(labels_folder_name)
 
     modified_imgs = set(os.listdir(labels_folder_path))
-    modified_ids = {img_txt.split(".")[0] for img_txt in modified_imgs}
+    modified_ids = {
+        img_txt.split(".")[0]
+        for img_txt in modified_imgs
+        if img_txt.split(".")[0] != ""
+    }
 
     none_modified_imgs = used_imgs - modified_ids
 
@@ -724,8 +690,6 @@ def update_bounding_boxes_database(
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string
@@ -735,114 +699,144 @@ def update_bounding_boxes_database(
     conn = psycopg2.connect(conn_string)
     print("Connection established")
 
-    # Insert all raow from csv file
+    # Insert all row from csv file
     cursor = conn.cursor()
 
-    for img_id in tqdm(modified_ids):
+    if new_csv_bounding_boxes:
+        new_df_bboxes = pd.read_csv(new_csv_bounding_boxes)
 
-        img_name = df_images.loc[img_id]["filename"]
+        for i in tqdm(range(len(new_df_bboxes))):
 
-        infos_df_bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
+            row = tuple(new_df_bboxes.loc[i])
+            row = tuple(
+                [
+                    int(val) if (type(val) != str and val is not None) else val
+                    for val in row
+                ]
+            )
 
-        nb_trashs = len(infos_df_bboxes)
+            if row[0] is None:
 
-        image = Image.open(input_img_folder / img_name)
-
-        # in place rotation of the image using Exif data
-        image = image_orientation(image)
-
-        image = np.array(image)
-        h, w = image.shape[:-1]
-        target_h = 1080  # the target height of the image
-        ratio = target_h / h  # We get the ratio of the target and the actual height
-        target_w = int(ratio * w)
-        image = cv2.resize(image, (target_w, target_h))
-        h, w = image.shape[:-1]
-
-        labels, bboxes = convert_bboxes_to_initial_locations_from_txt_labels(
-            labels_folder_path, img_id, target_h, ratio, target_w
-        )
-
-        row_diff = nb_trashs - len(labels)
-
-        if row_diff < 0:
-
-            for i in range(nb_trashs):
-                row = (
-                    infos_df_bboxes.iloc[i]["id"],
-                    int(labels[i]),
-                    img_id,
-                    int(bboxes[i, 0]),
-                    int(bboxes[i, 1]),
-                    int(bboxes[i, 2]),
-                    int(bboxes[i, 3]),
-                )
-                row = row[1:] + (row[0],)
-                cursor.execute(
-                    'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
-                                width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
-                    row,
-                )
-
-            # add new rows for new trashs:
-            for i in range(nb_trashs, nb_trashs + row_diff):
-                row = (
-                    None,
-                    None,
-                    datetime.now(),
-                    int(labels[i]),
-                    img_id,
-                    int(bboxes[i, 0]),
-                    int(bboxes[i, 1]),
-                    int(bboxes[i, 2]),
-                    int(bboxes[i, 3]),
-                )
                 cursor.execute(
                     'INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
-                                createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
-                                width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                    createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                        width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                     row,
                 )
 
-        elif row_diff > 0:
+            else:
 
-            for i in range(len(labels)):
-                row = (
-                    infos_df_bboxes.iloc[i]["id"],
-                    int(labels[i]),
-                    img_id,
-                    int(bboxes[i, 0]),
-                    int(bboxes[i, 1]),
-                    int(bboxes[i, 2]),
-                    int(bboxes[i, 3]),
-                )
                 row = row[1:] + (row[0],)
                 cursor.execute(
-                    'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
-                                width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
-                    row,
-                )
-        else:
-
-            for i in range(nb_trashs):
-                row = (
-                    infos_df_bboxes.iloc[i]["id"],
-                    int(labels[i]),
-                    img_id,
-                    int(bboxes[i, 0]),
-                    int(bboxes[i, 1]),
-                    int(bboxes[i, 2]),
-                    int(bboxes[i, 3]),
-                )
-                row = row[1:] + (row[0],)
-                cursor.execute(
-                    'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
-                                width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
+                    'UPDATE "label".bounding_boxes_with_corrections SET (id_creator_fk, \
+                    createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                        width, height) = (%s, %s, %s, %s, %s, %s, %s, %s) WHERE id = %s',
                     row,
                 )
 
-        count_exists += 1
-        conn.commit()
+            count_exists += 1
+            conn.commit()
+
+    # if we have the label folder name as input
+    else:
+        for img_id in tqdm(modified_ids):
+
+            img_name = df_images.loc[img_id]["filename"]
+
+            infos_df_bboxes = df_bboxes[
+                df_bboxes["id_ref_images_for_labelling"] == img_id
+            ]
+
+            nb_trashs = len(infos_df_bboxes)
+
+            _, ratio, target_h, target_w = apply_image_transformations(
+                input_img_folder, img_name
+            )
+
+            labels, bboxes = convert_bboxes_to_initial_locations_from_txt_labels(
+                labels_folder_path, img_id, target_h, ratio, target_w
+            )
+
+            row_diff = nb_trashs - len(labels)
+
+            if row_diff < 0:
+
+                for i in range(nb_trashs):
+                    row = (
+                        infos_df_bboxes.iloc[i]["id"],
+                        int(labels[i]),
+                        img_id,
+                        int(bboxes[i, 0]),
+                        int(bboxes[i, 1]),
+                        int(bboxes[i, 2]),
+                        int(bboxes[i, 3]),
+                    )
+                    row = row[1:] + (row[0],)
+                    cursor.execute(
+                        'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                    width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
+                        row,
+                    )
+
+                # add new rows for new trashs:
+                for i in range(nb_trashs, nb_trashs + row_diff):
+                    row = (
+                        None,
+                        None,
+                        datetime.now(),
+                        int(labels[i]),
+                        img_id,
+                        int(bboxes[i, 0]),
+                        int(bboxes[i, 1]),
+                        int(bboxes[i, 2]),
+                        int(bboxes[i, 3]),
+                    )
+                    cursor.execute(
+                        'INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+                                    createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                    width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                        row,
+                    )
+
+            elif row_diff > 0:
+
+                for i in range(len(labels)):
+                    row = (
+                        infos_df_bboxes.iloc[i]["id"],
+                        int(labels[i]),
+                        img_id,
+                        int(bboxes[i, 0]),
+                        int(bboxes[i, 1]),
+                        int(bboxes[i, 2]),
+                        int(bboxes[i, 3]),
+                    )
+                    row = row[1:] + (row[0],)
+                    cursor.execute(
+                        'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                    width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
+                        row,
+                    )
+            else:
+
+                for i in range(nb_trashs):
+                    row = (
+                        infos_df_bboxes.iloc[i]["id"],
+                        int(labels[i]),
+                        img_id,
+                        int(bboxes[i, 0]),
+                        int(bboxes[i, 1]),
+                        int(bboxes[i, 2]),
+                        int(bboxes[i, 3]),
+                    )
+                    row = row[1:] + (row[0],)
+                    cursor.execute(
+                        'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                                    width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
+                        row,
+                    )
+
+            count_exists += 1
+            conn.commit()
 
     count = cursor.rowcount
     print(count, "successful update into the bounding_boxes table.")
@@ -887,14 +881,13 @@ def build_bboxes_csv_file_for_DB(
     labels_folder_path = Path(labels_folder_name)
 
     modified_imgs = set(os.listdir(labels_folder_path))
-    modified_ids = {img_txt.split(".")[0] for img_txt in modified_imgs}
-
-    # set of context types :
-    # set_contexts = set(df_images['context'])
-    # filter_context = set_contexts - {'river', 'nature'}
+    modified_ids = {
+        img_txt.split(".")[0]
+        for img_txt in modified_imgs
+        if img_txt.split(".")[0] != ""
+    }
 
     none_modified_imgs = used_imgs - modified_ids
-    # none_modified_imgs = set(df_images[df_images["context"].isin(filter_context)].index)
 
     print(f"number of images in images folder: {len(list_imgs)}")
     print(f"number of images referenced in database: {len(df_images)}")
@@ -921,19 +914,9 @@ def build_bboxes_csv_file_for_DB(
         infos_df_bboxes = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
         nb_trashs = len(infos_df_bboxes)
 
-        image = Image.open(input_img_folder / img_name)
-
-        # in place rotation of the image using Exif data
-
-        image = image_orientation(image)
-
-        image = np.array(image)
-        h, w = image.shape[:-1]
-        target_h = 1080  # the target height of the image
-        ratio = target_h / h  # We get the ratio of the target and the actual height
-        target_w = int(ratio * w)
-        image = cv2.resize(image, (target_w, target_h))
-        h, w = image.shape[:-1]
+        _, ratio, target_h, target_w = apply_image_transformations(
+            input_img_folder, img_name
+        )
 
         (labels, bboxes,) = convert_bboxes_to_initial_locations_from_txt_labels(
             labels_folder_path, img_id, target_h, ratio, target_w
@@ -1016,20 +999,22 @@ def build_bboxes_csv_file_for_DB(
 
 
 def fill_bounding_boxes_table_with_corrections(
-    new_csv_bounding_boxes: Union[WindowsPath, str]
+    new_csv_bounding_boxes: Union[WindowsPath, str],
+    user: str,
+    password: str,
 ) -> None:
 
     """Fill the bounding boxes DataBase from scratch. Requires that your IP is configured in Azure.
 
     Args:
         new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
+        user (str): username with writing access to the PostgreSql Database
+        password (str): password to connect to the PostgreSql Database
     """
 
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
     sslmode = "require"
 
     # Construct connection string
@@ -1039,7 +1024,7 @@ def fill_bounding_boxes_table_with_corrections(
     conn = psycopg2.connect(conn_string)
     print("Connection established")
 
-    # Insert all raow from csv file
+    # Insert all row from csv file
     cursor = conn.cursor()
 
     new_df_bboxes = pd.read_csv(new_csv_bounding_boxes)
@@ -1059,71 +1044,6 @@ def fill_bounding_boxes_table_with_corrections(
         conn.commit()
         count = cursor.rowcount
     print(count, "successful inserts into the bounding_boxes table.")
-
-    # Closure of the DB connection
-    cursor.close()
-    conn.close()
-    print("The PostgreSQL connection is close")
-
-
-def update_bounding_boxes_table_with_corrections(
-    new_csv_bounding_boxes,
-) -> None:
-
-    """Update the bounding boxes DataBase from a csv file with annotation corrections. Requires that your IP is configured in Azure.
-
-    Args:
-        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
-    """
-
-    # Update connection string information
-    host = "pgdb-plastico-prod.postgres.database.azure.com"
-    dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    password = "dbc28a2c088e4942a573c#17b1e469e83"
-    sslmode = "require"
-
-    # Construct connection string
-    conn_string = (
-        f"host={host} user={user} dbname={dbname} password={password} sslmode={sslmode}"
-    )
-    conn = psycopg2.connect(conn_string)
-    print("Connection established")
-
-    # Insert all raow from csv file
-    cursor = conn.cursor()
-
-    new_df_bboxes = pd.read_csv(new_csv_bounding_boxes)
-
-    for i in tqdm(range(len(new_df_bboxes))):
-
-        row = tuple(new_df_bboxes.loc[i])
-        row = tuple(
-            [int(val) if (type(val) != str and val is not None) else val for val in row]
-        )
-
-        if row[0] is None:
-
-            cursor.execute(
-                'INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
-                createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
-                    width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
-                row,
-            )
-
-        else:
-
-            row = row[1:] + (row[0],)
-            cursor.execute(
-                'UPDATE "label".bounding_boxes_with_corrections SET (id_creator_fk, \
-                createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
-                    width, height) = (%s, %s, %s, %s, %s, %s, %s, %s) WHERE id = %s',
-                row,
-            )
-
-        conn.commit()
-    count = cursor.rowcount
-    print(count, "successful update into the bounding_boxes table.")
 
     # Closure of the DB connection
     cursor.close()

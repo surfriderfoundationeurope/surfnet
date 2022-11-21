@@ -6,7 +6,7 @@ from plasticorigins.training.data.data_processing import (
     generate_yolo_files,
     get_train_valid,
     get_annotations_from_files,
-    # get_annotations_from_db,
+    get_annotations_from_db,
     save_annotations_to_files,
     find_img_ids_to_exclude,
     convert_bboxes_to_initial_locations_from_txt_labels,
@@ -199,8 +199,13 @@ def test_generate_yolo_files():
     generate_yolo_files(Path(path_outputs), train_files, val_files)
 
     assert os.path.exists(path_outputs + "train.txt")
+    os.remove(path_outputs + "train.txt")
+
     assert os.path.exists(path_outputs + "val.txt")
+    os.remove(path_outputs + "val.txt")
+
     assert os.path.exists(path_outputs + "data.yaml")
+    os.remove(path_outputs + "data.yaml")
 
 
 def test_get_annotations_from_files():
@@ -215,10 +220,11 @@ def test_get_annotations_from_files():
 
 # def test_get_annotations_from_db():
 
-#     df_bboxes, df_images = get_annotations_from_db('')
+#     password = "b6150437-c3c2-4355-b84c-057f9b066a8c"
+#     df_bboxes, df_images = get_annotations_from_db(password)
 
-#     assert df_bboxes.shape == (13,9)
-#     assert df_images.shape == (10,8)
+#     assert df_bboxes.shape == (9039, 9)
+#     assert df_images.shape == (8125, 8)
 
 
 def test_save_annotations_to_files():
