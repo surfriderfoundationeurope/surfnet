@@ -55,41 +55,19 @@ class_id_to_name_mapping = {
 }
 
 mapping_12cl_to_10cl = {
-    "0":0,
-    "1":1,
-    "2":2,
-    "3":3,
-    "4":4,
-    "5":5,
-    "6":6,
-    "7":7,
-    "8":8,
-    "9":9,
-    "10":0,
-    "11":0,
+    "0": 0,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 0,
+    "11": 0,
 }
-
-# def plot_image_and_bboxes(img:image, anns:list, ratio:float) -> None:
-
-#     """ Plots the image and the bounding box(es) associated to the detected object(s).
-
-#     Args:
-#         img (image): Image, from the instance file
-#         anns (list): Annotations linked to the specified image, from instance file
-#         ratio (float): Ratio - most often defined at the (1080/height of the image)
-#     """
-
-#     _, ax = plt.subplots(1, figsize=(12, 10))
-#     ax.imshow(img)
-
-#     for ann in anns:
-#         [bbox_x, bbox_y, bbox_w, bbox_h] = (ratio*np.array(ann['bbox'])).astype(int)
-#         # Obtains the new coordinates of the bboxes - normalized via the ratio.
-#         rect = patches.Rectangle((bbox_x, bbox_y), bbox_w, bbox_h, linewidth=2, edgecolor='r', facecolor="none")
-#         ax.add_patch(rect)
-
-#     plt.show()
-#     # Prints out a 12 * 10 image with bounding box(es).
 
 
 def plot_image_and_bboxes_yolo(image: image, annotation_list: ndarray) -> None:
@@ -468,7 +446,10 @@ def get_train_valid(
 
 
 def generate_yolo_files(
-    output_dir: WindowsPath, train_files: List[str], val_files: List[str], nb_classes: int = 10
+    output_dir: WindowsPath,
+    train_files: List[str],
+    val_files: List[str],
+    nb_classes: int = 10,
 ) -> None:
 
     """Generates data files for yolo training: train.txt, val.txt and data.yaml.
@@ -501,10 +482,10 @@ def generate_yolo_files(
             "Easily namable",
             "Unclear",
             "Sheet",
-            "Black Plastic"
+            "Black Plastic",
         ]
 
-    else: # nc = 10
+    else:  # nc = 10
         names = [
             "Sheet / tarp / plastic bag / fragment",
             "Insulating material",
@@ -545,8 +526,8 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "surfriderrootuser@pgdb-plastico-prod"
-    # password = "dbc28a2c088e4942a573c#17b1e469e83"
+    user = "po_shared_read@pgdb-plastico-prod"
+    password = "b6150437-c3c2-4355-b84c-057f9b066a8c"
     sslmode = "require"
 
     # Construct connection string
@@ -743,7 +724,11 @@ def update_bounding_boxes_database(
     labels_folder_path = Path(labels_folder_name)
 
     modified_imgs = set(os.listdir(labels_folder_path))
-    modified_ids = {img_txt.split(".")[0] for img_txt in modified_imgs}
+    modified_ids = {
+        img_txt.split(".")[0]
+        for img_txt in modified_imgs
+        if img_txt.split(".")[0] != ""
+    }
 
     none_modified_imgs = used_imgs - modified_ids
 
@@ -764,6 +749,8 @@ def update_bounding_boxes_database(
     dbname = "plastico-prod"
     # user = "surfriderrootuser@pgdb-plastico-prod"
     # password = "dbc28a2c088e4942a573c#17b1e469e83"
+    user = "po_writer_pipeline@pgdb-plastico-prod"
+    password = "1106930f-cc0d-4a3d-afd1-12315e13c403"
     sslmode = "require"
 
     # Construct connection string
@@ -925,7 +912,11 @@ def build_bboxes_csv_file_for_DB(
     labels_folder_path = Path(labels_folder_name)
 
     modified_imgs = set(os.listdir(labels_folder_path))
-    modified_ids = {img_txt.split(".")[0] for img_txt in modified_imgs}
+    modified_ids = {
+        img_txt.split(".")[0]
+        for img_txt in modified_imgs
+        if img_txt.split(".")[0] != ""
+    }
 
     # set of context types :
     # set_contexts = set(df_images['context'])
@@ -1072,6 +1063,8 @@ def fill_bounding_boxes_table_with_corrections(
     dbname = "plastico-prod"
     # user = "surfriderrootuser@pgdb-plastico-prod"
     # password = "dbc28a2c088e4942a573c#17b1e469e83"
+    user = "po_writer_pipeline@pgdb-plastico-prod"
+    password = "1106930f-cc0d-4a3d-afd1-12315e13c403"
     sslmode = "require"
 
     # Construct connection string
@@ -1109,7 +1102,7 @@ def fill_bounding_boxes_table_with_corrections(
 
 
 def update_bounding_boxes_table_with_corrections(
-    new_csv_bounding_boxes: Union[WindowsPath,str],
+    new_csv_bounding_boxes: Union[WindowsPath, str],
     user: str,
     password: str,
 ) -> None:
@@ -1127,6 +1120,8 @@ def update_bounding_boxes_table_with_corrections(
     dbname = "plastico-prod"
     # user = "surfriderrootuser@pgdb-plastico-prod"
     # password = "dbc28a2c088e4942a573c#17b1e469e83"
+    user = "po_writer_pipeline@pgdb-plastico-prod"
+    password = "1106930f-cc0d-4a3d-afd1-12315e13c403"
     sslmode = "require"
 
     # Construct connection string
