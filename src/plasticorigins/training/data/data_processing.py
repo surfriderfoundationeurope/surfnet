@@ -868,7 +868,7 @@ def build_bboxes_csv_file_for_DB(
     labels_folder_name: Union[str, WindowsPath],
     df_bboxes: DataFrame,
     df_images: DataFrame,
-    mapping_to_10cl: dict,
+    mapping_to_10cl: dict=None,
 ) -> Tuple[DataFrame, List]:
 
     """Generates the .csv file for updating the DataBase.
