@@ -57,10 +57,6 @@ def main(args: Namespace) -> None:
         to_exclude,
     )
 
-    # old
-    # yolo_filelist, cpos, cneg = build_yolo_annotations_for_images_VM(data_dir, args.images_dir, args.bboxes_filename,
-    #         df_bboxes, df_images, args.limit_data, to_exclude)
-
     print(
         f"found {cpos} valid annotations with images and {cneg} unmatched annotations"
     )
