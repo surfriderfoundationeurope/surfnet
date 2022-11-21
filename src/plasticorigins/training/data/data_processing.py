@@ -590,7 +590,7 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
     target_h: int,
     ratio: float,
     target_w: int,
-    mapping_to_10cl: dict=None
+    mapping_to_10cl: dict = None
 ) -> Tuple[array, array]:
 
     """Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.
@@ -868,7 +868,7 @@ def build_bboxes_csv_file_for_DB(
     labels_folder_name: Union[str, WindowsPath],
     df_bboxes: DataFrame,
     df_images: DataFrame,
-    mapping_to_10cl: dict=None,
+    mapping_to_10cl: dict = None,
 ) -> Tuple[DataFrame, List]:
 
     """Generates the .csv file for updating the DataBase.
