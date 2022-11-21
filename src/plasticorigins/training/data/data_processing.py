@@ -469,7 +469,6 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
     user = "po_shared_read@pgdb-plastico-prod"
-    password = "b6150437-c3c2-4355-b84c-057f9b066a8c"
     sslmode = "require"
 
     # Construct connection string
@@ -691,8 +690,6 @@ def update_bounding_boxes_database(
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "po_writer_pipeline@pgdb-plastico-prod"
-    password = "1106930f-cc0d-4a3d-afd1-12315e13c403"
     sslmode = "require"
 
     # Construct connection string
@@ -1018,8 +1015,6 @@ def fill_bounding_boxes_table_with_corrections(
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "po_writer_pipeline@pgdb-plastico-prod"
-    password = "1106930f-cc0d-4a3d-afd1-12315e13c403"
     sslmode = "require"
 
     # Construct connection string

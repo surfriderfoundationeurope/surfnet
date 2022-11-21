@@ -213,13 +213,13 @@ def test_get_annotations_from_files():
     assert df_images.shape == (10, 8)
 
 
-def test_get_annotations_from_db():
+# def test_get_annotations_from_db():
 
-    password = "b6150437-c3c2-4355-b84c-057f9b066a8c"
-    df_bboxes, df_images = get_annotations_from_db(password)
+#     password = "b6150437-c3c2-4355-b84c-057f9b066a8c"
+#     df_bboxes, df_images = get_annotations_from_db(password)
 
-    assert df_bboxes.shape == (9039, 9)
-    assert df_images.shape == (8125, 8)
+#     assert df_bboxes.shape == (9039, 9)
+#     assert df_images.shape == (8125, 8)
 
 
 def test_save_annotations_to_files():
