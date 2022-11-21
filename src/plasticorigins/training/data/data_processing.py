@@ -21,6 +21,7 @@ This submodule contains the following functions :
     target_h: int,
     ratio: float,
     target_w: int,
+    mapping_to_10cl: dict,
     )`` : Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.
 - ``fill_bounding_boxes_table_with_corrections(new_csv_bounding_boxes: Union[WindowsPath, str], user: str, password: str)`` : Fill the bounding boxes DataBase from scratch.
 - ``find_img_ids_to_exclude(data_dir:WindowsPath)`` : Find image ids to exclude from list of images used for building the annotation files.
@@ -589,6 +590,7 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
     target_h: int,
     ratio: float,
     target_w: int,
+    mapping_to_10cl: dict=None
 ) -> Tuple[array, array]:
 
     """Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.
@@ -599,6 +601,7 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
         target_h (int): the target height of the image
         ratio (float): the ratio of the target and the actual height
         target_w (int): the target width of the image
+        mapping_to_10cl (dict): dictionary to map categories from nb_classes to 10.
 
     Returns:
         labels (array[dtype[int64]): the array of the labels presents on the image
@@ -614,7 +617,12 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
 
     for bbox in lines:
         bbox = bbox.split(" ")
-        labels.append(mapping_12cl_to_10cl[bbox[0]])
+
+        if mapping_to_10cl:
+            labels.append(mapping_to_10cl[bbox[0]])
+        else:
+            labels.append(bbox[0])
+
         bboxes.append(bbox[1:])
 
     labels = np.array(labels).astype(int) + 1
@@ -643,6 +651,7 @@ def update_bounding_boxes_database(
     new_csv_bounding_boxes: Union[WindowsPath, str],
     df_bboxes: DataFrame,
     df_images: DataFrame,
+    mapping_to_10cl: dict,
     user: str,
     password: str,
 ) -> None:
@@ -656,6 +665,7 @@ def update_bounding_boxes_database(
         new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
+        mapping_to_10cl (dict): dictionary to map categories from nb_classes to 10.
         user (str): username with writing access to the PostgreSql Database
         password (str): Password to connect to the Database
     """
@@ -754,7 +764,7 @@ def update_bounding_boxes_database(
             )
 
             labels, bboxes = convert_bboxes_to_initial_locations_from_txt_labels(
-                labels_folder_path, img_id, target_h, ratio, target_w
+                labels_folder_path, img_id, target_h, ratio, target_w, mapping_to_10cl
             )
 
             row_diff = nb_trashs - len(labels)
@@ -858,6 +868,7 @@ def build_bboxes_csv_file_for_DB(
     labels_folder_name: Union[str, WindowsPath],
     df_bboxes: DataFrame,
     df_images: DataFrame,
+    mapping_to_10cl: dict,
 ) -> Tuple[DataFrame, List]:
 
     """Generates the .csv file for updating the DataBase.
@@ -868,6 +879,7 @@ def build_bboxes_csv_file_for_DB(
         labels_folder_name (Union[str,WindowsPath]): the name of the labels folder or the path od this folder.
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
+        mapping_to_10cl (dict): dictionary to map categories from ``nb_classes`` to ``10``.
 
     Returns:
         new_df_bboxes (DataFrame): new bounding boxes csv file for initial DataBase including (location X, Y and Height, Width) informations.
@@ -919,7 +931,7 @@ def build_bboxes_csv_file_for_DB(
         )
 
         (labels, bboxes,) = convert_bboxes_to_initial_locations_from_txt_labels(
-            labels_folder_path, img_id, target_h, ratio, target_w
+            labels_folder_path, img_id, target_h, ratio, target_w, mapping_to_10cl
         )
 
         row_diff = nb_trashs - len(labels)
