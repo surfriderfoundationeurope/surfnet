@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "plastic-origins"
-version = "2.1.1a0"
+version = "2.1.1"
 
 description = "A package containing methods commonly used to make inferences"
 repository = "https://github.com/surfriderfoundationeurope/surfnet"
