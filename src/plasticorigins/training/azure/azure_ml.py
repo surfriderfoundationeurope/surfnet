@@ -7,14 +7,17 @@ This submodule contains the following class :
 This submodule contains the following functions :
 
 - ``loadStreamImgToBlobStorage(container_client:ContainerClient, blob:Any)`` : Load stream image to a specific container from a blob storage.
--`` build_yolo_annotations_for_images_from_azure(connection_string:str, input_container_name:str, df_bboxes:DataFrame, 
-                                        df_images:DataFrame, data_dir:str, context_filters:str = None, 
+- `` build_yolo_annotations_for_images_from_azure(connection_string:str, input_container_name:str, df_bboxes:DataFrame,
+                                        df_images:DataFrame, data_dir:str, context_filters:str = None,
                                         quality_filters:str = None, limit_data:int=0, exclude_ids:Optional[set]=None
                                         )``: Generates the .txt files that are necessary for yolo training for Azure ML
 
 """
 
-from plasticorigins.training.data.data_processing import process_annotations, apply_image_transformations
+from plasticorigins.training.data.data_processing import (
+    process_annotations,
+    apply_image_transformations,
+)
 from typing import Tuple, Optional, List, Any
 from pathlib import Path
 from PIL import Image
@@ -26,11 +29,14 @@ from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from io import BytesIO
 
+
 class KeyVault:
 
     """Key Vault Class for Azure ML to get secrets with environement variables."""
 
-    def __init__(self, keyvault_name: str, client_id: str, client_secret: str, tenant_id: str):
+    def __init__(
+        self, keyvault_name: str, client_id: str, client_secret: str, tenant_id: str
+    ):
         self.name = keyvault_name
         self.client_id = client_id
         self.client_secret = client_secret
@@ -53,10 +59,10 @@ class KeyVault:
         return self.client.get_secret(secret).value
 
 
-def loadStreamImgToBlobStorage(container_client:ContainerClient, blob:Any) -> BytesIO:
+def loadStreamImgToBlobStorage(container_client: ContainerClient, blob: Any) -> BytesIO:
 
     """Load stream image to a specific container from a blob storage.
-    
+
     Args:
         container_client (ContainerClient): the client container
         blob (Any): the object blob to load from the client container
@@ -71,13 +77,21 @@ def loadStreamImgToBlobStorage(container_client:ContainerClient, blob:Any) -> By
     downloader.readinto(stream)
 
     return stream
-    
 
-def build_yolo_annotations_for_images_from_azure(connection_string:str, input_container_name:str, df_bboxes:DataFrame, 
-                                        df_images:DataFrame, data_dir:str, context_filters:str = None, 
-                                        quality_filters:str = None, limit_data:int=0, exclude_ids:Optional[set]=None) -> Tuple[List, int, int]:
-    
-    """ Generates the .txt files that are necessary for yolo training for Azure ML. See
+
+def build_yolo_annotations_for_images_from_azure(
+    connection_string: str,
+    input_container_name: str,
+    df_bboxes: DataFrame,
+    df_images: DataFrame,
+    data_dir: str,
+    context_filters: str = None,
+    quality_filters: str = None,
+    limit_data: int = 0,
+    exclude_ids: Optional[set] = None,
+) -> Tuple[List, int, int]:
+
+    """Generates the .txt files that are necessary for yolo training for Azure ML. See
     https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data for data format.
 
     Args:
@@ -89,7 +103,7 @@ def build_yolo_annotations_for_images_from_azure(connection_string:str, input_co
         quality_filters (str): the list of quality filters in this format : "[quality1,quality2,...]". For example, `"[good,medium]"`. Set as defaults to ``None``.
         limit_data (int): limit number of images used. If you want all images set ``limit_data`` to 0.
         exclude_ids (Optional[set]): Set of image id to exclude from the process. Set as default to ``None``.
-        
+
     Returns:
         valid_imagenames (List): list of image names that have been processed with success
         cpos (int): number of images with success
@@ -107,25 +121,33 @@ def build_yolo_annotations_for_images_from_azure(connection_string:str, input_co
     if context_filters:
         context_filters = context_filters[1:-1].split(",")
         df_images = df_images[df_images["context"].isin(context_filters)]
-    
+
     if quality_filters:
         quality_filters = quality_filters[1:-1].split(",")
         df_images = df_images[df_images["image_quality"].isin(quality_filters)]
-    
+
     used_imgs = used_imgs & set(df_images.index)
 
-    print(f"number of images after applying context and quality filters: {len(used_imgs)}")
+    print(
+        f"number of images after applying context and quality filters: {len(used_imgs)}"
+    )
 
     if exclude_ids:
         used_imgs = used_imgs - exclude_ids
-        print(f"after exclusion, number of images with a bbox in database: {len(used_imgs)}")
+        print(
+            f"after exclusion, number of images with a bbox in database: {len(used_imgs)}"
+        )
 
-    images_container_client = ContainerClient.from_connection_string(conn_str=connection_string, container_name="images")
-    if not(images_container_client.exists()):
+    images_container_client = ContainerClient.from_connection_string(
+        conn_str=connection_string, container_name="images"
+    )
+    if not (images_container_client.exists()):
         images_container_client.create_container()
 
-    labels_container_client = ContainerClient.from_connection_string(conn_str=connection_string, container_name="labels")
-    if not(labels_container_client.exists()):
+    labels_container_client = ContainerClient.from_connection_string(
+        conn_str=connection_string, container_name="labels"
+    )
+    if not (labels_container_client.exists()):
         labels_container_client.create_container()
 
     list_image_filenames = list(df_images[df_images.index.isin(used_imgs)]["filename"])
@@ -145,11 +167,13 @@ def build_yolo_annotations_for_images_from_azure(connection_string:str, input_co
     print("Start building the annotations ...")
 
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-    container_client = blob_service_client.get_container_client(container= input_container_name) 
+    container_client = blob_service_client.get_container_client(
+        container=input_container_name
+    )
     blob_list = container_client.list_blobs()
 
     for blob in blob_list:
-        
+
         img_filename = blob.name
         if img_filename in list_image_filenames:
 
@@ -159,42 +183,47 @@ def build_yolo_annotations_for_images_from_azure(connection_string:str, input_co
                 break
 
             img_id = df_images[df_images["filename"] == img_filename].index.values[0]
-            
-            image, ratio, target_h, target_w = apply_image_transformations(
-                None, stream
-            )
+
+            image, ratio, target_h, target_w = apply_image_transformations(None, stream)
 
             # getting annotations and converting to yolo
             anns = df_bboxes[df_bboxes["id_ref_images_for_labelling"] == img_id]
             labels, bboxes = process_annotations(anns, ratio, target_h, target_w)
-            yolo_strs = [str(cat) + " " + " ".join(bbox.astype(str)) for (cat, bbox) in zip(labels, bboxes)]
+            yolo_strs = [
+                str(cat) + " " + " ".join(bbox.astype(str))
+                for (cat, bbox) in zip(labels, bboxes)
+            ]
 
             # writing the image and annotation
 
             img_filename = img_id + ".jpg"
             img_local_filename = os.path.join(data_dir, "images/" + img_filename)
-            img_blob = blob_service_client.get_blob_client(container="images", blob=img_filename)
-            
+            img_blob = blob_service_client.get_blob_client(
+                container="images", blob=img_filename
+            )
+
             Image.fromarray(image).save(img_local_filename)
-            with open(img_local_filename, 'rb') as f:
+            with open(img_local_filename, "rb") as f:
                 img_blob.upload_blob(f)
 
             label_filename = img_id + ".txt"
             label_local_filename = os.path.join(data_dir, "labels/" + label_filename)
-            label_blob = blob_service_client.get_blob_client(container="labels", blob=label_filename)
+            label_blob = blob_service_client.get_blob_client(
+                container="labels", blob=label_filename
+            )
 
-            with open(label_local_filename, 'w') as f:
-                f.write('\n'.join(yolo_strs))
-            with open(label_local_filename, 'rb') as f:
+            with open(label_local_filename, "w") as f:
+                f.write("\n".join(yolo_strs))
+            with open(label_local_filename, "rb") as f:
                 label_blob.upload_blob(f)
 
             valid_imagenames.append(Path("./../" + img_local_filename).as_posix())
 
             count_exists += 1
 
-        if count_exists%500==0:
+        if count_exists % 500 == 0:
             print("Exists : ", count_exists)
-    
+
     count_missing = len(used_imgs) - count_exists
 
     print(f"Process finished successfully with {count_missing} missing images !")
