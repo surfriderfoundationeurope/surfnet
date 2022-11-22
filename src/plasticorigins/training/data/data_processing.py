@@ -412,7 +412,7 @@ def get_train_valid(
 
 
 def generate_yolo_files(
-    output_dir: WindowsPath,
+    output_dir: Union[str,WindowsPath],
     train_files: List[str],
     val_files: List[str],
     nb_classes: int = 10,
@@ -421,11 +421,13 @@ def generate_yolo_files(
     """Generates data files for yolo training: train.txt, val.txt and data.yaml.
 
     Args:
-        output_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
+        output_dir (Union[str,WindowsPath]): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         train_files (List[Any,type[str]]): list of image names for training step
         val_files (List[Any,type[str]]): list of image names for validation step
         nb_classes (int): number of waste classes used for classification
     """
+
+    output_dir = Path(output_dir)
 
     with open(output_dir / "train.txt", "w") as f:
         for path in train_files:
