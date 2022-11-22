@@ -221,6 +221,32 @@ def process_annotations(
     return labels, bboxes
 
 
+def apply_filters(
+    df_images: DataFrame, context_filters: str, quality_filters: str
+) -> DataFrame:
+
+    """Apply context and quality filters if given.
+
+    Args:
+        df_images (DataFrame): the dataframe with image informations of context and quality
+        context_filters (str): the list of context filters in this format : "[context1,context2,...]". For example, `"[river,nature]"`.
+        quality_filters (str): the list of quality filters in this format : "[quality1,quality2,...]". For example, `"[good,medium]"`.
+
+    Returns:
+        df_images (DataFrame): the filtered image dataframe
+    """
+
+    if context_filters:
+        context_filters = context_filters[1:-1].split(",")
+        df_images = df_images[df_images["context"].isin(context_filters)]
+
+    if quality_filters:
+        quality_filters = quality_filters[1:-1].split(",")
+        df_images = df_images[df_images["image_quality"].isin(quality_filters)]
+
+    return df_images
+
+
 def apply_image_transformations(
     input_img_folder: WindowsPath, img_name: str
 ) -> Tuple[Mat, float, int, int]:
@@ -236,10 +262,13 @@ def apply_image_transformations(
         ratio (float): the ratio `target_h / h` with `target_h = 1080`
         target_h (int): the target height of the resized image. Set as default to `1080`
         target_w (int): the target weight of the resized image computed as `ratio * w`
-
     """
 
-    image = Image.open(input_img_folder / img_name)
+    if input_img_folder:
+        image = Image.open(input_img_folder / img_name)
+
+    else:
+        image = Image.open(img_name)
 
     # in place rotation of the image using Exif data
     image = image_orientation(image)
@@ -297,13 +326,7 @@ def build_yolo_annotations_for_images(
     print(f"number of images with a bbox in database: {len(used_imgs)}")
 
     # apply filters if given :
-    if context_filters:
-        context_filters = context_filters[1:-1].split(",")
-        df_images = df_images[df_images["context"].isin(context_filters)]
-
-    if quality_filters:
-        quality_filters = quality_filters[1:-1].split(",")
-        df_images = df_images[df_images["image_quality"].isin(quality_filters)]
+    df_images = apply_filters(df_images, context_filters, quality_filters)
 
     used_imgs = used_imgs & set(df_images.index)
 
@@ -590,7 +613,7 @@ def convert_bboxes_to_initial_locations_from_txt_labels(
     target_h: int,
     ratio: float,
     target_w: int,
-    mapping_to_10cl: dict = None
+    mapping_to_10cl: dict = None,
 ) -> Tuple[array, array]:
 
     """Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.

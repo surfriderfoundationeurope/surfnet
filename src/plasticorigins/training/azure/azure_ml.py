@@ -17,6 +17,7 @@ This submodule contains the following functions :
 from plasticorigins.training.data.data_processing import (
     process_annotations,
     apply_image_transformations,
+    apply_filters,
 )
 from typing import Tuple, Optional, List, Any
 from pathlib import Path
@@ -118,13 +119,7 @@ def build_yolo_annotations_for_images_from_azure(
     print(f"number of images with a bbox in database: {len(used_imgs)}")
 
     # apply filters if given :
-    if context_filters:
-        context_filters = context_filters[1:-1].split(",")
-        df_images = df_images[df_images["context"].isin(context_filters)]
-
-    if quality_filters:
-        quality_filters = quality_filters[1:-1].split(",")
-        df_images = df_images[df_images["image_quality"].isin(quality_filters)]
+    df_images = apply_filters(df_images, context_filters, quality_filters)
 
     used_imgs = used_imgs & set(df_images.index)
 
