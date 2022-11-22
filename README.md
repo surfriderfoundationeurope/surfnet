@@ -42,7 +42,7 @@ pip install poetry
 ### Create your virtual environment
 Here we use python version 3.9
 ```shell
-poetry use 3.9
+poetry env use 3.9
 ```
 
 ### Install dependencies
