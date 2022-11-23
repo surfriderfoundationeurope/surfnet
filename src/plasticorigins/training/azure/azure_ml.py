@@ -6,8 +6,10 @@ This submodule contains the following class :
 
 This submodule contains the following functions :
 
+- ``b64decode_string(base64_message: str, encoding: str = 'ascii')`` : Decode a string object in base 64.
+- ``b64encode_string(message: str, encoding: str = 'ascii')`` : Encode a string object in base 64.
 - ``loadStreamImgToBlobStorage(container_client:ContainerClient, blob:Any)`` : Load stream image to a specific container from a blob storage.
-- `` build_yolo_annotations_for_images_from_azure(connection_string:str, input_container_name:str, df_bboxes:DataFrame,
+- ``build_yolo_annotations_for_images_from_azure(connection_string:str, input_container_name:str, df_bboxes:DataFrame,
                                         df_images:DataFrame, data_dir:str, context_filters:str = None,
                                         quality_filters:str = None, limit_data:int=0, exclude_ids:Optional[set]=None
                                         )``: Generates the .txt files that are necessary for yolo training for Azure ML
@@ -29,6 +31,7 @@ from azure.keyvault.secrets import SecretClient
 from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from io import BytesIO
+import base64
 
 
 class KeyVault:
@@ -58,6 +61,44 @@ class KeyVault:
 
     def get(self, secret: str):
         return self.client.get_secret(secret).value
+
+
+def b64encode_string(message: str, encoding: str = 'ascii') -> str:
+
+    """Encode a string object in base 64.
+    
+    Args:
+        message (str): message to encode
+        encoding (str): type of encoding. Set as default to ``ascii``
+
+    Returns:
+        base64_message (str): the message in base 64
+    """
+
+    message_bytes = message.encode(encoding)
+    base64_bytes = base64.b64encode(message_bytes)
+    base64_message = base64_bytes.decode(encoding)
+
+    return base64_message
+
+
+def b64decode_string(base64_message: str, encoding: str = 'ascii') -> str:
+
+    """Decode a string object in base 64.
+    
+    Args:
+        base64_message (str): the message in base 64
+        encoding (str): type of encoding. Set as default to ``ascii``
+
+    Returns:
+        message (str): the decoded message
+    """
+
+    base64_bytes = base64_message.encode(encoding)
+    message_bytes = base64.b64decode(base64_bytes)
+    message = message_bytes.decode(encoding)
+
+    return message
 
 
 def loadStreamImgToBlobStorage(container_client: ContainerClient, blob: Any) -> BytesIO:
@@ -133,6 +174,14 @@ def build_yolo_annotations_for_images_from_azure(
             f"after exclusion, number of images with a bbox in database: {len(used_imgs)}"
         )
 
+    data_dir = Path(data_dir)
+    
+    if not Path.exists(data_dir / "images"):
+        os.mkdir(data_dir / "images")
+    if not Path.exists(data_dir / "labels"):
+        os.mkdir(data_dir / "labels")
+
+    # Creating the client containers
     images_container_client = ContainerClient.from_connection_string(
         conn_str=connection_string, container_name="images"
     )

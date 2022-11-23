@@ -479,12 +479,14 @@ def generate_yolo_files(
         yaml.dump(data, outfile, default_flow_style=False)
 
 
-def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
+def get_annotations_from_db(user: str, password: str, bboxes_table: str) -> Tuple[DataFrame, DataFrame]:
 
     """Gets the data from the database. Requires that your IP is configured in Azure.
 
     Args:
+        user (str): username with writing access to the PostgreSql Database
         password (str): password to connect to the SQL DataBase with reading access
+        bboxes_table (str): name of the bboxes table from the prod PostgreSql Database
 
     Returns:
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
@@ -494,7 +496,6 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     # Update connection string information
     host = "pgdb-plastico-prod.postgres.database.azure.com"
     dbname = "plastico-prod"
-    user = "po_shared_read@pgdb-plastico-prod"
     sslmode = "require"
 
     # Construct connection string
@@ -507,8 +508,7 @@ def get_annotations_from_db(password: str) -> Tuple[DataFrame, DataFrame]:
     # Fetch all rows from table
     cursor = conn.cursor()
 
-    # cursor.execute('SELECT * FROM "label".bounding_boxes')
-    cursor.execute('SELECT * FROM "label".bounding_boxes_with_corrections')
+    cursor.execute(f'SELECT * FROM "label".{bboxes_table}')
     raw_annotations = cursor.fetchall()
 
     cursor.execute('SELECT * FROM "label".images_for_labelling')
@@ -690,7 +690,7 @@ def update_bounding_boxes_database(
         new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
-        mapping_to_10cl (dict): dictionary to map categories from nb_classes to 10.
+        mapping_to_10cl (dict): dictionary to map categories from nb_classes to 10
         user (str): username with writing access to the PostgreSql Database
         password (str): Password to connect to the Database
     """
