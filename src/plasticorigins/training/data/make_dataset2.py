@@ -34,7 +34,9 @@ def main(args: Namespace) -> None:
         )
     elif args.password:
         print("getting annotations from db")
-        df_bboxes, df_images = get_annotations_from_db(args.user, args.password, args.bboxes_table)
+        df_bboxes, df_images = get_annotations_from_db(
+            args.user, args.password, args.bboxes_table
+        )
 
     else:
         print("either a password must be set, or bbox and images filenames")

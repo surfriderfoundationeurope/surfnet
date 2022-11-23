@@ -63,10 +63,10 @@ class KeyVault:
         return self.client.get_secret(secret).value
 
 
-def b64encode_string(message: str, encoding: str = 'ascii') -> str:
+def b64encode_string(message: str, encoding: str = "ascii") -> str:
 
     """Encode a string object in base 64.
-    
+
     Args:
         message (str): message to encode
         encoding (str): type of encoding. Set as default to ``ascii``
@@ -82,10 +82,10 @@ def b64encode_string(message: str, encoding: str = 'ascii') -> str:
     return base64_message
 
 
-def b64decode_string(base64_message: str, encoding: str = 'ascii') -> str:
+def b64decode_string(base64_message: str, encoding: str = "ascii") -> str:
 
     """Decode a string object in base 64.
-    
+
     Args:
         base64_message (str): the message in base 64
         encoding (str): type of encoding. Set as default to ``ascii``
@@ -175,7 +175,7 @@ def build_yolo_annotations_for_images_from_azure(
         )
 
     data_dir = Path(data_dir)
-    
+
     if not Path.exists(data_dir / "images"):
         os.mkdir(data_dir / "images")
     if not Path.exists(data_dir / "labels"):

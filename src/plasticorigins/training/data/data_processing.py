@@ -412,7 +412,7 @@ def get_train_valid(
 
 
 def generate_yolo_files(
-    output_dir: Union[str,WindowsPath],
+    output_dir: Union[str, WindowsPath],
     train_files: List[str],
     val_files: List[str],
     nb_classes: int = 10,
@@ -479,7 +479,9 @@ def generate_yolo_files(
         yaml.dump(data, outfile, default_flow_style=False)
 
 
-def get_annotations_from_db(user: str, password: str, bboxes_table: str) -> Tuple[DataFrame, DataFrame]:
+def get_annotations_from_db(
+    user: str, password: str, bboxes_table: str
+) -> Tuple[DataFrame, DataFrame]:
 
     """Gets the data from the database. Requires that your IP is configured in Azure.
 
