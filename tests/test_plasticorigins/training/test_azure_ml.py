@@ -1,4 +1,9 @@
-from plasticorigins.training.azure.azure_ml import build_yolo_annotations_for_images_from_azure, b64decode_string, b64encode_string, loadStreamImgToBlobStorage
+from plasticorigins.training.azure.azure_ml import (
+    build_yolo_annotations_for_images_from_azure,
+    b64decode_string,
+    b64encode_string,
+    loadStreamImgToBlobStorage,
+)
 from plasticorigins.training.data.data_processing import get_annotations_from_db
 from argparse import Namespace
 import json
@@ -10,7 +15,7 @@ from azure.storage.blob import BlobServiceClient, ContainerClient
 
 PATH = "tests/ressources/"
 
-with open(PATH + "credentials.json", 'r') as json_file:
+with open(PATH + "credentials.json", "r") as json_file:
     credentials = json.load(json_file)
 
 
@@ -36,27 +41,30 @@ user_db = b64decode_string(credentials["user_db"])
 password_db = b64decode_string(credentials["password_db"])
 
 args = Namespace(
-    connection_string = connection_string,
-    input_container_name = input_container_name,
-    user_db = user_db,
-    password_db = password_db,
-    bboxes_table = "bounding_boxes_with_corrections",
-    data_dir = PATH,
-    context_filters = '[river,nature]',
-    quality_filters = '[good,medium]',
-    limit_data = 10,
-    exclude_img_folder = {"3b689af5-7b62-490a-b9c3-b388ec24ebd6"},
-    )
+    connection_string=connection_string,
+    input_container_name=input_container_name,
+    user_db=user_db,
+    password_db=password_db,
+    bboxes_table="bounding_boxes_with_corrections",
+    data_dir=PATH,
+    context_filters="[river,nature]",
+    quality_filters="[good,medium]",
+    limit_data=10,
+    exclude_img_folder={"3b689af5-7b62-490a-b9c3-b388ec24ebd6"},
+)
 
 
 def test_loadStreamImgToBlobStorage():
 
-    blob_service_client = BlobServiceClient.from_connection_string(args.connection_string)
+    blob_service_client = BlobServiceClient.from_connection_string(
+        args.connection_string
+    )
     container_client = blob_service_client.get_container_client(
-        container=args.input_container_name)
+        container=args.input_container_name
+    )
 
     blob_list = container_client.list_blobs()
-    
+
     for blob in blob_list:
 
         stream = loadStreamImgToBlobStorage(container_client, blob)
@@ -64,14 +72,13 @@ def test_loadStreamImgToBlobStorage():
         break
 
     assert image.shape[:-1] == (3024, 4032)
-    
+
 
 # Get annotation data from PostgreSql Database
 df_bboxes, df_images = get_annotations_from_db(
-    args.user_db,
-    args.password_db,
-    args.bboxes_table
-    )
+    args.user_db, args.password_db, args.bboxes_table
+)
+
 
 def test_build_yolo_annotations_for_images_from_azure():
 
@@ -85,7 +92,7 @@ def test_build_yolo_annotations_for_images_from_azure():
         None,
         None,
         args.limit_data,
-        args.exclude_img_folder
+        args.exclude_img_folder,
     )
 
     assert os.path.exists(PATH + "images")
@@ -94,10 +101,9 @@ def test_build_yolo_annotations_for_images_from_azure():
     # remove data folders
     shutil.rmtree(PATH + "images")
     shutil.rmtree(PATH + "labels")
-    
-    assert (len(valid_imgs) == 11) and (cpos == 11) 
 
-    
+    assert (len(valid_imgs) == 11) and (cpos == 11)
+
     # with context and quality filters
     valid_imgs, cpos, cneg = build_yolo_annotations_for_images_from_azure(
         args.connection_string,

@@ -32,7 +32,7 @@ path_inputs = path_data + "inputs/"
 path_outputs = path_data + "outputs/"
 path_test_images = PATH + "test_images/"
 
-with open(PATH + "credentials.json", 'r') as json_file:
+with open(PATH + "credentials.json", "r") as json_file:
     credentials = json.load(json_file)
 
 user_db = b64decode_string(credentials["user_db"])
@@ -233,7 +233,9 @@ def test_get_annotations_from_files():
 
 def test_get_annotations_from_db():
 
-    df_bboxes, df_images = get_annotations_from_db(args.user, args.password, args.bboxes_table)
+    df_bboxes, df_images = get_annotations_from_db(
+        args.user, args.password, args.bboxes_table
+    )
 
     assert df_bboxes.shape == (9039, 9)
     assert df_images.shape == (8125, 8)
