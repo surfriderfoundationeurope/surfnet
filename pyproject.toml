@@ -1,6 +1,7 @@
 [tool.poetry]
 name = "plastic-origins"
-version = "1.2.1-alpha.3"
+version = "2.1.1"
+
 description = "A package containing methods commonly used to make inferences"
 repository = "https://github.com/surfriderfoundationeurope/surfnet"
 homepage = "https://www.plasticorigins.eu/"
@@ -18,18 +19,20 @@ opencv-python = "4.5.5.62"
 pycocotools = "2.0.4"
 debugpy = "1.5.1"
 scipy = "1.7.3"
-tqdm = "4.62.3"
+tqdm = "^4.64.1"
 imgaug = "0.4.0"
 psycopg2-binary = "2.9.3"
 Flask = "2.0.3"
 Werkzeug = "2.0.3"
-gunicorn = "19.10.0"
-torch = "^1.11.0"
-torchvision = "^0.12.0"
+gunicorn = "^20.1.0"
+torch = "^1.13.0"
+torchvision = "^0.14.0"
 scikit-video = "^1.1.11"
+scikit-learn = "^1.1.0"
 pykalman = "^0.9.5"
 Pillow = "9.1.1"
-yolov5 = "^6.1.6"
+yolov5 = "^6.2.3"
+pandas = "1.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
@@ -51,7 +54,16 @@ omit = ["src/plasticorigins/detection/centernet/networks/dlav0.py",
         "src/plasticorigins/detection/centernet/networks/msra_resnet.py",
         "src/plasticorigins/detection/centernet/networks/pose_dla_dcn.py",
         "src/plasticorigins/detection/centernet/networks/resnet_dcn.py",
-        "src/plasticorigins/detection/centernet/models.py"]
+        "src/plasticorigins/detection/centernet/models.py",
+        "src/plasticorigins/training/setup.py",
+        "src/plasticorigins/training/test_environment.py",
+        "src/plasticorigins/serving/wsgi.py",
+        "src/plasticorigins/detection/coco_utils.py",
+        "src/plasticorigins/detection/losses.py",
+        "src/plasticorigins/detection/yolo.py",
+        "src/plasticorigins/training/data/make_dataset.py",
+        "src/plasticorigins/training/visualization/categories.py"
+        ]
 
 [tool.coverage.report]
 show_missing = true

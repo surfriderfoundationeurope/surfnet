@@ -40,9 +40,9 @@ pip install poetry
 ```
 
 ### Create your virtual environment
-Here we use python version 3.8
+Here we use python version 3.9
 ```shell
-poetry use 3.8
+poetry env use 3.9
 ```
 
 ### Install dependencies
@@ -182,6 +182,20 @@ To launch the tests you can run this command
 ```shell
 poetry run coverage run -m pytest -s && poetry run coverage report -m
 ```
+
+## Mkdocs Documentation:
+You need to install the following packages:
+```shell
+pip install mkdocs
+pip install mkdocstrings
+```
+To run the mkdocs documentation, you can run the following lines below:
+```shell
+cd src
+mkdocs serve
+```
+The documentation will be serving on http://127.0.0.1:8000/.
+
 ## Configuration
 
 `src/serving/inference.py` contains a Configuration dictionary that you may change:

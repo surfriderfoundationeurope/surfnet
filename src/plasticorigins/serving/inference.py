@@ -1,12 +1,29 @@
+"""The ``inference`` submodule provides several functions for tracking and handling post request.
+
+The submodule configures :
+
+- the device type
+- the logger
+- the prediction model
+
+This submodule contains the following functions:
+
+- ``handle_post_request()`` : Main function to handle a post request.
+- ``track(args:argparse)`` : Tracking function for object detection in frame sequences.
+
+"""
+
+import json
 import logging
 import os
 from pathlib import Path
-
+import argparse
 import warnings
 import numpy as np
 import torch
 from flask import jsonify, request
 from werkzeug.utils import secure_filename
+from typing import List, Tuple
 
 # imports for tracking
 from plasticorigins.detection.detect import detect
@@ -27,8 +44,9 @@ from plasticorigins.tracking.utils import (
 from plasticorigins.serving.config import id_categories
 
 # centernet / yolo version
-# from plasticorigins.serving.config import config_track
-from plasticorigins.serving.config import config_track_yolo as config_track
+from plasticorigins.serving.config import config_track
+
+# from plasticorigins.serving.config import config_track_yolo as config_track
 
 logger = logging.getLogger()
 if config_track.device is None:
@@ -73,16 +91,19 @@ transition_variance = np.load(
 )
 
 
-def handle_post_request():
-    """main function to handle a post request.
-    The file is in `request.files`
+def handle_post_request() -> json:
 
-    Will create tmp folders for storing the file and intermediate results
-    Outputs a json
+    """Main function to handle a post request. The file is in `request.files`. Will create temporary folders for storing the file and intermediate results. Outputs a json.
+
+    Returns:
+        A output json file.
     """
+
     logger.info("---receiving request")
+
     if "file" in request.files:
         file = request.files["file"]
+
     else:
         logger.error("error no file in request")
         return None
@@ -116,7 +137,19 @@ def handle_post_request():
     return response
 
 
-def track(args):
+def track(args: argparse) -> Tuple[List, int, int]:
+
+    """Tracking function for object detection in frame sequences.
+
+    Args:
+        args (argparse): arguments for tracking process
+
+    Returns:
+        filtered_results (list): list of filtered tracks
+        num_frames (int): max number of frames for tracking
+        fps (int): number of frames per second (video speed)
+    """
+
     if args.arch == "mobilenet_v3_small":
         detector = lambda frame: detect(
             frame, threshold=args.detection_threshold, model=model
