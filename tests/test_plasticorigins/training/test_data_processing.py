@@ -13,6 +13,8 @@ from plasticorigins.training.data.data_processing import (
     build_bboxes_csv_file_for_DB,
     plot_image_and_bboxes_yolo,
 )
+from plasticorigins.training.azure.azure_ml import b64decode_string
+
 import numpy as np
 from PIL import Image, ExifTags
 import os
@@ -20,6 +22,8 @@ import shutil
 import pandas as pd
 from pathlib import Path
 from argparse import Namespace
+import json
+
 
 PATH = "tests/ressources/"
 path_images = PATH + "images2labels/"
@@ -28,11 +32,20 @@ path_inputs = path_data + "inputs/"
 path_outputs = path_data + "outputs/"
 path_test_images = PATH + "test_images/"
 
+with open(PATH + "credentials.json", "r") as json_file:
+    credentials = json.load(json_file)
+
+user_db = b64decode_string(credentials["user_db"])
+password_db = b64decode_string(credentials["password_db"])
+
 args = Namespace(
     data_dir=path_data,
     images_dir=path_images,
     bboxes_filename="file_bboxes.csv",
     images_filename="file_images.csv",
+    user=user_db,
+    password=password_db,
+    bboxes_table="bounding_boxes_with_corrections",
     context_filters="[river,nature]",
     quality_filters="[good,medium]",
     limit_data=0,
@@ -218,13 +231,14 @@ def test_get_annotations_from_files():
     assert df_images.shape == (10, 8)
 
 
-# def test_get_annotations_from_db():
+def test_get_annotations_from_db():
 
-#     password = "b6150437-c3c2-4355-b84c-057f9b066a8c"
-#     df_bboxes, df_images = get_annotations_from_db(password)
+    df_bboxes, df_images = get_annotations_from_db(
+        args.user, args.password, args.bboxes_table
+    )
 
-#     assert df_bboxes.shape == (9039, 9)
-#     assert df_images.shape == (8125, 8)
+    assert df_bboxes.shape == (9039, 9)
+    assert df_images.shape == (8125, 8)
 
 
 def test_save_annotations_to_files():

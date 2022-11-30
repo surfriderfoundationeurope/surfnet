@@ -1,6 +1,5 @@
 .vscode/
 *.MP4
-*.json
 __pycache__/
 *.pickle
 *.mp4
