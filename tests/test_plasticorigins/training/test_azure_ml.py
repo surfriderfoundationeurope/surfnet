@@ -103,7 +103,7 @@ def test_build_yolo_annotations_for_images_from_azure():
         )
 
         # without filters and with exclude ids
-        valid_imgs, cpos, cneg = build_yolo_annotations_for_images_from_azure(
+        valid_imgs, cpos, _ = build_yolo_annotations_for_images_from_azure(
             args.connection_string,
             args.input_container_name,
             df_bboxes,
@@ -125,7 +125,7 @@ def test_build_yolo_annotations_for_images_from_azure():
         assert (len(valid_imgs) == 11) and (cpos == 11)
 
         # with context and quality filters
-        valid_imgs, cpos, cneg = build_yolo_annotations_for_images_from_azure(
+        valid_imgs, cpos, _ = build_yolo_annotations_for_images_from_azure(
             args.connection_string,
             args.input_container_name,
             df_bboxes,
