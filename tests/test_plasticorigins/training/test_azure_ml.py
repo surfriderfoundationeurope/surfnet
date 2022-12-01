@@ -6,17 +6,16 @@ from plasticorigins.training.azure.azure_ml import (
 )
 from plasticorigins.training.data.data_processing import get_annotations_from_db
 from argparse import Namespace
-import json
 import shutil
 import os
 import numpy as np
 from PIL import Image
 from azure.storage.blob import BlobServiceClient, ContainerClient
+from dotenv import dotenv_values
 
 PATH = "tests/ressources/"
 
-with open(PATH + "credentials.json", "r") as json_file:
-    credentials = json.load(json_file)
+config = dotenv_values(PATH + ".env")
 
 
 def test_b64encode_string():
@@ -24,21 +23,37 @@ def test_b64encode_string():
     test_msg = "images2label"
     msg_encode = b64encode_string(test_msg)
 
-    assert msg_encode == credentials["input_container_name"]
+    if config:
+        assert msg_encode == config["input_container_name"]
+
+    else:
+        print("EnvError : .env file not found")
 
 
 def test_b64decode_string():
 
-    test_msg = credentials["input_container_name"]
-    msg_decode = b64decode_string(test_msg)
+    if config:
+        test_msg = config["input_container_name"]
+        msg_decode = b64decode_string(test_msg)
 
-    assert msg_decode == "images2label"
+        assert msg_decode == "images2label"
+
+    else:
+        print("EnvError : .env file not found")
 
 
-connection_string = b64decode_string(credentials["connection_string"])
-input_container_name = b64decode_string(credentials["input_container_name"])
-user_db = b64decode_string(credentials["user_db"])
-password_db = b64decode_string(credentials["password_db"])
+if config:
+    connection_string = b64decode_string(config["connection_string"])
+    input_container_name = b64decode_string(config["input_container_name"])
+    user_db = b64decode_string(config["user_db"])
+    password_db = b64decode_string(config["password_db"])
+
+else:
+    connection_string = ""
+    input_container_name = ""
+    user_db = ""
+    password_db = ""
+
 
 args = Namespace(
     connection_string=connection_string,
@@ -56,86 +71,94 @@ args = Namespace(
 
 def test_loadStreamImgToBlobStorage():
 
-    blob_service_client = BlobServiceClient.from_connection_string(
-        args.connection_string
-    )
-    container_client = blob_service_client.get_container_client(
-        container=args.input_container_name
-    )
+    if config:
+        blob_service_client = BlobServiceClient.from_connection_string(
+            args.connection_string
+        )
+        container_client = blob_service_client.get_container_client(
+            container=args.input_container_name
+        )
 
-    blob_list = container_client.list_blobs()
+        blob_list = container_client.list_blobs()
 
-    for blob in blob_list:
+        for blob in blob_list:
 
-        stream = loadStreamImgToBlobStorage(container_client, blob)
-        image = np.array(Image.open(stream))
-        break
+            stream = loadStreamImgToBlobStorage(container_client, blob)
+            image = np.array(Image.open(stream))
+            break
 
-    assert image.shape[:-1] == (3024, 4032)
+        assert image.shape[:-1] == (3024, 4032)
 
-
-# Get annotation data from PostgreSql Database
-df_bboxes, df_images = get_annotations_from_db(
-    args.user_db, args.password_db, args.bboxes_table
-)
+    else:
+        print("EnvError : .env file not found")
 
 
 def test_build_yolo_annotations_for_images_from_azure():
 
-    # without filters and with exclude ids
-    valid_imgs, cpos, cneg = build_yolo_annotations_for_images_from_azure(
-        args.connection_string,
-        args.input_container_name,
-        df_bboxes,
-        df_images,
-        args.data_dir,
-        None,
-        None,
-        args.limit_data,
-        args.exclude_img_folder,
-    )
+    if config:
 
-    assert os.path.exists(PATH + "images")
-    assert os.path.exists(PATH + "labels")
+        # Get annotation data from PostgreSql Database
+        df_bboxes, df_images = get_annotations_from_db(
+            args.user_db, args.password_db, args.bboxes_table
+        )
 
-    # remove data folders
-    shutil.rmtree(PATH + "images")
-    shutil.rmtree(PATH + "labels")
+        # without filters and with exclude ids
+        valid_imgs, cpos, _ = build_yolo_annotations_for_images_from_azure(
+            args.connection_string,
+            args.input_container_name,
+            df_bboxes,
+            df_images,
+            args.data_dir,
+            None,
+            None,
+            args.limit_data,
+            args.exclude_img_folder,
+        )
 
-    assert (len(valid_imgs) == 11) and (cpos == 11)
+        assert os.path.exists(PATH + "images")
+        assert os.path.exists(PATH + "labels")
 
-    # with context and quality filters
-    valid_imgs, cpos, cneg = build_yolo_annotations_for_images_from_azure(
-        args.connection_string,
-        args.input_container_name,
-        df_bboxes,
-        df_images,
-        args.data_dir,
-        args.context_filters,
-        args.quality_filters,
-        args.limit_data,
-    )
+        # remove data folders
+        shutil.rmtree(PATH + "images")
+        shutil.rmtree(PATH + "labels")
 
-    assert os.path.exists(PATH + "images")
-    assert os.path.exists(PATH + "labels")
+        assert (len(valid_imgs) == 11) and (cpos == 11)
 
-    # remove data folders
-    shutil.rmtree(PATH + "images")
-    shutil.rmtree(PATH + "labels")
+        # with context and quality filters
+        valid_imgs, cpos, _ = build_yolo_annotations_for_images_from_azure(
+            args.connection_string,
+            args.input_container_name,
+            df_bboxes,
+            df_images,
+            args.data_dir,
+            args.context_filters,
+            args.quality_filters,
+            args.limit_data,
+        )
 
-    images_container_client = ContainerClient.from_connection_string(
-        conn_str=args.connection_string, container_name="images"
-    )
+        assert os.path.exists(PATH + "images")
+        assert os.path.exists(PATH + "labels")
 
-    labels_container_client = ContainerClient.from_connection_string(
-        conn_str=args.connection_string, container_name="labels"
-    )
+        # remove data folders
+        shutil.rmtree(PATH + "images")
+        shutil.rmtree(PATH + "labels")
 
-    assert images_container_client.exists()
-    assert labels_container_client.exists()
+        images_container_client = ContainerClient.from_connection_string(
+            conn_str=args.connection_string, container_name="images"
+        )
 
-    # remove blob containers
-    images_container_client.delete_container()
-    labels_container_client.delete_container()
+        labels_container_client = ContainerClient.from_connection_string(
+            conn_str=args.connection_string, container_name="labels"
+        )
 
-    assert (len(valid_imgs) == 11) and (cpos == 11)
+        assert images_container_client.exists()
+        assert labels_container_client.exists()
+
+        # remove blob containers
+        images_container_client.delete_container()
+        labels_container_client.delete_container()
+
+        assert (len(valid_imgs) == 11) and (cpos == 11)
+
+    else:
+        print("EnvError : .env file not found")

@@ -22,7 +22,7 @@ import shutil
 import pandas as pd
 from pathlib import Path
 from argparse import Namespace
-import json
+from dotenv import dotenv_values
 
 
 PATH = "tests/ressources/"
@@ -32,11 +32,15 @@ path_inputs = path_data + "inputs/"
 path_outputs = path_data + "outputs/"
 path_test_images = PATH + "test_images/"
 
-with open(PATH + "credentials.json", "r") as json_file:
-    credentials = json.load(json_file)
+config = dotenv_values(PATH + ".env")
 
-user_db = b64decode_string(credentials["user_db"])
-password_db = b64decode_string(credentials["password_db"])
+if config:
+    user_db = b64decode_string(config["user_db"])
+    password_db = b64decode_string(config["password_db"])
+
+else:
+    user_db = ""
+    password_db = ""
 
 args = Namespace(
     data_dir=path_data,
@@ -233,12 +237,16 @@ def test_get_annotations_from_files():
 
 def test_get_annotations_from_db():
 
-    df_bboxes, df_images = get_annotations_from_db(
-        args.user, args.password, args.bboxes_table
-    )
+    if config:
+        df_bboxes, df_images = get_annotations_from_db(
+            args.user, args.password, args.bboxes_table
+        )
 
-    assert df_bboxes.shape == (9039, 9)
-    assert df_images.shape == (8125, 8)
+        assert df_bboxes.shape == (9039, 9)
+        assert df_images.shape == (8126, 8)
+
+    else:
+        print("EnvError : .env file not found")
 
 
 def test_save_annotations_to_files():
