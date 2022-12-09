@@ -59,8 +59,6 @@ from numpy import ndarray, array
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from pandas import DataFrame
-import cv2
-from cv2 import Mat
 
 from matplotlib import image
 import matplotlib.pyplot as plt
@@ -249,7 +247,7 @@ def apply_filters(
 
 def apply_image_transformations(
     input_img_folder: WindowsPath, img_name: str
-) -> Tuple[Mat, float, int, int]:
+) -> Tuple[ndarray, float, int, int]:
 
     """Apply image transformations (orientation, rescaling / resizing).
 
@@ -273,13 +271,14 @@ def apply_image_transformations(
     # in place rotation of the image using Exif data
     image = image_orientation(image)
 
-    image = np.array(image)
-    h, w = image.shape[:-1]
+    img = np.array(image)
+    h, w = img.shape[:-1]
     target_h = 1080  # the target height of the image
     ratio = target_h / h  # We get the ratio of the target and the actual height
     target_w = int(ratio * w)
-    image = cv2.resize(image, (target_w, target_h))
-    h, w = image.shape[:-1]
+
+    image.resize((target_w, target_h))
+    image = np.array(image)
 
     return image, ratio, target_h, target_w
 
