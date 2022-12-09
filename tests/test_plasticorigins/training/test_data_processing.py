@@ -42,6 +42,8 @@ else:
     user_db = ""
     password_db = ""
 
+nb_classes = 10
+
 args = Namespace(
     data_dir=path_data,
     images_dir=path_images,
@@ -49,7 +51,7 @@ args = Namespace(
     images_filename="file_images.csv",
     user=user_db,
     password=password_db,
-    bboxes_table="bounding_boxes_with_corrections",
+    bboxes_table="bounding_boxes_{nb_classes}cl",
     context_filters="[river,nature]",
     quality_filters="[good,medium]",
     limit_data=0,
