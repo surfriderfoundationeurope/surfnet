@@ -23,7 +23,7 @@ This submodule contains the following functions :
     target_w: int,
     mapping_to_10cl: dict,
     )`` : Convert bounding boxes to initial annotation data (location_x, location_y, Width, Height) from .txt label files.
-- ``fill_bounding_boxes_table_with_corrections(new_csv_bounding_boxes: Union[WindowsPath, str], user: str, password: str)`` : Fill the bounding boxes DataBase from scratch.
+- ``fill_bounding_boxes_table_with_corrections(new_csv_bounding_boxes: Union[WindowsPath, str], user: str, password: str, bboxes_table: str)`` : Fill the bounding boxes DataBase from scratch.
 - ``find_img_ids_to_exclude(data_dir:WindowsPath)`` : Find image ids to exclude from list of images used for building the annotation files.
 - ``generate_yolo_files(output_dir:WindowsPath, train_files:List[Any,type[str]], val_files:List[Any,type[str]])`` : Generates data files for yolo training: train.txt, val.txt and data.yaml.
 - ``get_annotations_from_db(password:str)`` : Gets the data from the database. Requires that your IP is configured in Azure.
@@ -42,6 +42,7 @@ This submodule contains the following functions :
     df_images: DataFrame,
     user: str,
     password: str,
+    bboxes_table: str
     )`` : Update directly the Bounding Boxes DataBase from csv file or label folder.
 
 """
@@ -59,8 +60,6 @@ from numpy import ndarray, array
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from pandas import DataFrame
-import cv2
-from cv2 import Mat
 
 from matplotlib import image
 import matplotlib.pyplot as plt
@@ -249,7 +248,7 @@ def apply_filters(
 
 def apply_image_transformations(
     input_img_folder: WindowsPath, img_name: str
-) -> Tuple[Mat, float, int, int]:
+) -> Tuple[ndarray, float, int, int]:
 
     """Apply image transformations (orientation, rescaling / resizing).
 
@@ -273,13 +272,14 @@ def apply_image_transformations(
     # in place rotation of the image using Exif data
     image = image_orientation(image)
 
-    image = np.array(image)
-    h, w = image.shape[:-1]
+    img = np.array(image)
+    h, w = img.shape[:-1]
     target_h = 1080  # the target height of the image
     ratio = target_h / h  # We get the ratio of the target and the actual height
     target_w = int(ratio * w)
-    image = cv2.resize(image, (target_w, target_h))
-    h, w = image.shape[:-1]
+
+    image.resize((target_w, target_h))
+    image = np.array(image)
 
     return image, ratio, target_h, target_w
 
@@ -681,6 +681,7 @@ def update_bounding_boxes_database(
     mapping_to_10cl: dict,
     user: str,
     password: str,
+    bboxes_table: str,
 ) -> None:
 
     """Update directly the Bounding Boxes DataBase from csv file or label folder. Requires that your IP is configured in Azure.
@@ -695,6 +696,7 @@ def update_bounding_boxes_database(
         mapping_to_10cl (dict): dictionary to map categories from nb_classes to 10
         user (str): username with writing access to the PostgreSql Database
         password (str): Password to connect to the Database
+        bboxes_table (str): the name of the bounding boxes SQL table
     """
 
     input_img_folder = Path(images_dir)
@@ -755,7 +757,7 @@ def update_bounding_boxes_database(
             if row[0] is None:
 
                 cursor.execute(
-                    'INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+                    f'INSERT INTO "label".{bboxes_table}(id, id_creator_fk, \
                     createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                         width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                     row,
@@ -765,7 +767,7 @@ def update_bounding_boxes_database(
 
                 row = row[1:] + (row[0],)
                 cursor.execute(
-                    'UPDATE "label".bounding_boxes_with_corrections SET (id_creator_fk, \
+                    f'UPDATE "label".{bboxes_table} SET (id_creator_fk, \
                     createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                         width, height) = (%s, %s, %s, %s, %s, %s, %s, %s) WHERE id = %s',
                     row,
@@ -810,7 +812,7 @@ def update_bounding_boxes_database(
                     )
                     row = row[1:] + (row[0],)
                     cursor.execute(
-                        'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                        f'UPDATE "label".{bboxes_table} SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                                     width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
                         row,
                     )
@@ -829,7 +831,7 @@ def update_bounding_boxes_database(
                         int(bboxes[i, 3]),
                     )
                     cursor.execute(
-                        'INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+                        f'INSERT INTO "label".{bboxes_table}(id, id_creator_fk, \
                                     createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                                     width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                         row,
@@ -849,7 +851,7 @@ def update_bounding_boxes_database(
                     )
                     row = row[1:] + (row[0],)
                     cursor.execute(
-                        'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                        f'UPDATE "label".{bboxes_table} SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                                     width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
                         row,
                     )
@@ -867,7 +869,7 @@ def update_bounding_boxes_database(
                     )
                     row = row[1:] + (row[0],)
                     cursor.execute(
-                        'UPDATE "label".bounding_boxes_with_corrections SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
+                        f'UPDATE "label".{bboxes_table} SET (id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                                     width, height) = (%s, %s, %s, %s, %s, %s) WHERE id = %s',
                         row,
                     )
@@ -1041,6 +1043,7 @@ def fill_bounding_boxes_table_with_corrections(
     new_csv_bounding_boxes: Union[WindowsPath, str],
     user: str,
     password: str,
+    bboxes_table: str,
 ) -> None:
 
     """Fill the bounding boxes DataBase from scratch. Requires that your IP is configured in Azure.
@@ -1049,6 +1052,7 @@ def fill_bounding_boxes_table_with_corrections(
         new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections.
         user (str): username with writing access to the PostgreSql Database
         password (str): password to connect to the PostgreSql Database
+        bboxes_table (str): the name of the bounding boxes SQL table
     """
 
     # Update connection string information
@@ -1074,7 +1078,7 @@ def fill_bounding_boxes_table_with_corrections(
         row = tuple([int(val) if type(val) != str else val for val in row])
 
         cursor.execute(
-            'INSERT INTO "label".bounding_boxes_with_corrections(id, id_creator_fk, \
+            f'INSERT INTO "label".{bboxes_table}(id, id_creator_fk, \
             createdon, id_ref_trash_type_fk, id_ref_images_for_labelling, location_x, location_y, \
                 width, height) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
             row,
