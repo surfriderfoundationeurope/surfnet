@@ -245,7 +245,7 @@ def test_get_annotations_from_db():
         )
 
         assert df_bboxes.shape == (9039, 9)
-        assert df_images.shape == (8126, 8)
+        assert df_images.shape == (8126, 9)
 
     else:
         print("EnvError : .env file not found")

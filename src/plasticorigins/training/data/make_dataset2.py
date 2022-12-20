@@ -37,6 +37,7 @@ def main(args: Namespace) -> None:
         df_bboxes, df_images = get_annotations_from_db(
             args.user, args.password, args.bboxes_table
         )
+        df_images = df_images.set_index("id")
 
     else:
         print("either a password must be set, or bbox and images filenames")

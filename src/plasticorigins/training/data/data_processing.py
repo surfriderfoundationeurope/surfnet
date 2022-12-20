@@ -37,7 +37,7 @@ This submodule contains the following functions :
     data_dir: Union[WindowsPath, str],
     images_dir: Union[WindowsPath, str],
     labels_folder_name: Union[str, WindowsPath],
-    new_csv_bounding_boxes: Union[WindowsPath, str],
+    new_csv_bounding_boxes: Optional[Union[WindowsPath, str]],
     df_bboxes: DataFrame,
     df_images: DataFrame,
     user: str,
@@ -64,6 +64,7 @@ from pandas import DataFrame
 from matplotlib import image
 import matplotlib.pyplot as plt
 from PIL import Image, ExifTags, ImageDraw
+import cv2
 
 
 class_id_to_name_mapping = {
@@ -272,14 +273,13 @@ def apply_image_transformations(
     # in place rotation of the image using Exif data
     image = image_orientation(image)
 
-    img = np.array(image)
-    h, w = img.shape[:-1]
+    w, h = image.size
+    image = np.array(image)
     target_h = 1080  # the target height of the image
     ratio = target_h / h  # We get the ratio of the target and the actual height
     target_w = int(ratio * w)
 
-    image.resize((target_w, target_h))
-    image = np.array(image)
+    image = cv2.resize(image, (target_w, target_h))
 
     return image, ratio, target_h, target_w
 
@@ -349,7 +349,7 @@ def build_yolo_annotations_for_images(
 
     print("Start building the annotations ...")
 
-    for img_id in used_imgs:
+    for img_id in tqdm(used_imgs):
 
         img_name = df_images.loc[img_id]["filename"]
         if Path.exists(input_img_folder / img_name):
@@ -379,10 +379,6 @@ def build_yolo_annotations_for_images(
             valid_imagenames.append(img_file_name.as_posix())
         else:
             count_missing += 1
-
-        if count_exists % 500 == 0:
-            print("Exists : ", count_exists)
-            print("Missing : ", count_missing)
 
     print(f"Process finished successfully with {count_missing} missing images !")
 
@@ -550,7 +546,7 @@ def get_annotations_from_db(
     )
     conn.close()
 
-    return df_bboxes, df_images.set_index("id")  # , raw_category_info
+    return df_bboxes, df_images  # , raw_category_info
 
 
 def get_annotations_from_files(
@@ -675,7 +671,7 @@ def update_bounding_boxes_database(
     data_dir: Union[WindowsPath, str],
     images_dir: Union[WindowsPath, str],
     labels_folder_name: Union[str, WindowsPath],
-    new_csv_bounding_boxes: Union[WindowsPath, str],
+    new_csv_bounding_boxes: Optional[Union[WindowsPath, str]],
     df_bboxes: DataFrame,
     df_images: DataFrame,
     mapping_to_10cl: dict,
@@ -690,7 +686,7 @@ def update_bounding_boxes_database(
         data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations
         images_dir (WindowsPath): path of the image directory. It should contain a folder with all images
         labels_folder_name (Union[str,WindowsPath]): the name of the labels folder or the path od this folder
-        new_csv_bounding_boxes (Union[WindowsPath,str]) : the path of the bounding boxes csv files with annotation corrections
+        new_csv_bounding_boxes (Optional[Union[WindowsPath,str]]) : the path of the bounding boxes csv files with annotation corrections
         df_bboxes (DataFrame): DataFrame with the bounding boxes informations (location X, Y and Height, Width)
         df_images (DataFrame): DataFrame with the image informations
         mapping_to_10cl (dict): dictionary to map categories from nb_classes to 10
