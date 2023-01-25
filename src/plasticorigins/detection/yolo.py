@@ -25,23 +25,6 @@ from yolov5.models.common import Detections
 from yolov5.utils.general import non_max_suppression
 from typing import Any, Tuple, Union, Dict, Optional
 
-# This has to be kept for now as this depends on the model training
-id_categories = {
-    1: "Insulating material",
-    4: "Drum",
-    2: "Bottle-shaped",
-    3: "Can-shaped",
-    5: "Other packaging",
-    6: "Tire",
-    7: "Fishing net / cord",
-    8: "Easily namable",
-    9: "Unclear",
-    0: "Sheet / tarp / plastic bag / fragment",
-}
-
-categories_id = {v: k for k, v in id_categories.items()}
-get_id = lambda cat: categories_id[cat]
-
 
 def load_model(
     model_path: str, device: str, conf: float = 0.35, iou: float = 0.50
@@ -62,9 +45,10 @@ def load_model(
     model = yolov5.load(model_path, device=device)
     model.conf = conf
     model.iou = iou
-    model.classes = None
     model.multi_label = False
     model.max_det = 1000
+    categories_id = {v: k for k, v in model.names.items()}
+    model.get_id = lambda cat: categories_id[cat]
 
     return model
 
@@ -117,7 +101,8 @@ def predict_yolo(
         bboxes = voc2centerdims(bboxes)
         bboxes = bboxes.astype(int)
         confs = preds.confidence.values
-        labels = np.array(list(map(get_id, preds.name.values)))
+        # Converts back names to ids
+        labels = np.array(list(map(model.get_id, preds.name.values)))
         return bboxes, confs, labels
 
     else:
