@@ -1,2 +1,2 @@
-plastic-origins
+plastic-origins==2.2.4
 yolov5
