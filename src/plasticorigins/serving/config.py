@@ -9,6 +9,8 @@ id_categories = {
     7: "Fishing net",  # 'Fishing net / cord',
     8: "Easily namable",
     9: "Unclear",
+    10: 'Fragment',
+    11: 'Fragment'
 }
 
 
@@ -20,6 +22,7 @@ class DotDict(dict):
     __delattr__ = dict.__delitem__
 
 
+# Old config track with centernet, deprecated
 config_track = DotDict(
     {
         "upload_folder": "/tmp",
@@ -39,6 +42,7 @@ config_track = DotDict(
     }
 )
 
+# New config track, the one used in production
 config_track_yolo = DotDict(
     {
         "yolo_conf_thrld": 0.35,
@@ -47,7 +51,7 @@ config_track_yolo = DotDict(
         "confidence_threshold": 0.004,
         "downsampling_factor": 4,
         "noise_covariances_path": "data/tracking_parameters",
-        "url_model_yolo": "https://github.com/surfriderfoundationeurope/IA_Pau/releases/download/v0.1/yolov5.pt",
+        "url_model_yolo": "https://github.com/surfriderfoundationeurope/surfnet/releases/download/v01.2023/yolo_latest.pt",
         "file_model_yolo": "yolov5.pt",
         "output_shape": (768, 768),
         "skip_frames": 3,  # 3
