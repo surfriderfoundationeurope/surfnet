@@ -64,7 +64,7 @@ def main(args: Namespace) -> None:
         f"found {cpos} valid annotations with images and {cneg} unmatched annotations"
     )
 
-    train_files, val_files = get_train_valid(yolo_filelist, args.split)
+    train_files, val_files = get_train_valid(data_dir, yolo_filelist, args.split)
 
     generate_yolo_files(data_dir, train_files, val_files, args.nb_classes)
 
