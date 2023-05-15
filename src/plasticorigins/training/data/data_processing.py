@@ -58,6 +58,8 @@ from tqdm import tqdm
 import numpy as np
 from numpy import ndarray, array
 from sklearn.model_selection import train_test_split
+import tensorflow as tf
+
 import pandas as pd
 from pandas import DataFrame
 
@@ -65,6 +67,7 @@ from matplotlib import image
 import matplotlib.pyplot as plt
 from PIL import Image, ExifTags, ImageDraw
 import cv2
+import shutil
 
 
 class_id_to_name_mapping = {
@@ -219,6 +222,99 @@ def process_annotations(
     bboxes = anns[["location_x", "location_y", "width", "height"]].values * ratio
     bboxes = bbox2yolo(bboxes, target_h, target_w)
     return labels, bboxes
+
+
+def transform_anns_to_array(label_file: str) -> Tuple[np.array, np.ndarray]:
+
+    """Transforming annotations in str format to numpy array.
+
+    Args:
+        label_file (str): the label file with annotations in str format
+
+    Returns:
+        labels (np.array): list of object classes in the current image
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+    """
+
+    with open(label_file, "r") as file:
+        lines = file.readlines()
+
+    labels, bboxes = [], []
+
+    for bbox in lines:
+        bbox = bbox.split(" ")
+        labels.append(bbox[0])
+        bboxes.append(bbox[1:])
+
+    labels = np.array(labels).astype(int)
+    bboxes = np.array(bboxes).astype(float)
+
+    return labels, bboxes
+
+
+def transform_anns_to_str(
+    labels: np.array, bboxes: np.ndarray, label_file_name: str
+) -> None:
+
+    """Transforming annotations in numpy array format to str format.
+    Args:
+        labels (np.array): list of object classes in the current image
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+    """
+
+    yolo_strs = [
+        str(cat) + " " + " ".join(bbox.astype(str))
+        for (cat, bbox) in zip(labels, bboxes)
+    ]
+    with open(label_file_name, "w") as f:
+        f.write("\n".join(yolo_strs))
+
+
+def flip_left_right_annotations(bboxes: np.ndarray) -> np.ndarray:
+
+    """Applying flip left and right transformation to annotations in numpy array format.
+
+    Args:
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+
+    Returns:
+        bboxes (np.ndarray): array of bounding boxes after flip
+    """
+
+    bboxes[:, 0] = 1 - bboxes[:, 0]
+    return bboxes
+
+
+def flip_up_down_annotations(bboxes: np.ndarray) -> np.ndarray:
+
+    """Applying flip up and down transformation to annotations in numpy array format.
+
+    Args:
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+
+    Returns:
+        bboxes (np.ndarray): array of bounding boxes after flip
+    """
+
+    bboxes = flip_left_right_annotations(bboxes)
+    bboxes[:, 1] = 1 - bboxes[:, 1]
+    return bboxes
+
+
+def rot90_annotations(bboxes: np.ndarray) -> np.ndarray:
+
+    """Applying 90 degrees rotation transformation to annotations in numpy array format.
+
+    Args:
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+
+    Returns:
+        bboxes (np.ndarray): array of bounding boxes after rotation
+    """
+
+    bboxes[:, [0, 1]] = 1 - bboxes[:, [1, 0]]
+    bboxes[:, [2, 3]] = bboxes[:, [3, 2]]
+    return bboxes
 
 
 def apply_filters(
@@ -385,13 +481,120 @@ def build_yolo_annotations_for_images(
     return valid_imagenames, count_exists, count_missing
 
 
-def get_train_valid(
-    list_files: List[str], split: float = 0.85
-) -> Tuple[List[str], List[str]]:
+def data_augmentation_for_yolo_data(
+    data_dir: Path, train_files: List[str]
+) -> List[str]:
 
-    """Split data into train and validation partitions.
+    """Generates data augmentation for images to get more data.
 
     Args:
+        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
+        train_files (List[Any,type[str]]): list of image names for training step
+
+    Returns:
+        train_files (List[Any,type[str]]): list of image names for training step with data augmentation
+    """
+
+    images_dir = Path("images")
+    labels_dir = Path("labels")
+    used_images = train_files.copy()
+    used_imgs_ids = set(
+        [image_name.split("/")[-1].split(".")[0] for image_name in used_images]
+    )
+
+    for image_id in tqdm(used_imgs_ids):
+
+        image = Image.open(data_dir / images_dir / f"{image_id}.jpg")
+        src = data_dir / labels_dir / f"{image_id}.txt"
+        labels, bboxes = transform_anns_to_array(src)
+
+        # Add new image with flip left right
+        flipped = tf.image.flip_left_right(image)
+        flipped_img_name = data_dir / images_dir / f"{image_id}_flip_left_right.jpg"
+        used_images.append(flipped_img_name.as_posix())
+        tf.keras.utils.save_img(flipped_img_name, flipped)
+        bboxes_flipped = flip_left_right_annotations(bboxes)
+        transform_anns_to_str(
+            labels,
+            bboxes_flipped,
+            data_dir / labels_dir / f"{image_id}_flip_left_right.txt",
+        )
+
+        # Add new image with flip up down
+        flipped = tf.image.flip_up_down(image)
+        flipped_img_name = data_dir / images_dir / f"{image_id}_flip_up_down.jpg"
+        used_images.append(flipped_img_name.as_posix())
+        tf.keras.utils.save_img(flipped_img_name, flipped)
+        bboxes_flipped = flip_up_down_annotations(bboxes)
+        transform_anns_to_str(
+            labels,
+            bboxes_flipped,
+            data_dir / labels_dir / f"{image_id}_flip_up_down.txt",
+        )
+
+        # Add new image with gray color
+        grayscaled = tf.image.rgb_to_grayscale(image)
+        gray_img_name = data_dir / images_dir / f"{image_id}_gray.jpg"
+        used_images.append(gray_img_name.as_posix())
+        tf.keras.utils.save_img(gray_img_name, grayscaled)
+        dest = data_dir / labels_dir / f"{image_id}_gray.txt"
+        shutil.copy2(src, dest)
+
+        # Add new image with rotation 90
+        rotated = tf.image.rot90(image)
+        rot90_img_name = data_dir / images_dir / f"{image_id}_rot90.jpg"
+        used_images.append(rot90_img_name.as_posix())
+        tf.keras.utils.save_img(rot90_img_name, rotated)
+        bboxes_rot90 = rot90_annotations(bboxes)
+        transform_anns_to_str(
+            labels, bboxes_rot90, data_dir / labels_dir / f"{image_id}_rot90.txt"
+        )
+
+        # Add new image with saturation
+        saturated = tf.image.adjust_saturation(image, 3)
+        saturated_img_name = data_dir / images_dir / f"{image_id}_saturated.jpg"
+        used_images.append(saturated_img_name.as_posix())
+        tf.keras.utils.save_img(saturated_img_name, saturated)
+        dest = data_dir / labels_dir / f"{image_id}_saturated.txt"
+        shutil.copy2(src, dest)
+
+        # Add new images with random contrast
+        for i in range(2):
+            seed = (i, 0)  # tuple of size (2,)
+
+            stateless_random_brightness = tf.image.stateless_random_brightness(
+                image, max_delta=0.95, seed=seed
+            )
+            bright_img_name = (
+                data_dir / images_dir / f"{image_id}_random_bright_{seed[0]}.jpg"
+            )
+            used_images.append(bright_img_name.as_posix())
+            tf.keras.utils.save_img(bright_img_name, stateless_random_brightness)
+            dest = data_dir / labels_dir / f"{image_id}_random_bright_{seed[0]}.txt"
+            shutil.copy2(src, dest)
+
+            stateless_random_contrast = tf.image.stateless_random_contrast(
+                image, lower=0.1, upper=0.9, seed=seed
+            )
+            contrast_img_name = (
+                data_dir / images_dir / f"{image_id}_random_contrast_{seed[0]}.jpg"
+            )
+            used_images.append(contrast_img_name.as_posix())
+            tf.keras.utils.save_img(contrast_img_name, stateless_random_contrast)
+            dest = data_dir / labels_dir / f"{image_id}_random_contrast_{seed[0]}.txt"
+            shutil.copy2(src, dest)
+
+    return used_images
+
+
+def get_train_valid(
+    data_dir: str, list_files: List[str], split: float = 0.85
+) -> Tuple[List[str], List[str]]:
+
+    """Split data into train and validation partitions with data augmentation
+
+    Args:
+        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         list_files (List[Any,type[str]]): list of image files to split into train and test partitions
         split (float, optional): train_size between 0 and 1. Set as default to 0.85.
 
@@ -402,6 +605,7 @@ def get_train_valid(
 
     train_files, val_files = train_test_split(list_files, train_size=split)
     train_files = list(set(train_files))
+    train_files = data_augmentation_for_yolo_data(data_dir, train_files)
     val_files = list(set(val_files))
 
     return train_files, val_files

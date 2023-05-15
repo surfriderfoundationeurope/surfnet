@@ -9,8 +9,8 @@ id_categories = {
     7: "Fishing net",  # 'Fishing net / cord',
     8: "Easily namable",
     9: "Unclear",
-    10: 'Fragment',
-    11: 'Fragment'
+    10: "Fragment",
+    11: "Fragment",
 }
 
 
