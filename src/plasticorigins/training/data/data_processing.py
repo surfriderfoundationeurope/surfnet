@@ -507,12 +507,10 @@ def data_augmentation_for_yolo_data(
     for image_id in tqdm(used_imgs_ids):
 
         img_path = data_dir / images_dir / f"{image_id}.jpg"
-        image = cv2.imread(img_path.as_posix())[:,:,::-1] # opencv read the images in BGR format 
-                                    # so we use [:,:,::-1] to convert from BGR to RGB
-
-        src = data_dir / labels_dir / f"{image_id}.txt" 
+        image = cv2.imread(img_path.as_posix())[:,:,::-1]  # we use [:,:,::-1] to convert from BGR to RGB
+        src = data_dir / labels_dir / f"{image_id}.txt"
         labels, bboxes = transform_anns_to_array(src)
-        
+
         # Add new image with horizontal flip with a given probability p
         Horizontal_Flipping_Transformation = transforms.Compose([
             transforms.ToPILImage(),
@@ -525,11 +523,10 @@ def data_augmentation_for_yolo_data(
         bboxes_flipped = flip_left_right_annotations(bboxes)
         transform_anns_to_str(labels, bboxes_flipped, data_dir / labels_dir / f"{image_id}_horiz_flip.txt")
 
-        
         # Add new image with vertical flip with a given probability p
         Vertical_Flipping_Transformation = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.RandomVerticalFlip(p=1) 
+            transforms.RandomVerticalFlip(p=1)
         ])
         Flipping_Img = Vertical_Flipping_Transformation(image)
         flipped_img_name = data_dir / images_dir / f"{image_id}_vert_flip.jpg"
@@ -538,7 +535,6 @@ def data_augmentation_for_yolo_data(
         bboxes_flipped = flip_up_down_annotations(bboxes)
         transform_anns_to_str(labels, bboxes_flipped, data_dir / labels_dir / f"{image_id}_vert_flip.txt")
 
-        
         # Add new image with contrast and low brightness
         Color_Transformation = transforms.Compose([
             transforms.ToPILImage(),
@@ -551,7 +547,7 @@ def data_augmentation_for_yolo_data(
         dest = data_dir / labels_dir / f"{image_id}_low_bright_contrast.txt"
         shutil.copy2(src, dest)
 
-                # Add new image with contrast and low brightness
+        # Add new image with contrast and low brightness
         Color_Transformation = transforms.Compose([
             transforms.ToPILImage(),
             transforms.ColorJitter(brightness=0.8, contrast=0.5,saturation=0.5, hue=0.4)
@@ -562,7 +558,7 @@ def data_augmentation_for_yolo_data(
         save_image(trans_to_tensor(Transformed_Img), transformed_img_name)
         dest = data_dir / labels_dir / f"{image_id}_high_bright_sat.txt"
         shutil.copy2(src, dest)
-        
+
     return used_images
 
 
