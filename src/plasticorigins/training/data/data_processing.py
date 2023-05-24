@@ -579,7 +579,7 @@ def data_augmentation_for_yolo_data(
         # Add new image with contrast and high brightness
         Color_Transformation = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.ColorJitter(brightness=0.5, contrast=0.8,saturation=0.2, hue=0.4)
+            transforms.ColorJitter(brightness=0.8, contrast=0.5,saturation=0.2, hue=0.4)
         ])
         Transformed_Img = Color_Transformation(image)
         transformed_img_name = data_dir / images_dir / f"{image_id}_high_bright_contrast.jpg"
