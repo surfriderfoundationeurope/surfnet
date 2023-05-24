@@ -576,16 +576,16 @@ def data_augmentation_for_yolo_data(
         bboxes_flipped = flip_up_down_annotations(bboxes)
         transform_anns_to_str(labels, bboxes_flipped, data_dir / labels_dir / f"{image_id}_vert_flip.txt")
 
-        # Add new image with contrast and low brightness
+        # Add new image with contrast and high brightness
         Color_Transformation = transforms.Compose([
             transforms.ToPILImage(),
             transforms.ColorJitter(brightness=0.5, contrast=0.8,saturation=0.2, hue=0.4)
         ])
         Transformed_Img = Color_Transformation(image)
-        transformed_img_name = data_dir / images_dir / f"{image_id}_low_bright_contrast.jpg"
+        transformed_img_name = data_dir / images_dir / f"{image_id}_high_bright_contrast.jpg"
         used_images.append(transformed_img_name.as_posix())
         save_image(trans_to_tensor(Transformed_Img), transformed_img_name)
-        dest = data_dir / labels_dir / f"{image_id}_low_bright_contrast.txt"
+        dest = data_dir / labels_dir / f"{image_id}_high_bright_contrast.txt"
         shutil.copy2(src, dest)
 
     return used_images

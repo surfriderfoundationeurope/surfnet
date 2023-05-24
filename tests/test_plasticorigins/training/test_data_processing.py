@@ -196,7 +196,7 @@ def test_get_train_valid():
     train_files, val_files = get_train_valid(args.data_dir, list_imgs_test, 0.85)
 
     # assert (len(train_files) == 70) and (len(val_files) == 2)
-    assert (len(train_files) == 35) and (len(val_files) == 2)
+    assert (len(train_files) == 42) and (len(val_files) == 2)
 
 
 def test_generate_yolo_files():
