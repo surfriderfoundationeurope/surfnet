@@ -282,6 +282,7 @@ def flip_left_right_annotations(bboxes: np.ndarray) -> np.ndarray:
         bboxes (np.ndarray): array of bounding boxes after flip
     """
 
+    bboxes = bboxes.copy()
     bboxes[:, 0] = 1 - bboxes[:, 0]
     return bboxes
 
@@ -297,7 +298,7 @@ def flip_up_down_annotations(bboxes: np.ndarray) -> np.ndarray:
         bboxes (np.ndarray): array of bounding boxes after flip
     """
 
-    bboxes = flip_left_right_annotations(bboxes)
+    bboxes = bboxes.copy()
     bboxes[:, 1] = 1 - bboxes[:, 1]
     return bboxes
 
@@ -313,8 +314,28 @@ def rot90_annotations(bboxes: np.ndarray) -> np.ndarray:
         bboxes (np.ndarray): array of bounding boxes after rotation
     """
 
-    bboxes[:, [0, 1]] = 1 - bboxes[:, [1, 0]]
-    bboxes[:, [2, 3]] = bboxes[:, [3, 2]]
+    bboxes = bboxes.copy()
+    bboxes[:, [0,1]] = 1 - bboxes[:, [1,0]]
+    bboxes[:, 1] = 1 - bboxes[:, 1]
+    bboxes[:, [2,3]] = bboxes[:, [3,2]]
+    return bboxes
+
+
+def rot270_annotations(bboxes: np.ndarray) -> np.ndarray:
+
+    """Applying 270 degrees rotation transformation to annotations in numpy array format.
+
+    Args:
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+
+    Returns:
+        bboxes (np.ndarray): array of bounding boxes after rotation
+    """
+
+    bboxes = bboxes.copy()
+    bboxes[:, [0,1]] = 1 - bboxes[:, [1,0]]
+    bboxes[:, 0] = 1 - bboxes[:, 0]
+    bboxes[:, [2,3]] = bboxes[:, [3,2]]
     return bboxes
 
 
@@ -507,9 +528,29 @@ def data_augmentation_for_yolo_data(
     for image_id in tqdm(used_imgs_ids):
 
         img_path = data_dir / images_dir / f"{image_id}.jpg"
-        image = cv2.imread(img_path.as_posix())[:,:,::-1]  # we use [:,:,::-1] to convert from BGR to RGB
+        image = cv2.imread(img_path.as_posix())  # in BGR
         src = data_dir / labels_dir / f"{image_id}.txt"
         labels, bboxes = transform_anns_to_array(src)
+
+        # Add new image with 90 degrees rotation
+        # rotate the image by 90 degree clockwise
+        img_cw_90 = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        new_img_path = data_dir / images_dir / f"{image_id}_rot90.jpg"
+        cv2.imwrite(new_img_path.as_posix(), img_cw_90)
+        used_images.append(new_img_path.as_posix())
+        bboxes_rot90 = rot90_annotations(bboxes)
+        transform_anns_to_str(labels, bboxes_rot90, data_dir / labels_dir / f"{image_id}_rot90.txt")
+
+        # Add new image with 270 degrees rotation
+        # rotate the image by 90 degree counter clockwise
+        img_cw_270 = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        new_img_path = data_dir / images_dir / f"{image_id}_rot270.jpg"
+        cv2.imwrite(new_img_path.as_posix(), img_cw_270)
+        used_images.append(new_img_path.as_posix())
+        bboxes_rot270 = rot270_annotations(bboxes)
+        transform_anns_to_str(labels, bboxes_rot270, data_dir / labels_dir / f"{image_id}_rot270.txt")
+
+        image = cv2.imread(img_path.as_posix())[:,:,::-1]  # BGR to RGB
 
         # Add new image with horizontal flip with a given probability p
         Horizontal_Flipping_Transformation = transforms.Compose([
@@ -545,18 +586,6 @@ def data_augmentation_for_yolo_data(
         used_images.append(transformed_img_name.as_posix())
         save_image(trans_to_tensor(Transformed_Img), transformed_img_name)
         dest = data_dir / labels_dir / f"{image_id}_low_bright_contrast.txt"
-        shutil.copy2(src, dest)
-
-        # Add new image with contrast and low brightness
-        Color_Transformation = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.ColorJitter(brightness=0.8, contrast=0.5,saturation=0.5, hue=0.4)
-        ])
-        Transformed_Img = Color_Transformation(image)
-        transformed_img_name = data_dir / images_dir / f"{image_id}_high_bright_sat.jpg"
-        used_images.append(transformed_img_name.as_posix())
-        save_image(trans_to_tensor(Transformed_Img), transformed_img_name)
-        dest = data_dir / labels_dir / f"{image_id}_high_bright_sat.txt"
         shutil.copy2(src, dest)
 
     return used_images
