@@ -11,7 +11,7 @@ import logging
 import os.path as op
 import argparse
 
-from typing import List, Tuple, Union
+from typing import Union
 
 from plasticorigins.tracking.utils import (
     write_tracking_results_to_file,
@@ -22,62 +22,9 @@ from plasticorigins.tracking.trackers import get_tracker
 from plasticorigins.tracking.track_video import track_video
 from plasticorigins.detection.yolo import load_model, predict_yolo
 from plasticorigins.tracking.postprocess_and_count_tracks import filter_tracks
+from plasticorigins.tracking.count import count_detected_objects
 
 logger = logging.getLogger()
-
-
-def video_count_truth(video_path: str) -> int:
-    """Get video object count from the videoname.txt file.
-
-    Args:
-        video_path (str): _description_
-
-    Returns:
-        int: number of objects.
-    """
-    video_count_file = op.splitext(video_path)[0] + ".txt"
-    try:
-        n = np.loadtxt(video_count_file)
-        return int(n)
-    except OSError as e:
-        warning_msg = ("WARNING : Objects count is expected in the file "
-                       f"{video_count_file}. Make sure the file is available "
-                       "or set the compare argument to false.")
-
-        logger.info(warning_msg)
-        raise e
-
-
-def evaluate_detected_count(
-    results: List[Tuple], video_path: str, compare: bool
-) -> tuple[int, Union[int, None]]:
-    """Evaluate detected object count.
-
-    Args:
-        results (List[Tuple]): raw filtered tracks
-        video_path (str): video file path
-        compare (bool): whether to compare to the manual count
-
-    Returns:
-        tuple[int, Union[int, None]]: number of detected objects and ground \
-            truth count. If compare is false, the second term is None.
-    """
-    # number of detected object by counting unique object id.
-    n_det = len(set(o[1] for o in results))
-
-    msg = f"{n_det} object(s) detected"
-
-    n = None
-
-    if compare:
-        # nb of object in the video
-        n = video_count_truth(video_path)
-            
-        msg = f"{msg} out of {n} ({round(n_det / n, 2)})"
-
-    logger.info(msg)
-
-    return n_det, n
 
 
 def main(args, display) -> tuple[int, int]:
@@ -114,6 +61,10 @@ def main(args, display) -> tuple[int, int]:
         os.makedirs(args.output_dir)
 
     logger.info(f"---Processing {video_path}")
+
+    if not op.isfile(video_path):
+        logger.info(f"File {video_path} doesn't exists")
+        return
 
     reader = IterableFrameReader(
         video_filename=video_path,
@@ -185,9 +136,15 @@ def main(args, display) -> tuple[int, int]:
     # Counting
     logger.info("--- Counting ...")
 
-    n_det, n = evaluate_detected_count(
+    n_det, n = count_detected_objects(
         filtered_results, args.video_path, args.compare
     )
+
+    count_msg = f"{n_det} object(s) detected"
+    if args.compare:
+        count_msg = f"{count_msg} out of {n} ({round(n_det / n, 2)})"
+
+    logger.info(count_msg)
 
     return n_det, n
 
