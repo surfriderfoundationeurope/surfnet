@@ -11,7 +11,7 @@ import logging
 import os.path as op
 import argparse
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from plasticorigins.tracking.utils import (
     write_tracking_results_to_file,
@@ -35,33 +35,48 @@ def video_count_truth(video_path: str) -> int:
     Returns:
         int: number of objects.
     """
+    video_count_file = op.splitext(video_path)[0] + ".txt"
+    try:
+        n = np.loadtxt(video_count_file)
+        return int(n)
+    except OSError as e:
+        warning_msg = ("WARNING : Objects count is expected in the file "
+                       f"{video_count_file}. Make sure the file is available "
+                       "or set the compare argument to false.")
 
-    n = np.loadtxt(op.splitext(video_path)[0] + ".txt")
-    return int(n)
+        logger.info(warning_msg)
+        raise e
 
 
 def evaluate_detected_count(
-    results: List[Tuple], video_path: str
-) -> tuple[int, int]:
+    results: List[Tuple], video_path: str, compare: bool
+) -> tuple[int, Union[int, None]]:
     """Evaluate detected object count.
 
     Args:
         results (List[Tuple]): raw filtered tracks
         video_path (str): video file path
+        compare (bool): whether to compare to the manual count
 
     Returns:
-        tuple[int, int]: number of detected objects and ground truth count.
+        tuple[int, Union[int, None]]: number of detected objects and ground \
+            truth count. If compare is false, the second term is None.
     """
-
-    # nb of object in the video
-    n = video_count_truth(video_path)
-
     # number of detected object by counting unique object id.
     n_det = len(set(o[1] for o in results))
 
-    logger.info(
-        f"{n_det} object(s) detected out of {n} ({round(n_det / n, 2)})"
-    )
+    msg = f"{n_det} object(s) detected"
+
+    n = None
+
+    if compare:
+        # nb of object in the video
+        n = video_count_truth(video_path)
+            
+        msg = f"{msg} out of {n} ({round(n_det / n, 2)})"
+
+    logger.info(msg)
+
     return n_det, n
 
 
@@ -170,12 +185,14 @@ def main(args, display) -> tuple[int, int]:
     # Counting
     logger.info("--- Counting ...")
 
-    n_det, n = evaluate_detected_count(filtered_results, args.video_path)
+    n_det, n = evaluate_detected_count(
+        filtered_results, args.video_path, args.compare
+    )
 
     return n_det, n
 
 
-def run(**kwargs) -> tuple[int, int]:
+def run(**kwargs) -> tuple[int, Union[int, None]]:
     """Count detected objects in a video.
 
     Example:
@@ -184,13 +201,14 @@ def run(**kwargs) -> tuple[int, int]:
                                 video_path='video/video1.mp4',
                                 noise_covariances_path='data/tracking_parameters',
                                 output_dir= '../runs/ct/'
+                                compare=True
         )
 
     Returns:
-        tuple[int, int]: number of object detected and the ground truth count.
+        tuple[int, Union[int, None]]: number of object detected and \
+            the ground truth count if the compare parameter is true.
 
     """
-    # Usage
 
     args = parse_opt(True)
 
@@ -209,6 +227,12 @@ def parse_opt(known=False):
     parser.add_argument("--weights", type=str, default=None)
     parser.add_argument("--noise_covariances_path", type=str)
     parser.add_argument(
+        "--compare",
+        action="store_true",
+        default=False,
+        help="Whether to compare to the ground truth value.",
+    )
+    parser.add_argument(
         "--output_dir", type=str, help="Filtering moving average window size"
     )
     parser.add_argument(
@@ -218,7 +242,7 @@ def parse_opt(known=False):
         help="Minimum length of tracklet for filtering",
     )
     parser.add_argument("--kappa", type=int, default=5)
-    parser.add_argument("--skip_frames", type=int, default=0)
+    parser.add_argument("--skip_frames", type=int, default=3)
     parser.add_argument("--confidence_threshold", type=float, default=0.35)
     parser.add_argument("--iou_threshold", type=float, default=0.5)
     parser.add_argument("--downsampling_factor", type=int, default=1)
