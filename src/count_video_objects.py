@@ -70,7 +70,7 @@ def main(args, display) -> tuple[int, int]:
         video_filename=video_path,
         skip_frames=args.skip_frames,
         output_shape=args.output_shape,
-        progress_bar=True,
+        progress_bar=not args.no_progress_bar,
         preload=args.preload_frames,
     )
 
@@ -173,8 +173,6 @@ def run(**kwargs) -> tuple[int, Union[int, None]]:
     for k, v in kwargs.items():
         setattr(args, k, v)
 
-    logger.info(f"Args : {args}")
-
     return main(args, display=None)
 
 
@@ -214,6 +212,12 @@ def parse_opt(known=False):
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--detection_batch_size", type=int, default=1)
     parser.add_argument("--preload_frames", action="store_true", default=False)
+    parser.add_argument(
+        "--no_progress_bar",
+        action="store_true",
+        default=False,
+        help="Don't show progress bar.",
+    )
 
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
