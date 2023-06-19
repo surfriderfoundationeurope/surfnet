@@ -137,7 +137,7 @@ def main(args, display) -> tuple[int, int]:
     logger.info("--- Counting ...")
 
     n_det, n = count_detected_objects(
-        filtered_results, args.video_path, args.compare
+        filtered_results, args.video_count_path, args.compare
     )
 
     count_msg = f"{n_det} object(s) detected"
@@ -156,9 +156,10 @@ def run(**kwargs) -> tuple[int, Union[int, None]]:
         import count_video_objects
         count_video_objects.run(weights='yolo.pt',
                                 video_path='video/video1.mp4',
+                                compare=True
+                                video_count_path="video/video1.txt',
                                 noise_covariances_path='data/tracking_parameters',
                                 output_dir= '../runs/ct/'
-                                compare=True
         )
 
     Returns:
@@ -188,6 +189,11 @@ def parse_opt(known=False):
         action="store_true",
         default=False,
         help="Whether to compare to the ground truth value.",
+    )
+    parser.add_argument(
+        "--video_count_path",
+        type=str,
+        help="Path to the file with the object count.",
     )
     parser.add_argument(
         "--output_dir", type=str, help="Filtering moving average window size"
