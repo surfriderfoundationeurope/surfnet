@@ -34,7 +34,10 @@ def main(args: Namespace) -> None:
         )
     elif args.password:
         print("getting annotations from db")
-        df_bboxes, df_images = get_annotations_from_db(args.password)
+        df_bboxes, df_images = get_annotations_from_db(
+            args.user, args.password, args.bboxes_table
+        )
+        df_images = df_images.set_index("id")
 
     else:
         print("either a password must be set, or bbox and images filenames")
@@ -71,9 +74,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build dataset")
     parser.add_argument("--data-dir", type=str, help="path to main data folder")
     parser.add_argument("--images-dir", type=str, help="path to image folder")
-    parser.add_argument("--password", type=str, help="password for connection to DB")
     parser.add_argument("--bboxes-filename", type=str, default="")
     parser.add_argument("--images-filename", type=str, default="")
+    parser.add_argument("--user", type=str, help="username for connection to DB")
+    parser.add_argument("--password", type=str, help="password for connection to DB")
+    parser.add_argument("--bboxes-table", type=str, help="bounding boxes table")
     parser.add_argument(
         "--context-filters",
         type=str,

@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage
 
 from plasticorigins.tools.files import create_unique_folder
 from plasticorigins.serving.app import app
-from plasticorigins.serving.config import config_track
+from plasticorigins.serving.config import config_track_yolo as config_track
 from plasticorigins.serving.inference import track
 
 video_file = "tests/ressources/validation_videos/T1_trim.mp4"
@@ -84,7 +84,7 @@ def test_track():
     os.remove(full_filepath)
     assert math.isclose(fps, 5.921, abs_tol=0.01)
     assert num_frames == 34
-    assert len(filtered_results) == 16
+    assert len(filtered_results) == 23
     assert len(filtered_results[0]) == 6
     assert type(filtered_results[0][0]) == int
     assert type(filtered_results[0][1]) == int

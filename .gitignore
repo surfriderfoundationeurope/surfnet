@@ -1,10 +1,10 @@
 .vscode/
 *.MP4
-*.json
 __pycache__/
 *.pickle
 *.mp4
 *.pyc
+*.env
 scripts/shell_variables.sh
 *.png
 *.log

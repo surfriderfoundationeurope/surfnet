@@ -86,6 +86,41 @@ sh download_validation_videos.sh
 
 This will download the 3 videos in distinct folders of [data/validation_videos](data/validation_videos).
 
+### Video objects count
+
+Counting objects in videos is implemented in [src/count_video_objects.py](src/count_video_objects.py).  
+ 
+Below an example of the command to count objects in the T2 portion video: 
+
+```shell
+poetry run python src/count_video_objects.py \
+    --weights "models/yolov5.pt" \
+    --noise_covariances_path "data/tracking_parameters" \
+    --video_path "data/validation_videos/T1/T1_1080_px_converted.mp4" \
+    --output_dir "experiments/counting/test" \
+    --skip_frame 3 \
+    --kappa 5 \
+    --tau 3 
+```
+
+The 3 validation videos manual counts are available in [data/validation_videos_counts](data/validation_videos_counts) folder. 
+
+To count the objects in a video and compare to an existing count add the `--compare` option and provide the count in a txt file through `--video_count_path` argument. See an example below.  
+
+```shell
+poetry run python src/count_video_objects.py \
+    --weights "models/yolov5.pt" \
+    --noise_covariances_path "data/tracking_parameters" \
+    --video_path "data/validation_videos/T1/T1_1080_px_converted.mp4" \
+    --video_count_path "data/validation_videos_counts/T1_1080_px_converted.txt" \
+    --output_dir "experiments/counting/test" \
+    --skip_frame 3 \
+    --kappa 5 \
+    --tau 3 \
+    --compare
+
+```
+
 ## Serving
 
 ### Development
