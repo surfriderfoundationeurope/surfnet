@@ -4,6 +4,7 @@ Count detected objects in videos.
 
 import numpy as np
 import os
+import errno
 import torch
 import warnings
 import datetime
@@ -24,7 +25,27 @@ from plasticorigins.detection.yolo import load_model, predict_yolo
 from plasticorigins.tracking.postprocess_and_count_tracks import filter_tracks
 from plasticorigins.tracking.count import count_detected_objects
 
+
 logger = logging.getLogger()
+
+
+def check_file(filepath: str, raise_error: bool = True):
+    """Check file, add log and raise error if file not found.
+
+    Args:
+        filepath (str): file path nto check.
+        raise_error (bool, optional): If true raise error
+            otherwise just log an error message. Defaults to True.
+
+    Raises:
+        FileNotFoundError: Couldn't find the provided path.
+    """
+    if not op.isfile(filepath):
+        logger.error(f"ERROR : File {filepath} doesn't exists")
+        if raise_error:
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), filepath
+            )
 
 
 def main(args, display) -> tuple[int, int]:
@@ -35,6 +56,12 @@ def main(args, display) -> tuple[int, int]:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = args.device
+
+    video_path = args.video_path
+    check_file(video_path)
+
+    if args.compare:
+        check_file(args.video_count_path)
 
     device = torch.device(device)
 
@@ -55,16 +82,10 @@ def main(args, display) -> tuple[int, int]:
         os.path.join(args.noise_covariances_path, "observation_variance.npy")
     )
 
-    video_path = args.video_path
-
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
     logger.info(f"---Processing {video_path}")
-
-    if not op.isfile(video_path):
-        logger.info(f"File {video_path} doesn't exists")
-        return
 
     reader = IterableFrameReader(
         video_filename=video_path,
@@ -192,6 +213,7 @@ def parse_opt(known=False):
         "--video_count_path",
         type=str,
         help="Path to the file with the object count.",
+        default=None,
     )
     parser.add_argument(
         "--output_dir", type=str, help="Filtering moving average window size"
@@ -219,7 +241,23 @@ def parse_opt(known=False):
         help="Don't show progress bar.",
     )
 
-    return parser.parse_known_args()[0] if known else parser.parse_args()
+    args = parser.parse_known_args()[0] if known else parser.parse_args()
+
+    # validate some of the arguments
+    if args.compare and args.video_count_path is None:
+        logger.error(
+            (
+                "ERROR : With the compare option the path to the txt count "
+                "file needs to be provided through the video_count_path "
+                "argument"
+            )
+        )
+        raise argparse.ArgumentError(
+            args.video_count_path,
+            "Missing video counts file " "while set to compare.",
+        )
+
+    return args
 
 
 if __name__ == "__main__":
