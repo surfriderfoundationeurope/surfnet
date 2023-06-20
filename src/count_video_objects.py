@@ -73,7 +73,8 @@ def main(args, display) -> tuple[int, int]:
     )
     logger.info("Model loaded.")
 
-    detector = lambda frame: predict_yolo(model, frame, size=args.size)
+    def detector(frame):
+        return predict_yolo(model, frame, size=args.size)
 
     transition_variance = np.load(
         os.path.join(args.noise_covariances_path, "transition_variance.npy")
