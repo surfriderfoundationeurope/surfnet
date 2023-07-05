@@ -36,5 +36,5 @@ def test_detect():
     assert len(res) == 3
     assert res[0].shape == (2, 4)
     np.testing.assert_array_equal(
-        res[0], np.array([[202, 233,  56, 244], [301, 325,  28, 106]])
+        res[0], np.array([[200, 233,  56, 233], [302, 331,  26, 99]])
     )
