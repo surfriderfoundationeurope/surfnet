@@ -1,11 +1,12 @@
 import os
 import cv2
 import random
-import sys
+import argparse
 
 
 def extract_from_video(video_path, num_images, save_dir):
     # create a VideoCapture object
+    num_images = int(num_images)
     cap = cv2.VideoCapture(video_path)
 
     # get the total number of frames in the video
@@ -34,13 +35,11 @@ def extract_from_video(video_path, num_images, save_dir):
     cv2.destroyAllWindows()
 
 
-def main(video_dir='./background_videos', save_dir='./extracted_background_images/', num_images=1):
-
+def main(video_dir, save_dir, num_images):
 
     # create the save directory if it does not exist
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-
 
     # iterate over the video files in the directory
     for video_file in os.listdir(video_dir):
@@ -51,23 +50,28 @@ def main(video_dir='./background_videos', save_dir='./extracted_background_image
 
             extract_from_video(video_path, num_images, save_dir)
 
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
 
-    # replace with the number of images you want to extract
-    num_images = 1
-    # replace with your video file path
-    video_dir = './background_videos'
-    # replace with the path to the directory where you want to save the images
-    save_dir = './extracted_background_images/'
+    # Define default paths
+    default_num_images = 1
+    default_video_dir_path = '../background_videos'
+    default_save_dir_path = '../extracted_background_images/'
 
-    # Check if the parameters were provided
-    if len(sys.argv) > 3:
-        num_images = int(sys.argv[3])
-    if len(sys.argv) > 2:
-        save_dir = sys.argv[2]
-    if len(sys.argv) > 1:
-        video_dir = sys.argv[1]
+    # Add arguments
+    parser.add_argument("--num_images", type=str,
+                        default=default_num_images, help="The number of images extracted from each video")
+    parser.add_argument("--video_dir_path", type=str,
+                        default=default_video_dir_path, help="Path to the videos")
+    parser.add_argument("--save_dir_path", type=str,
+                        default=default_save_dir_path, help="Path to save the extracted images")
+
+    args = parser.parse_args()
+
+    num_images = args.num_images
+    video_dir = args.video_dir_path
+    save_dir = args.save_dir_path
 
     # Call the main function and pass the parameter
     main(video_dir, save_dir, num_images)
-
