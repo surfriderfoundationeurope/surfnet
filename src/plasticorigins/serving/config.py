@@ -52,7 +52,7 @@ config_track_yolo = DotDict(
         "downsampling_factor": 4,
         "noise_covariances_path": "data/tracking_parameters",
         "url_model_yolo": "https://github.com/surfriderfoundationeurope/surfnet/releases/download/v01.2023/yolo_latest.pt",
-        "file_model_yolo": "yolov5.pt",
+        "file_model_yolo": "yolov8s.pt",
         "output_shape": (768, 768),
         "skip_frames": 3,  # 3
         "arch": "yolo",
