@@ -29,7 +29,6 @@ def main(args: Namespace) -> None:
     """
 
     data_dir = Path(args.data_dir)
-    artificial_data_dir = Path(args.artificial_data)
 
     if args.bboxes_filename and args.images_filename:
         df_bboxes, df_images = get_annotations_from_files(
@@ -72,6 +71,7 @@ def main(args: Namespace) -> None:
 
     if args.artificial_data:
 
+        artificial_data_dir = Path(args.artificial_data)
         artificial_data_list = [Path(path).as_posix() for path in os.listdir(artificial_data_dir / "images")]
         artificial_train_files, artificial_val_files = get_train_valid(artificial_data_list, args.split)
         artificial_train_files = data_augmentation_for_yolo_data(artificial_data_dir, artificial_train_files)
