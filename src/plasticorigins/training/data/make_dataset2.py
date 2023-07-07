@@ -75,7 +75,6 @@ def main(args: Namespace) -> None:
         artificial_data_list = [Path(path).as_posix() for path in os.listdir(artificial_data_dir / "images")]
         artificial_train_files, artificial_val_files = get_train_valid(artificial_data_list, args.split)
         artificial_train_files = data_augmentation_for_yolo_data(artificial_data_dir, artificial_train_files)
-        
         # concatenate original images and artificial data
         train_files = train_files + artificial_train_files
         val_files = val_files + artificial_val_files
