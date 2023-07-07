@@ -7,6 +7,7 @@ from plasticorigins.training.data.data_processing import (
     get_annotations_from_files,
     get_annotations_from_db,
     find_img_ids_to_exclude,
+    data_augmentation_for_yolo_data,
 )
 from plasticorigins.training.data.data_processing import (
     generate_yolo_files,
@@ -16,6 +17,7 @@ from plasticorigins.training.data.data_processing import (
 from pathlib import Path
 import argparse
 from argparse import Namespace
+import os
 
 
 def main(args: Namespace) -> None:
@@ -27,6 +29,7 @@ def main(args: Namespace) -> None:
     """
 
     data_dir = Path(args.data_dir)
+    artificial_data_dir = Path(args.artificial_data)
 
     if args.bboxes_filename and args.images_filename:
         df_bboxes, df_images = get_annotations_from_files(
@@ -64,7 +67,18 @@ def main(args: Namespace) -> None:
         f"found {cpos} valid annotations with images and {cneg} unmatched annotations"
     )
 
-    train_files, val_files = get_train_valid(data_dir, yolo_filelist, args.split)
+    train_files, val_files = get_train_valid(yolo_filelist, args.split)
+    train_files = data_augmentation_for_yolo_data(data_dir, train_files)
+
+    if args.artificial_data:
+
+        artificial_data_list = [Path(path).as_posix() for path in os.listdir(artificial_data_dir / "images")]
+        artificial_train_files, artificial_val_files = get_train_valid(artificial_data_list, args.split)
+        artificial_train_files = data_augmentation_for_yolo_data(artificial_data_dir, artificial_train_files)
+        
+        # concatenate original images and artificial data
+        train_files = train_files + artificial_train_files
+        val_files = val_files + artificial_val_files
 
     generate_yolo_files(data_dir, train_files, val_files, args.nb_classes)
 
@@ -74,6 +88,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build dataset")
     parser.add_argument("--data-dir", type=str, help="path to main data folder")
     parser.add_argument("--images-dir", type=str, help="path to image folder")
+    parser.add_argument("--artificial-data", type=str, help="path to artificial data folder")
     parser.add_argument("--bboxes-filename", type=str, default="")
     parser.add_argument("--images-filename", type=str, default="")
     parser.add_argument("--user", type=str, help="username for connection to DB")

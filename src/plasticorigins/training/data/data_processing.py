@@ -592,13 +592,12 @@ def data_augmentation_for_yolo_data(
 
 
 def get_train_valid(
-    data_dir: str, list_files: List[str], split: float = 0.85
+    list_files: List[str], split: float = 0.85
 ) -> Tuple[List[str], List[str]]:
 
     """Split data into train and validation partitions with data augmentation
 
     Args:
-        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         list_files (List[Any,type[str]]): list of image files to split into train and test partitions
         split (float, optional): train_size between 0 and 1. Set as default to 0.85.
 
@@ -609,7 +608,6 @@ def get_train_valid(
 
     train_files, val_files = train_test_split(list_files, train_size=split)
     train_files = list(set(train_files))
-    train_files = data_augmentation_for_yolo_data(data_dir, train_files)
     val_files = list(set(val_files))
 
     return train_files, val_files
