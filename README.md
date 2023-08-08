@@ -1,121 +1,114 @@
-# Automated object counting on riverbanks
+# Project README
 
-## Installation 
+This README provides an overview of the various scripts within this project and their respective functionalities. Please refer to this guide for a clear understanding of how to use each script effectively.
 
-Follow these steps in that order exactly:
-```shell
-git clone https://github.com/mchagneux/surfnet.git <folder-for-surfnet> -b release
-conda create -n surfnet pytorch torchvision -c pytorch 
-conda activate surfnet
-cd <folder-for-surfnet>
-pip install -r requirements.txt
+## Files and Descriptions
 
-cd ..
-git clone git@github.com:pykalman/pykalman.git <folder-for-pykalman>
-cd <folder-for-pykalman> 
-python setup.py install
+### categories_map.py
 
-cd scripts 
-sh init_shell_variables.sh
-```
-## Downloading pretrained models
+This file facilitates the mapping between the TACO and PlasticOrigins classes, enhancing data compatibility.
 
-You can download three pretrained models with the following script:
-```shell 
-cd models 
-sh download_pretrained_base.sh
-```
-There is DLA_34 with deformable convolutions, ResNet18 without deformable convolutions and MobileNetV3 (small version, from Torchvision) without deformable convolutions.
-The files will be downloaded into  [models](models).
+### utils.py
 
+Containing essential functions, this script supports `create_images.py`, `create_images_num.py`, and `create_n_trash.py` by providing necessary functionalities.
 
-## Downloading Surfrider datasets 
+### create_images.py
 
-### Image dataset 
+Artificially generates images for object detection by combining TACO dataset objects and background images. It creates a specified number of images with each object pasted on a unique background.
 
-If you want to download a small portion of the Surfrider images, do: 
+**Input:**
+- `--dataset_path`: Path to the TACO dataset
+- `--background_dataset_path`: Path to the background images dataset
+- `--result_dataset_path`: Path to save the resulting dataset
+- `--num_uses_background`: Number of background images used per object
 
-```shell 
-cd data
-sh download_small_dataset.sh
-```
-This will download 500 images in [data/images/images](data/images/images) and the associated annotations in [data/images/annotations/instances.json](data/images/annotations/instances.json).
+### create_images_num.py
 
-Then the following file to split the dataset into train and test:
-```
-python src/datasets/coco_split_train_test.py
-```
-If you want to visualize the images, run: 
+Similar to `create_images.py`, this script artificially generates images for object detection. However, it aims to achieve a more balanced distribution of objects among different classes in the resulting dataset.
 
+**Input:**
+- `--dataset_path`: Path to the TACO dataset
+- `--background_dataset_path`: Path to the background images dataset
+- `--result_dataset_path`: Path to save the resulting dataset
+- `--csv_path`: Path to the CSV file containing existing object counts per class
 
-```
-python src/datasets/visualize_coco_boxes.py
-```
----
-*Warning: the remaining section will download more that 5GB of images.*
+### create_n_trash.py
 
-If you want to download the rest, you need to install AzCopy (see https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10 for example). You also need to personally ask me the URL and SAS token (temporary workaround). When this is done, simply run: 
+Generates images for object detection by placing all objects from a TACO image onto a single background image.
 
-```shell 
-cd data/images
-azcopy copy --recursive '<URL+SAS>' './'
-mv images2label/* images/
-rm -rf images2label
-```
+**Input:**
+- `--dataset_path`: Path to the TACO dataset
+- `--background_dataset_path`: Path to the background images dataset
+- `--result_dataset_path`: Path to save the resulting dataset
 
-This will add the remaining images into the previsouly created folder.
+### dataset_analysis.py
 
-Finally, run: 
+Creates CSV and bar chart files indicating the number of objects in each class. 
 
-```shell 
-python src/datasets/surfrider_db_to_coco_converter.py
-python src/datasets/merge_coco_annotations.py
-python src/datasets/coco_split_train_test.py
-```
-This will download the remaining annotations, merge them with the previous ones, and re-split into train and test. 
+**Input:**
+- `--folder_path`: Path to the folder containing image labels
+- `--csv_labels_file_name`: Name of the CSV labels file to be generated (default: labels.csv)
+- `--png_labels_file_name`: Name of the PNG labels file to be generated (default: labels.png)
+- `--results_path`: Path to save the graph and CSV
 
-### Validation videos 
+### dataset_analysis_train.py
 
-If you want to downlaod the 3 test videos on the 3 portions of the Auterrive riverbank, run: 
+Performs the same function as `dataset_analysis.py`.
 
-```
-cd data 
-sh download_validation_videos.sh
-```
+**Input:**
+- `--train_path`: Path to the train.txt file for extracting label files
+- `--val_path`: Path to the val.txt file for extracting label files (optional)
+- `--csv_labels_file_name`: Name of the CSV labels file to be generated (default: labels.csv)
+- `--png_labels_file_name`: Name of the PNG labels file to be generated (default: labels.png)
+- `--results_path`: Path to save the graph and CSV
 
-This will download the 3 videos in distinct folders of [data/validation_videos](data/validation_videos).
+### draw_bbox.py
 
+Draws bounding boxes for objects on an image.
 
-## Run 
+**Input:**
+- `--image_path`: Path to the image
+- `--annotation_path`: Path to the annotation file (format: class_id, center_x, center_y, w, h)
 
-If you have custom videos, add them to [data/validation_videos](data/validation_videos) in a new subfolder. Then: 
+### draw_bbox_taco.py
 
-```shell
-sh scripts/track.sh
-```
+Similar to `draw_bbox.py`, but uses JSON annotations.
 
-By default, this runs tracking on the first riverbank sequence (T1). You can change to the `--arch` parameter to:
-* `mobilenet_v3_small`
-* `res_18`
-* `dla_34`
+**Input:**
+- `--image_path`: Path to the image
+- `--annotation_path`: Path to the JSON annotation (format: bbox: min_x, min_y, w, h in pixels)
 
-The default harware used is the CPU, but you can change the `--device` parameter to `cuda` and PyTorch will automatically select a GPU if there is one. In this case you should set a higher `--detection_batch_size` to improve detection speed. You can also add `--preload_frames` if you want all video frames to be loaded into the RAM before detections and tracking.
+### draw_polygons.py
+
+Draws object segments on an image using JSON annotations.
+
+**Input:**
+- `--image_path`: Path to the image
+- `--annotation_path`: Path to the JSON annotation (format: bbox: min_x, min_y, w, h in pixels)
+
+### extract_imgs_from_videos.py
+
+Extracts images from videos in a specified folder.
+
+**Input:**
+- `--num_images`: Number of images to extract from each video (default: 1)
+- `--video_dir_path`: Path to the folder containing videos (default: ../background_videos)
+- `--save_dir_path`: Path to save extracted images (default: ../extracted_background_images/)
+
+## Usage Instructions
+
+Please follow the input parameters for each script to use them effectively. Make sure to provide the correct paths and files as required. This README serves as a comprehensive guide to understand the functionality of each script and their intended usage within the project.
 
 
-
-
-The tracking and count results will be in [experiments/tracking](experiments/tracking) in the subfolder of your experiment (default="test").
-
-If you want to overlay the tracks on the video, run: 
-
-```shell 
-python3 src/overlay_tracking_results_on_video.py \
-    --input_video data/validation_videos/T2/T2_trimmed.mp4 \
-    --input_mot_file experiments/tracking/test/T2_trimmed_tracks.txt \
-    --write True \
-    --output_name experiments/trimmed.mp4 \
-    --skip_frames 3
-```
-
-Note that by default we set `skip_frames = 3` in [scripts/track.sh](scripts/track.sh) so that everything is read at 6fps. You must use the same number when generating the overlay.
-If you set `--write False` the overlay will be directly displayed without saving to a file and you must use the keyboard to step into the next frame.
+**Steps for training:**
+- Run dataset_analysis_train.py : Get the labels.csv file
+- Run extract_images_from_video.py :  Get the background images
+- Run create_images_num.py: Get the artificial images
+- Create the train.txt file:
+    - rm train.txt
+    - rm val.txt
+    - cp ../ref_images/train.txt train.txt
+    - cp ../ref_images/val.txt val.txt
+    - ls /datadrive/data/artificial_data/images/| sed "s|^|/datadrive/data/artificial_data/images/|" >> train.txt
+- Run the yolov8 training
+    - yolo task=detect mode=train model=yolov8s.pt data=/datadrive/data/data_gen_images/data.yaml epochs=400 imgsz=640 batch=40 workers=8 project=../../../datadrive/data/hiba name=yolov8_data_gen_40b_400e_eqclasses_600background

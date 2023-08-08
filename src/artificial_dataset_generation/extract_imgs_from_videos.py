@@ -63,9 +63,9 @@ if __name__ == "__main__":
     parser.add_argument("--num_images", type=str,
                         default=default_num_images, help="The number of images extracted from each video")
     parser.add_argument("--video_dir_path", type=str,
-                        default=default_video_dir_path, help="Path to the videos")
+                        default=default_video_dir_path, help="Path to the folder containing the videos")
     parser.add_argument("--save_dir_path", type=str,
-                        default=default_save_dir_path, help="Path to save the extracted images")
+                        default=default_save_dir_path, help="Path to the folder where to save the extracted images")
 
     args = parser.parse_args()
 

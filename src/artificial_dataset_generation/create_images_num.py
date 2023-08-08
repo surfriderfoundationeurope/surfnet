@@ -1,3 +1,5 @@
+import random
+import csv
 import argparse
 import cv2
 import os
@@ -9,11 +11,26 @@ from pycocotools.coco import COCO
 import pylab
 import sys
 import argparse
+import time
 import shutil
-import random
 from categories_map import categories_map
 from utils import get_background_names, transform_img, get_bbox_from_contour, paste_shape, generate_image_identifier
 import concurrent.futures
+
+
+def read_csv_to_map(file_path):
+    data_map = {}
+    with open(file_path, 'r') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)  # Read the header row
+
+        for row in csv_reader:
+            key = row[0]  # Assuming the first column as the key
+            values = row[1]  # Assuming the remaining columns as values
+
+            data_map[key] = int(values)
+
+    return data_map
 
 
 def pick_items(lst, i, max_picks_per_item):
@@ -42,6 +59,32 @@ def pick_random_element(lst):
 
     random_element = random.choice(lst)
     return random_element
+
+
+def find_closest_number(input_num):
+    if input_num < 10:
+        return 10
+    elif input_num < 1000:
+        magnitude = 10 ** (len(str(input_num)) - 1)
+    else:
+        magnitude = 10 ** (len(str(input_num)) - 2)
+    rounded_num = round(input_num / magnitude) * magnitude
+    return rounded_num
+
+
+def get_needed_label_num(csv_path):
+
+    labels_map = read_csv_to_map(csv_path)
+    desired_num = max(labels_map.values())
+    closest_number = find_closest_number(desired_num)
+
+    needed_label_num = {}
+    range_labels = 100
+    for key in labels_map:
+        rand = int(random.uniform(closest_number - range_labels //
+                   2, closest_number + range_labels//2))
+        needed_label_num[key] = max(rand - labels_map[key], 0)
+    return needed_label_num
 
 
 def extract_shape(image, polygon):
@@ -134,13 +177,20 @@ def create_new_img_wrapper(args):
 
 def main(dataset_path,
          background_dataset_path,
-         result_dataset_path, num_uses_background):
+         result_dataset_path, csv_path):
     sns.set()
 
-    num_uses_background = int(num_uses_background)
-    anns_file_path = dataset_path + '/annotations.json'
-    result_images_path = result_dataset_path + '/images'
-    result_labels_path = result_dataset_path + "/labels"
+    # the different labels and the needed number of annotations for each of them.
+    needed_label_num = get_needed_label_num(csv_path)
+    print(needed_label_num)
+    target_images = get_background_names(background_dataset_path)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_dir, dataset_path)
+    result_dataset_path = os.path.join(current_dir, result_dataset_path)
+    anns_file_path = os.path.join(dataset_path,  'annotations.json')
+    result_images_path = os.path.join(result_dataset_path, 'images')
+    result_labels_path = os.path.join(result_dataset_path,  "labels")
 
     if shutil.os.path.exists(result_dataset_path):
         shutil.rmtree(result_dataset_path)
@@ -159,70 +209,81 @@ def main(dataset_path,
 
     # Getting information from the json file
     imgs = dataset['images']
-
+    cats = {}
     for category_name in categories_map.keys():
-        category_id = categories_map[category_name][0]
+        if categories_map[category_name] in cats:
+            cats[categories_map[category_name]].append(category_name)
+        else:
+            cats[categories_map[category_name]] = [category_name]
+
+    print(cats)
+    for category in cats:
+        cat_id = category[0]
+        cat_name = category[1]
+        needed_num = needed_label_num[cat_name]
+        print(cat_id, cat_name, needed_num)
+
         pylab.rcParams['figure.figsize'] = (14, 14)
 
         # Obtain Exif orientation tag code
         for orientation in ExifTags.TAGS.keys():
             if ExifTags.TAGS[orientation] == 'Orientation':
                 break
-
         # Loads dataset as a coco object
         coco = COCO(anns_file_path)
 
         # Get image ids
         imgIds = []
-        catIds = coco.getCatIds(catNms=[category_name])
+        catIds = coco.getCatIds(catNms=cats[category])
         if catIds:
             # Get all images containing an instance of the chosen category
             imgIds = coco.getImgIds(catIds=catIds)
         else:
             # Get all images containing an instance of the chosen super category
-            catIds = coco.getCatIds(supNms=[category_name])
+            catIds = coco.getCatIds(supNms=cats[category])
             for catId in catIds:
                 imgIds += (coco.getImgIds(catIds=catId))
             imgIds = list(set(imgIds))
 
         imgs = coco.loadImgs(imgIds)
+        picked_imgIds = pick_items(imgs, needed_num, 20)
 
+        print(catIds, len(imgIds), needed_num, len(picked_imgIds))
         tasks = []
-        for img in imgs:
+        for img in picked_imgIds:
             image_path = dataset_path + '/' + img['file_name']
-            target_images = get_background_names(background_dataset_path)
-
             target_img = pick_random_element(target_images)
-            picked_target_imgs = pick_items(
-                target_images, num_uses_background, 1)
-            for target_img in picked_target_imgs:
-                target_img_path = background_dataset_path + '/' + target_img
-                print(image_path, target_img_path)
-                # Load mask ids
-                annIds = coco.getAnnIds(
-                    imgIds=img['id'], catIds=catIds, iscrowd=None)
-                anns_sel = coco.loadAnns(annIds)
 
-                # Show annotations
-                for ann in anns_sel:
-                    for seg in ann['segmentation']:
-                        # create_new_img(  image_path, target_img_path, result_images_path, result_labels_path, seg, category_id)
-                        tasks.append((image_path, target_img_path,
-                                      result_images_path, result_labels_path, seg, category_id))
+            target_img_path = background_dataset_path + '/' + target_img
+            print(image_path, target_img_path)
+            # Load mask ids
+            annIds = coco.getAnnIds(
+                imgIds=img['id'], catIds=catIds, iscrowd=None)
+            anns_sel = coco.loadAnns(annIds)
 
-         # Using multithreading to parallelize create_new_img calls
+            # Show annotations
+            ann = pick_random_element(anns_sel)
+            for seg in ann['segmentation']:
+                # create_new_img(  image_path, target_img_path, result_images_path, result_labels_path, seg, cat_id)
+                tasks.append((image_path, target_img_path,
+                             result_images_path, result_labels_path, seg, cat_id))
+
+        # Using multithreading to parallelize create_new_img calls
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(create_new_img_wrapper, tasks)
 
 
 if __name__ == "__main__":
+    # Record the start time
+    start_time = time.time()
+
     parser = argparse.ArgumentParser()
 
     # Define default paths
     default_dataset_path = '../data_TACO/data'
     default_background_dataset_path = '../extracted_background_images'
     default_result_dataset_path = '../artificial_data'
-    default_num_uses_background = 6
+    default_csv_path = '../ref_images/labels.csv'
 
     # Add arguments
     parser.add_argument("--dataset_path", type=str,
@@ -231,16 +292,22 @@ if __name__ == "__main__":
                         default=default_background_dataset_path, help="Path to the background dataset")
     parser.add_argument("--result_dataset_path", type=str,
                         default=default_result_dataset_path, help="Path to save the resulting dataset")
-    parser.add_argument("--num_uses_background", type=str,
-                        default=default_num_uses_background, help="The number of background images that are used with each object")
+    parser.add_argument("--csv_path", type=str,
+                        default=default_csv_path, help="Path to the csv file that contains the number of existing objects in each class (use the dataset analysis script)")
 
     args = parser.parse_args()
 
     dataset_path = args.dataset_path
     background_dataset_path = args.background_dataset_path
     result_dataset_path = args.result_dataset_path
-    num_uses_background = args.num_uses_background
+    csv_path = args.csv_path
 
     # Call the main function and pass the parameters
-    main(dataset_path, background_dataset_path,
-         result_dataset_path, num_uses_background)
+    main(dataset_path, background_dataset_path, result_dataset_path, csv_path)
+
+    # Record the end time
+    end_time = time.time()
+
+    # Calculate the execution time in seconds
+    execution_time = end_time - start_time
+    print(f"Script executed in {execution_time:.4f} seconds.")

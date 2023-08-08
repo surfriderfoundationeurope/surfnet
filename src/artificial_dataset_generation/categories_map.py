@@ -8,7 +8,7 @@ categories_map = {
     'Blister pack': (5, 'Other packaging'),
     'Paper': (5, 'Other packaging'),
     'Plastic container': (5, 'Other packaging'),
-    'Rope & strings': (7, 'Fishing Net / Cord'),
+    'Rope & strings': (7, 'Fishing net / cord'),
     # 'Shoe': (8, 'Easily namable'),
     # 'Unlabeled litter': (9, 'Unclear'),
     # 'Scrap metal': (9, 'Unclear'),

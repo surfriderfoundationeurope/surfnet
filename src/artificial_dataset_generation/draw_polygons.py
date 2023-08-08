@@ -41,7 +41,7 @@ def main(img_path, ann_path):
         cv2.drawContours(image, [contour], -1, (0, 255, 0), 2)
 
     # Display the result
-    cv2.imshow('Contours with Bounding Box', image)
+    cv2.imshow('Contours', image)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()

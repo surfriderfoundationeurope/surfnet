@@ -11,6 +11,7 @@ import sys
 import argparse
 from categories_map import categories_map
 from utils import get_background_names, transform_img, get_bbox_from_contour, paste_shape, generate_image_identifier
+import concurrent.futures
 
 
 def create_img(image_path, seg):
@@ -183,6 +184,7 @@ def main(dataset_path,
     imgs = coco.loadImgs(imgIds)
     # print(imgIds)
 
+    tasks = []
     for img in imgs:
         image_path = dataset_path + '/' + img['file_name']
         target_images = get_background_names(background_dataset_path)
@@ -193,8 +195,20 @@ def main(dataset_path,
             annIds = coco.getAnnIds(
                 imgIds=img['id'], catIds=totalCatIds, iscrowd=None)
             anns_sel = coco.loadAnns(annIds)
-            create_new_img(image_path, target_img_path, result_images_path,
-                           result_labels_path, anns_sel, categories_dict)
+            # create_new_img(image_path, target_img_path, result_images_path, result_labels_path, anns_sel, categories_dict)
+            tasks.append((image_path, target_img_path,
+                          result_images_path, result_labels_path, anns_sel, categories_dict))
+
+        # Using multithreading to parallelize create_new_img calls
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(create_new_img_wrapper, tasks)
+
+
+def create_new_img_wrapper(args):
+    image_path, target_img_path, result_images_path, result_labels_path, anns_sel, categories_dict = args
+    create_new_img(image_path, target_img_path,
+                   result_images_path, result_labels_path, anns_sel, categories_dict)
 
 
 if __name__ == "__main__":
