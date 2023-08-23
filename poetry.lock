@@ -2442,20 +2442,6 @@ numpy = "*"
 [package.extras]
 dev = ["black (==22.3.0)", "click (==8.0.4)", "deepdiff (==5.5.0)", "flake8 (==3.9.2)", "importlib-metadata (>=1.1.0,<4.3)", "isort (==5.9.2)", "pytest (>=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-timeout (>=2.1.0)"]
 
-[[package]]
-name = "pycocotools"
-version = "2.0.5"
-description = "Official APIs for the MS-COCO dataset"
-category = "main"
-optional = false
-python-versions = ">=3.5"
-files = [
-    {file = "pycocotools-2.0.5.tar.gz", hash = "sha256:2ab586aa389b9657b6d73c2b9a827a3681f8d00f36490c2e8ab05902e3fd9e93"},
-]
-
-[package.dependencies]
-matplotlib = ">=2.1.0"
-numpy = "*"
 
 [[package]]
 name = "pycodestyle"
@@ -2863,7 +2849,7 @@ tqdm = ">=4.48.2"
 
 [package.extras]
 dev = ["black (==21.7b0)", "flake8 (==3.9.2)", "importlib-metadata (>=1.1.0,<4.3)", "isort (==5.9.2)", "jupyterlab (==3.0.14)"]
-tests = ["mmdet (==2.25.1)", "pycocotools (==2.0.5)"]
+tests = ["mmdet (==2.25.1)"]
 
 [[package]]
 name = "scikit-image"
