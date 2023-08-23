@@ -2444,13 +2444,13 @@ dev = ["black (==22.3.0)", "click (==8.0.4)", "deepdiff (==5.5.0)", "flake8 (==3
 
 [[package]]
 name = "pycocotools"
-version = "2.0.4"
+version = "2.0.5"
 description = "Official APIs for the MS-COCO dataset"
 category = "main"
 optional = false
 python-versions = ">=3.5"
 files = [
-    {file = "pycocotools-2.0.4.tar.gz", hash = "sha256:2ab586aa389b9657b6d73c2b9a827a3681f8d00f36490c2e8ab05902e3fd9e93"},
+    {file = "pycocotools-2.0.5.tar.gz", hash = "sha256:2ab586aa389b9657b6d73c2b9a827a3681f8d00f36490c2e8ab05902e3fd9e93"},
 ]
 
 [package.dependencies]
