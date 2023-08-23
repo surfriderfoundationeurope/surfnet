@@ -2,7 +2,7 @@ import json
 import os
 import cv2
 import numpy as np
-from src.artificial_dataset_generation.utils import center_polygon, scale_img, rotate_img, shift_img, get_bbox_from_polygon
+from src.plasticorigins.training.artificial_image_dataset_generation.utils import center_polygon, scale_img, rotate_img, shift_img, get_bbox_from_polygon
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 functions_dir = os.path.join(
