@@ -13,10 +13,10 @@ def main(image_path, annotation_path):
     y = float(y)
     w = float(w)
     h = float(h)
-    x_min = int((x-w/2)*W)
-    y_min = int((y-h/2)*H)
-    x_max = int((x+w/2)*W)
-    y_max = int((y+h/2)*H)
+    x_min = int((x - w / 2) * W)
+    y_min = int((y - h / 2) * H)
+    x_max = int((x + w / 2) * W)
+    y_max = int((y + h / 2) * H)
 
     cv2.rectangle(image, (x_min, y_min),
                   (x_max, y_max), (0, 255, 0), 2)

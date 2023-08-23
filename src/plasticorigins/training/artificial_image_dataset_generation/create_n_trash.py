@@ -7,7 +7,6 @@ from PIL import ExifTags
 from pycocotools.coco import COCO
 import pylab
 import shutil
-import sys
 import argparse
 from categories_map import categories_map
 from utils import get_background_names, transform_img, get_bbox_from_contour, paste_shape, generate_image_identifier
@@ -33,11 +32,6 @@ def create_img(image_path, seg):
             shape_mask = np.zeros_like(mask)
         except cv2.error as e:
             print("OpenCV error occurred:", str(e))
-        except:
-            # Catch any uncaught exception and print its type
-            print("An uncaught exception occurred:")
-            exc_type, _, _ = sys.exc_info()
-            print("Exception type:", exc_type)
         finally:
             # Find the contour
             contour = polygon.reshape((-1, 1, 2)).astype(np.int32)
@@ -62,7 +56,7 @@ def create_labels(label_path, anns, img_size):
             # transform the bbox values from number of pixels to percentage of image width and height
             w, h = img_size
             x, y, width, height = bbox
-            bbox = [x/w, y/h, width/w, height/h]
+            bbox = [x / w, y / h, width / w, height / h]
 
             # write the lbl line to the file
             # the label line contains the category_id and the values of the bbox
@@ -96,7 +90,7 @@ def create_new_img(image_path, target_img_path, res_dataset_path, result_labels_
             # Paste the shape onto the canvas on top of the target image
             canvas = paste_shape(shape, canvas)
             # TODO
-            bbox = [bbox[0]/w, bbox[1]/h, bbox[2]/w, bbox[3]/h]
+            bbox = [bbox[0] / w, bbox[1] / h, bbox[2] / w, bbox[3] / h]
             anns.append({'category_id': category_id, 'bbox': bbox})
             # print(str(ann['id']) + " done")
 

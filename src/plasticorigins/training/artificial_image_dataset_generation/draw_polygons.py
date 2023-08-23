@@ -2,8 +2,6 @@ import cv2
 import numpy as np
 import json
 import argparse
-import cv2
-import json
 
 
 def main(img_path, ann_path):

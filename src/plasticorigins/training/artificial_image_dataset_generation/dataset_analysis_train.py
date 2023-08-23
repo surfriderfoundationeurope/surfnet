@@ -89,7 +89,7 @@ def main(train_path, results_path, val_path, csv_labels_file_name, png_labels_fi
 
     # get the list of files in the train.txt file
     files_train = read_file_lines(train_path)
-    if val_path != "" and val_path != None:
+    if val_path != "" and val_path is not None:
         files_val = read_file_lines(val_path)
         files_train += files_val
 

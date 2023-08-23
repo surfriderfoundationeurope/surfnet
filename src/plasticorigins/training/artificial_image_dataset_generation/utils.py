@@ -44,11 +44,11 @@ def locations(img_size, bbox):
     min_x, min_y, width, height = bbox
     # The percentage of the shape width or height that can be cropped
     p = 0.25
-    per_x = round(p*width)
+    per_x = round(p * width)
     x = random.randint(- min_x - per_x, img_size[0] - min_x - width + per_x)
 
     # The shape should be around the horizon (the middle of the image) -->  positioned between 0.25*img_size[1] and 0.75*img_size[1]
-    hor = round(0.3*img_size[1])
+    hor = round(0.3 * img_size[1])
     y = random.randint(hor - min_y, img_size[1] - hor - min_y - height)
     return x, y
 
@@ -61,11 +61,7 @@ def paste_shape(resized_shape, canvas):
     np_condition = np.repeat(
         non_zero_pixels.reshape((height, width, 1)), 3, axis=2)
 
-    alpha_blend = np.where(np_condition,
-                           transparence * canvas + (1 - transparence) *
-                           resized_shape,
-                           canvas
-                           )
+    alpha_blend = np.where(np_condition, transparence * canvas + (1 - transparence) * resized_shape, canvas)
     return alpha_blend
 
 
@@ -126,7 +122,7 @@ def scale_img(image, polygon):
     # Get image height and width
     H, W = image.shape[:2]
     img_size = (W, H)
-    center = (W/2, H/2)
+    center = (W / 2, H / 2)
 
     bounding_box = get_bbox_from_polygon(polygon, img_size)
     scale = get_scale(bounding_box, img_size)
@@ -149,7 +145,7 @@ def center_polygon(image, polygon):
     x, y, w, h = bounding_box
     # translate the image in order to have the object in the center
     # the new (x,y) coordinates of the shape should be (W/2, H/2)
-    tx, ty = W/2 - x, H/2 - y
+    tx, ty = W / 2 - x, H / 2 - y
 
     # Apply scaling transformation using cv2.warpAffine
     shifted_image = cv2.warpAffine(image, np.float32(

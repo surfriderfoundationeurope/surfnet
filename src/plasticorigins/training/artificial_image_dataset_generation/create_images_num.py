@@ -9,8 +9,6 @@ import seaborn as sns
 from PIL import ExifTags
 from pycocotools.coco import COCO
 import pylab
-import sys
-import argparse
 import time
 import shutil
 from categories_map import categories_map
@@ -22,8 +20,9 @@ def read_csv_to_map(file_path):
     data_map = {}
     with open(file_path, 'r') as csv_file:
         csv_reader = csv.reader(csv_file)
-        header = next(csv_reader)  # Read the header row
-
+        # header = next(csv_reader)
+        # Read the header row
+        next(csv_reader)
         for row in csv_reader:
             key = row[0]  # Assuming the first column as the key
             values = row[1]  # Assuming the remaining columns as values
@@ -36,7 +35,7 @@ def read_csv_to_map(file_path):
 def pick_items(lst, i, max_picks_per_item):
     n = len(lst)
     i = min(max_picks_per_item * n, i)
-    k = i//n
+    k = i // n
 
     # Calculate the number of items to pick from each element
     min_picks = [k] * n
@@ -48,7 +47,7 @@ def pick_items(lst, i, max_picks_per_item):
     random.shuffle(lst)
     result = []
     for item, min_pick in zip(lst, min_picks):
-        result.extend(random.sample([item]*min_pick, min_pick))
+        result.extend(random.sample([item] * min_pick, min_pick))
 
     return result
 
@@ -81,8 +80,7 @@ def get_needed_label_num(csv_path):
     needed_label_num = {}
     range_labels = 100
     for key in labels_map:
-        rand = int(random.uniform(closest_number - range_labels //
-                   2, closest_number + range_labels//2))
+        rand = int(random.uniform(closest_number - range_labels // 2, closest_number + range_labels // 2))
         needed_label_num[key] = max(rand - labels_map[key], 0)
     return needed_label_num
 
@@ -97,11 +95,6 @@ def extract_shape(image, polygon):
         shape_mask = np.zeros_like(mask)
     except cv2.error as e:
         print("OpenCV error occurred:", str(e))
-    except:
-        # Catch any uncaught exception and print its type
-        print("An uncaught exception occurred:")
-        exc_type, _, _ = sys.exc_info()
-        print("Exception type:", exc_type)
     finally:
         # Find the contour
         contour = polygon.reshape((-1, 1, 2)).astype(np.int32)
@@ -151,7 +144,7 @@ def create_label(label_path, bbox, category_id, img_size):
     # transform the bbox values from number of pixels to percentage of image width and height
     w, h = img_size
     x, y, width, height = bbox
-    bbox = [x/w, y/h, width/w, height/h]
+    bbox = [x / w, y / h, width / w, height / h]
 
     with open(label_path, "w") as file:
         lbl = f"{category_id} {' '.join(str(x) for x in bbox)}\n"
@@ -188,9 +181,9 @@ def main(dataset_path,
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_path = os.path.join(current_dir, dataset_path)
     result_dataset_path = os.path.join(current_dir, result_dataset_path)
-    anns_file_path = os.path.join(dataset_path,  'annotations.json')
+    anns_file_path = os.path.join(dataset_path, 'annotations.json')
     result_images_path = os.path.join(result_dataset_path, 'images')
-    result_labels_path = os.path.join(result_dataset_path,  "labels")
+    result_labels_path = os.path.join(result_dataset_path, "labels")
 
     if shutil.os.path.exists(result_dataset_path):
         shutil.rmtree(result_dataset_path)

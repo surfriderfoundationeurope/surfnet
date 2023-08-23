@@ -7,8 +7,6 @@ import seaborn as sns
 from PIL import ExifTags
 from pycocotools.coco import COCO
 import pylab
-import sys
-import argparse
 import shutil
 import random
 from categories_map import categories_map
@@ -19,7 +17,7 @@ import concurrent.futures
 def pick_items(lst, i, max_picks_per_item):
     n = len(lst)
     i = min(max_picks_per_item * n, i)
-    k = i//n
+    k = i // n
 
     # Calculate the number of items to pick from each element
     min_picks = [k] * n
@@ -31,7 +29,7 @@ def pick_items(lst, i, max_picks_per_item):
     random.shuffle(lst)
     result = []
     for item, min_pick in zip(lst, min_picks):
-        result.extend(random.sample([item]*min_pick, min_pick))
+        result.extend(random.sample([item] * min_pick, min_pick))
 
     return result
 
@@ -54,11 +52,6 @@ def extract_shape(image, polygon):
         shape_mask = np.zeros_like(mask)
     except cv2.error as e:
         print("OpenCV error occurred:", str(e))
-    except:
-        # Catch any uncaught exception and print its type
-        print("An uncaught exception occurred:")
-        exc_type, _, _ = sys.exc_info()
-        print("Exception type:", exc_type)
     finally:
         # Find the contour
         contour = polygon.reshape((-1, 1, 2)).astype(np.int32)
@@ -108,7 +101,7 @@ def create_label(label_path, bbox, category_id, img_size):
     # transform the bbox values from number of pixels to percentage of image width and height
     w, h = img_size
     x, y, width, height = bbox
-    bbox = [x/w, y/h, width/w, height/h]
+    bbox = [x / w, y / h, width / w, height / h]
 
     with open(label_path, "w") as file:
         lbl = f"{category_id} {' '.join(str(x) for x in bbox)}\n"
@@ -210,7 +203,7 @@ def main(dataset_path,
                         tasks.append((image_path, target_img_path,
                                       result_images_path, result_labels_path, seg, category_id))
 
-         # Using multithreading to parallelize create_new_img calls
+        # Using multithreading to parallelize create_new_img calls
         with concurrent.futures.ThreadPoolExecutor() as executor:
             executor.map(create_new_img_wrapper, tasks)
 
