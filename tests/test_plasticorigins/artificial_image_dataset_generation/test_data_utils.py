@@ -8,7 +8,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 functions_dir = os.path.join(
     current_dir, "../src/artificial_dataset_generation")
 script_path = os.path.join(functions_dir, "utils.py")
-dataset_path = os.path.join(current_dir, "ressources/data")
+dataset_path = os.path.join(current_dir, "ressources/data_gen")
 background_dataset_path = os.path.join(
     current_dir, "ressources/background_images")
 result_dataset_path = os.path.join(
