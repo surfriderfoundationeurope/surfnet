@@ -10,9 +10,9 @@ def test_num_images():
     functions_dir = os.path.join(
         current_dir, "../../../src/plasticorigins/training/artificial_image_dataset_generation")
     script_path = os.path.join(functions_dir, "extract_imgs_from_videos.py")
-    video_dir = os.path.join(current_dir, "ressources/videos")
+    video_dir = os.path.join(current_dir, "../../ressources/videos")
     save_dir = os.path.join(
-        current_dir, "ressources/background_images")
+        current_dir, "../../ressources/background_images")
     num_images = 1
 
     # remove the save directory if it does exist
