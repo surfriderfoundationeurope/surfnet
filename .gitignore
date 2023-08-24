@@ -3,6 +3,7 @@
 __pycache__/
 *.pickle
 *.pyc
+*.mp4
 *.env
 scripts/shell_variables.sh
 *.png
