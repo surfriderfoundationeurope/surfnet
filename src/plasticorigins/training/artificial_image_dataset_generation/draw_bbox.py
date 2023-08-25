@@ -9,7 +9,7 @@ def main(image_path, annotation_path):
         image_path (str): Path to the image to visualize.
         annotation_path (str): Path to the annotation file containing class ID and bounding box coordinates.
     """
-    
+
     image = cv2.imread(image_path)
     H, W = image.shape[:2]
     with open(annotation_path, 'r') as f:

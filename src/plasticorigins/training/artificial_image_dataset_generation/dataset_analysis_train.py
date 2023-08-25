@@ -63,7 +63,6 @@ def write_csv(counts, result_path):
             writer.writerow([key, counts[key]])
 
 
-
 def count_lines_with_number(files_train, result_path):
     """
     Count the number of objects for each class using the label files. The function counts lines with each class id.

@@ -54,7 +54,6 @@ def pick_items(lst, i, max_picks_per_item):
         list: A list of picked items.
     """
 
-
     n = len(lst)
     i = min(max_picks_per_item * n, i)
     k = i // n
