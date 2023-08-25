@@ -17,6 +17,7 @@ args_1 = Namespace(
     quality_filters="[good,medium]",
     nb_classes=12,
     limit_data=0,
+    data_augmentation=0,
     exclude_img_folder=path_data + "exclude_ids/",
     split=0.85,
 )
@@ -32,6 +33,7 @@ args_2 = Namespace(
     quality_filters=None,
     nb_classes=12,
     limit_data=0,
+    data_augmentation=0,
     exclude_img_folder=None,
     split=0.85,
 )
@@ -46,6 +48,7 @@ args_3 = Namespace(
     quality_filters="[good,medium]",
     nb_classes=12,
     limit_data=0,
+    data_augmentation=0,
     exclude_img_folder=None,
     split=0.85,
 )

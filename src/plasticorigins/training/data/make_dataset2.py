@@ -65,21 +65,31 @@ def main(args: Namespace) -> None:
     print(
         f"found {cpos} valid annotations with images and {cneg} unmatched annotations"
     )
+    if args.split:
+        train_files, val_files = get_train_valid(yolo_filelist, args.split)
 
-    train_files, val_files = get_train_valid(yolo_filelist, args.split)
-    train_files = data_augmentation_for_yolo_data(data_dir, train_files)
-
-    if args.artificial_data:
+    # use data augmentation for artificial data only if original data have been processed
+    if args.artificial_data and args.data_augmentation:
 
         artificial_data_dir = Path(args.artificial_data)
         artificial_data_list = [Path(path).as_posix() for path in os.listdir(artificial_data_dir / "images")]
         artificial_train_files, artificial_val_files = get_train_valid(artificial_data_list, args.split)
         artificial_train_files = data_augmentation_for_yolo_data(artificial_data_dir, artificial_train_files)
         # concatenate original images and artificial data
-        train_files = train_files + artificial_train_files
-        val_files = val_files + artificial_val_files
+        with open(data_dir / "train.txt", "w") as f:
+            for path in artificial_train_files:
+                f.write(path + "\n")
+        with open(data_dir / "val.txt", "w") as f:
+            for path in artificial_val_files:
+                f.write(path + "\n")
 
-    generate_yolo_files(data_dir, train_files, val_files, args.nb_classes)
+    else:
+        train_files, val_files = get_train_valid(yolo_filelist)
+
+        if args.data_augmentation:
+            train_files = data_augmentation_for_yolo_data(data_dir, train_files)
+
+        generate_yolo_files(data_dir, train_files, val_files, args.nb_classes)
 
 
 if __name__ == "__main__":
@@ -107,6 +117,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--nb-classes", type=int, default=10)
     parser.add_argument("--split", type=float, default=0.85)
+    parser.add_argument("--data-augmentation", type=int, default=0)
     parser.add_argument("--limit-data", type=int, default=0)
     parser.add_argument(
         "--exclude-img-folder",
