@@ -14,6 +14,17 @@ import concurrent.futures
 
 
 def create_img(image_path, seg):
+    """
+    Create a new image by compositing a shape onto a target image.
+
+    Args:
+        image_path (str): Path to the input image.
+        seg (list): List of polygon coordinates.
+
+    Returns:
+        tuple: A tuple containing the shape to be pasted and its bounding box.
+    """
+
     try:
         # Load image and annotation file
         image = cv2.imread(image_path)
@@ -48,6 +59,15 @@ def create_img(image_path, seg):
 
 
 def create_labels(label_path, anns, img_size):
+    """
+    Create a label file for an image.
+
+    Args:
+        label_path (str): Path to the label file.
+        anns (list): list of object annotations.
+        img_size (tuple): Image size (width, height).
+    """
+
     with open(label_path, "w") as file:
         for ann in anns:
             bbox = ann['bbox']
@@ -65,7 +85,17 @@ def create_labels(label_path, anns, img_size):
 
 
 def create_new_img(image_path, target_img_path, res_dataset_path, result_labels_path, input_anns, categories_dict):
+    """
+    Create a new image and its corresponding label.
 
+    Args:
+        image_path (str): Path to the input image.
+        target_img_path (str): Path to the target image.
+        res_dataset_path (str): Path to save the resulting images.
+        result_labels_path (str): Path to save the resulting labels.
+        input_anns (list): List of object annotations.
+        categories_dict (dict): Dictionnary that maps Plastic Origins and TACO dataset classes.
+    """
     image = cv2.imread(image_path)
     h, w = image.shape[:2]
     img_size = (w, h)
@@ -116,6 +146,13 @@ def create_new_img(image_path, target_img_path, res_dataset_path, result_labels_
 def main(dataset_path,
          background_dataset_path,
          result_dataset_path):
+    """
+    Main function to create artificial images and labels.
+    Args:
+        dataset_path (str): Path to the dataset.
+        background_dataset_path (str): Path to the background dataset.
+        result_dataset_path (str): Path to save the resulting dataset.
+    """
     sns.set()
 
     # Paths
@@ -200,6 +237,12 @@ def main(dataset_path,
 
 
 def create_new_img_wrapper(args):
+    """
+    Wrapper function for creating new images with parallel processing.
+
+    Args:
+        args (tuple): Tuple containing the input arguments for creating a new image.
+    """
     image_path, target_img_path, result_images_path, result_labels_path, anns_sel, categories_dict = args
     create_new_img(image_path, target_img_path,
                    result_images_path, result_labels_path, anns_sel, categories_dict)

@@ -5,6 +5,14 @@ import argparse
 
 
 def extract_from_video(video_path, num_images, save_dir):
+    """Extracts a specific number of random frames from a video and saves them as images.
+
+    Args:
+        video_path (str): Path to the video file.
+        num_images (int): Number of random frames to extract.
+        save_dir (str): Directory to save the extracted images.
+    """
+
     # create a VideoCapture object
     num_images = int(num_images)
     cap = cv2.VideoCapture(video_path)
@@ -36,6 +44,13 @@ def extract_from_video(video_path, num_images, save_dir):
 
 
 def main(video_dir, save_dir, num_images):
+    """Main function to extract images from multiple videos.
+
+    Args:
+        video_dir (str): Directory containing the video files.
+        save_dir (str): Directory to save the extracted images.
+        num_images (str): Number of images to extract from each video.
+    """
 
     # create the save directory if it does not exist
     if not os.path.exists(save_dir):

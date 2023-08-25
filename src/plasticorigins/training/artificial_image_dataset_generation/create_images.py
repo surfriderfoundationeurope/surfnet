@@ -15,6 +15,18 @@ import concurrent.futures
 
 
 def pick_items(lst, i, max_picks_per_item):
+    """
+    Pick items from a list with a maximum limit per item. The function ensures that each item is picked almost the same number of times.
+
+    Args:
+        lst (list): The input list from which to pick items.
+        i (int): The total number of items to pick.
+        max_picks_per_item (int): The maximum number of times an item can be picked.
+
+    Returns:
+        list: A list of picked items.
+    """
+
     n = len(lst)
     i = min(max_picks_per_item * n, i)
     k = i // n
@@ -35,6 +47,16 @@ def pick_items(lst, i, max_picks_per_item):
 
 
 def pick_random_element(lst):
+    """
+    Pick a random element from a list.
+
+    Args:
+        lst (list): The input list.
+
+    Returns:
+        Any: A randomly selected element from the list, or None if the list is empty.
+    """
+
     if not lst:
         return None
 
@@ -43,6 +65,17 @@ def pick_random_element(lst):
 
 
 def extract_shape(image, polygon):
+    """
+    Extract the exact shape of an object from an image using a polygon.
+
+    Args:
+        image (numpy.ndarray): The input image.
+        polygon (numpy.ndarray): The polygon coordinates.
+
+    Returns:
+        tuple: A tuple containing the extracted shape and its bounding box.
+    """
+
     h, w = image.shape[:2]
     img_size = (w, h)
     try:
@@ -66,6 +99,19 @@ def extract_shape(image, polygon):
 
 
 def create_img(image_path, seg, result_images_path, target_img_path):
+    """
+    Create a new image by compositing a shape onto a target image.
+
+    Args:
+        image_path (str): Path to the input image.
+        seg (list): List of polygon coordinates.
+        result_images_path (str): Path to save the resulting images.
+        target_img_path (str): Path to the target image.
+
+    Returns:
+        tuple: A tuple containing the image identifier, bounding box, and image size.
+    """
+
     # Load image and annotation file
     image = cv2.imread(image_path)
     h, w = image.shape[:2]
@@ -98,6 +144,16 @@ def create_img(image_path, seg, result_images_path, target_img_path):
 
 
 def create_label(label_path, bbox, category_id, img_size):
+    """
+    Create a label file for an image.
+
+    Args:
+        label_path (str): Path to the label file.
+        bbox (list): Bounding box coordinates.
+        category_id (int): Category ID.
+        img_size (tuple): Image size (width, height).
+    """
+
     # transform the bbox values from number of pixels to percentage of image width and height
     w, h = img_size
     x, y, width, height = bbox
@@ -109,6 +165,17 @@ def create_label(label_path, bbox, category_id, img_size):
 
 
 def create_new_img(image_path, target_img_path, result_images_path, result_labels_path, seg, category_id):
+    """
+    Create a new image and its corresponding label.
+
+    Args:
+        image_path (str): Path to the input image.
+        target_img_path (str): Path to the target image.
+        result_images_path (str): Path to save the resulting images.
+        result_labels_path (str): Path to save the resulting labels.
+        seg (list): List of polygon coordinates.
+        category_id (int): Category ID.
+    """
 
     # create the new image & get the bbox
     img_id, bbox, img_size = create_img(
@@ -120,6 +187,12 @@ def create_new_img(image_path, target_img_path, result_images_path, result_label
 
 
 def create_new_img_wrapper(args):
+    """
+    Wrapper function for creating new images with parallel processing.
+
+    Args:
+        args (tuple): Tuple containing the input arguments for creating a new image.
+    """
     image_path, target_img_path, result_images_path, result_labels_path, seg, cat_id = args
     create_new_img(image_path, target_img_path,
                    result_images_path, result_labels_path, seg, cat_id)
@@ -128,6 +201,15 @@ def create_new_img_wrapper(args):
 def main(dataset_path,
          background_dataset_path,
          result_dataset_path, num_uses_background):
+    """
+    Main function to create artificial images and labels.
+
+    Args:
+        dataset_path (str): Path to the dataset.
+        background_dataset_path (str): Path to the background dataset.
+        result_dataset_path (str): Path to save the resulting dataset.
+        num_uses_background (int): The number of background images that are used with each object.
+    """
     sns.set()
 
     num_uses_background = int(num_uses_background)

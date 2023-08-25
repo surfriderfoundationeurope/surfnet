@@ -6,6 +6,15 @@ import hashlib
 
 
 def get_background_names(folder_path):
+    """Gets the list of files in a folder.
+
+    Args:
+        folder_path (str): the path of the folder
+
+    Returns:
+        list[str]: list of files inside this folder
+    """
+
     # Get a list of files in the folder
     file_list = os.listdir(folder_path)
     # Print the list of files
@@ -13,6 +22,16 @@ def get_background_names(folder_path):
 
 
 def generate_image_identifier(image, image_path):
+    """Generates a unique ID for the artificially generated image using the name of the original image and the hash of the artificial image.
+
+    Args:
+        image (numpy.ndarray): The artificially generated image.
+        image_path (str): the path of the original image
+
+    Returns:
+        str: the unique identifier
+    """
+
     # we get a unique identifier using the resulting image
     image_data = cv2.imencode('.jpg', image)[1].tobytes()
     hash_object = hashlib.md5(image_data)
@@ -26,12 +45,35 @@ def generate_image_identifier(image, image_path):
 
 
 def get_resize_ratio(per_w, per_h, box, img_size):
+    """Calculates the resize ratio of the image based on the wanted percentage values and the bounding box of the object.
+
+    Args:
+        per_w (float): Percentage of width to resize by.
+        per_h (float): Percentage of height to resize by.
+        box (tuple): Bounding box coordinates (min_x, min_y, width, height).
+        img_size (tuple): Image size (width, height).
+
+    Returns:
+        float: The calculated resize ratio.
+    """
+
     min_x, min_y, width, height = box
     W, H = img_size
-    return min(per_w * W / width, per_h * H / height)
+    ratio = min(per_w * W / width, per_h * H / height)
+    return ratio
 
 
 def get_scale(bounding_box, img_size):
+    """Generates a random scaling factor for the image and object using the object's bounding box and the size of the image.
+
+    Args:
+        bounding_box (list): Bounding box coordinates [center_x, center_y, width, height].
+        img_size (tuple): Image size (width, height).
+
+    Returns:
+        float: The random scaling factor.
+    """
+
     max_per_w, max_per_h = 0.15, 0.15
     min_per_w, min_per_h = 0.05, 0.05
     max_per = get_resize_ratio(max_per_w, max_per_h, bounding_box, img_size)
@@ -41,6 +83,16 @@ def get_scale(bounding_box, img_size):
 
 
 def locations(img_size, bbox):
+    """Generates random x, y coordinates for positioning the object within the image.
+
+    Args:
+        img_size (tuple): Image size (width, height).
+        bbox (tuple): Bounding box coordinates of the object(min_x, min_y, width, height).
+
+    Returns:
+        tuple: The random x, y coordinates.
+    """
+
     min_x, min_y, width, height = bbox
     # The percentage of the shape width or height that can be cropped
     p = 0.25
@@ -54,6 +106,16 @@ def locations(img_size, bbox):
 
 
 def paste_shape(resized_shape, canvas):
+    """Pastes a resized shape onto a canvas after adding transparency.
+
+    Args:
+        resized_shape (numpy.ndarray): Resized shape image.
+        canvas (numpy.ndarray): Canvas image.
+
+    Returns:
+        numpy.ndarray: The canvas with the pasted shape.
+    """
+
     transparence = random.uniform(0, 0.2)
     height, width, _ = resized_shape.shape
     # Calculate the alpha blend
@@ -66,13 +128,30 @@ def paste_shape(resized_shape, canvas):
 
 
 def get_bbox_from_polygon(polygon, img_size):
-    # return the bounding box with this format: [center_x, center_y, width, height]
+    """Calculates the bounding box from a polygon and returns the bounding box with this format: [center_x, center_y, width, height]
+
+    Args:
+        polygon (numpy.ndarray): Polygon coordinates.
+        img_size (tuple): Image size (width, height).
+
+    Returns:
+        list: Bounding box coordinates [center_x, center_y, width, height].
+    """
     contour = polygon.reshape((-1, 1, 2)).astype(np.int32)
     return get_bbox_from_contour(contour, img_size)
 
 
 def get_bbox_from_contour(contour, img_size):
-    # return the bounding box with this format: [center_x, center_y, width, height]
+    """Calculates the bounding box from a contour and returns the bounding box with this format: [center_x, center_y, width, height].
+
+    Args:
+        contour (numpy.ndarray): Contour coordinates.
+        img_size (tuple): Image size (width, height).
+
+    Returns:
+        list: Bounding box coordinates [center_x, center_y, width, height].
+    """
+
     x, y, width, height = cv2.boundingRect(contour)
     W, H = img_size
     x = max(x, 0)
@@ -86,6 +165,16 @@ def get_bbox_from_contour(contour, img_size):
 
 
 def crop_polygon(polygon, img_size):
+    """Crops a polygon to fit within image boundaries.
+
+    Args:
+        polygon (numpy.ndarray): Polygon coordinates.
+        img_size (tuple): Image size (width, height).
+
+    Returns:
+        numpy.ndarray: Cropped polygon coordinates.
+    """
+
     w, h = img_size
     # Create a mask for points outside the image boundaries
     mask = (polygon[:, 0] >= 0) & (polygon[:, 0] < w) & (
@@ -97,6 +186,16 @@ def crop_polygon(polygon, img_size):
 
 
 def rotate_img(image, polygon):
+    """Randomly rotates an image and its corresponding polygon.
+
+    Args:
+        image (numpy.ndarray): Image to rotate.
+        polygon (numpy.ndarray): Polygon coordinates.
+
+    Returns:
+        tuple: Rotated image and polygon.
+    """
+
     # Get image height and width
     H, W = image.shape[:2]
     img_size = (W, H)
@@ -119,6 +218,16 @@ def rotate_img(image, polygon):
 
 
 def scale_img(image, polygon):
+    """Randomly scales an image and its corresponding polygon.
+
+    Args:
+        image (numpy.ndarray): Image to scale.
+        polygon (numpy.ndarray): Polygon coordinates.
+
+    Returns:
+        tuple: Scaled image and polygon.
+    """
+
     # Get image height and width
     H, W = image.shape[:2]
     img_size = (W, H)
@@ -138,6 +247,15 @@ def scale_img(image, polygon):
 
 
 def center_polygon(image, polygon):
+    """Centers a polygon and consequently its corresponding image.
+
+    Args:
+        image (numpy.ndarray): Image to center.
+        polygon (numpy.ndarray): Polygon coordinates.
+
+    Returns:
+        tuple: Centered image and polygon.
+    """
     H, W = image.shape[:2]
     img_size = (W, H)
     bounding_box = get_bbox_from_polygon(polygon, img_size)
@@ -158,6 +276,16 @@ def center_polygon(image, polygon):
 
 
 def shift_img(image, polygon):
+    """Randomly shifts an image and its corresponding polygon to a random position within the image.
+
+    Args:
+        image (numpy.ndarray): Image to shift.
+        polygon (numpy.ndarray): Polygon coordinates.
+
+    Returns:
+        tuple: Shifted image and polygon.
+    """
+
     H, W = image.shape[:2]
     img_size = (W, H)
 
@@ -175,7 +303,16 @@ def shift_img(image, polygon):
 
 
 def transform_img(image, polygon):
-    # Apply rotation, scale, and shift to the image
+    """Applies a series of transformations (centering, scaling, rotation, and shifting) to an image and its corresponding polygon.
+
+    Args:
+        image (numpy.ndarray): Image to transform.
+        polygon (numpy.ndarray): Polygon coordinates.
+
+    Returns:
+        tuple: Transformed image and polygon.
+    """
+
     try:
         # first, we center the shape.
         image, polygon = center_polygon(image, polygon)

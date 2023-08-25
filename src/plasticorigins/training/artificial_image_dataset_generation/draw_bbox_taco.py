@@ -4,6 +4,13 @@ import json
 
 
 def main(image_path, annotation_path):
+    """Visualizes bounding box annotations on an image.
+
+    Args:
+        image_path (str): Path to the image to visualize.
+        annotation_path (str): Path to the JSON annotation file containing bounding box information.
+    """
+
     image = cv2.imread(image_path)
     H, W = image.shape[:2]
 

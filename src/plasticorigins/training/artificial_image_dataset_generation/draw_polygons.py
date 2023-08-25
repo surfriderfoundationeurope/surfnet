@@ -5,6 +5,13 @@ import argparse
 
 
 def main(img_path, ann_path):
+    """Visualizes image annotations by drawing object contours on the image.
+
+    Args:
+        img_path (str): Path to the image to visualize.
+        ann_path (str): Path to the corresponding annotation file in JSON format.
+    """
+
     # Load the image
     image = cv2.imread(img_path)
 
