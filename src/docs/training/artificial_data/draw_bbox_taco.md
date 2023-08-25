@@ -1,0 +1,1 @@
+::: plasticorigins.training.artificial_image_dataset_generation.draw_bbox_taco

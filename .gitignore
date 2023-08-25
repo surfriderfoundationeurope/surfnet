@@ -1,9 +1,9 @@
 .vscode/
-*.MP4
+.MP4
 __pycache__/
 *.pickle
-*.mp4
 *.pyc
+*.mp4
 *.env
 scripts/shell_variables.sh
 *.png
