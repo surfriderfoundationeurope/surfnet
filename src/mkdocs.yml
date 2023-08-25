@@ -7,13 +7,55 @@ plugins:
   - mkdocstrings
 
 nav:
-    - Plastic Origins: index.md
-    - Tutorials: tutorials.md 
-    - Installation: installation.md
-    - How to guide: how-to-guides.md
-    - Modules:
-        - Detection: ['detection/models.md', 'detection/coco_utils.md','detection/detect.md','detection/losses.md','detection/transforms.md','detection/yolo.md']
-        - Serving: ['serving/inference.md']
-        - Tools: ['tools/files.md','tools/misc.md','tools/optical_flow.md','tools/video_readers.md']
-        - Tracking: ['tracking/postprocess_and_count_tracks.md',tracking/track_video.md,tracking/trackers.md,tracking/utils.md]
-        - Training: ['training/data_processing.md', 'training/make_dataset.md']
+  - Plastic Origins: index.md
+  - Tutorials: tutorials.md
+  - Installation: installation.md
+  - How to guide: how-to-guides.md
+  - Modules:
+      - Detection:
+          [
+            "detection/models.md",
+            "detection/coco_utils.md",
+            "detection/detect.md",
+            "detection/losses.md",
+            "detection/transforms.md",
+            "detection/yolo.md",
+          ]
+      - Serving: ["serving/inference.md"]
+      - Tools:
+          [
+            "tools/files.md",
+            "tools/misc.md",
+            "tools/optical_flow.md",
+            "tools/video_readers.md",
+          ]
+      - Tracking:
+          [
+            "tracking/postprocess_and_count_tracks.md",
+            tracking/track_video.md,
+            tracking/trackers.md,
+            tracking/utils.md,
+          ]
+      - Training:
+          - Data:
+              [
+                "training/data/data_processing.md",
+                "training/data/make_dataset.md",
+              ]
+          - Azure:
+              [
+                "training/azure/azure_ml.md",
+              ]
+          - ArtificialData:
+              [
+                "training/artificial_data/create_images_num.md",
+                "training/artificial_data/create_images.md",
+                "training/artificial_data/create_n_trash.md",
+                "training/artificial_data/dataset_analysis.md",
+                "training/artificial_data/dataset_analysis_train.md",
+                "training/artificial_data/draw_bbox_taco.md",
+                "training/artificial_data/draw_bbox.md",
+                "training/artificial_data/draw_polygons.md",
+                "training/artificial_data/utils.md",
+                "training/artificial_data/extract_imgs_from_videos.md",
+              ]

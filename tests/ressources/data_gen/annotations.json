@@ -1,0 +1,859 @@
+{
+    "info": {
+        "year": 2019,
+        "version": null,
+        "description": "TACO",
+        "contributor": null,
+        "url": null,
+        "date_created": "2019-12-19T16:11:15.258399+00:00"
+    },
+    "images": [
+        {
+            "id": 96,
+            "width": 1241,
+            "height": 751,
+            "file_name": "000004.jpg"
+        },
+        {
+            "id": 37,
+            "width": 1537,
+            "height": 2049,
+            "file_name": "000013.jpg"
+        },
+        {
+            "id": 1,
+            "width": 1537,
+            "height": 2049,
+            "file_name": "000008.jpg"
+        }
+    ],
+    "annotations": [
+        {
+            "id": 249,
+            "image_id": 96,
+            "category_id": 12,
+            "segmentation": [
+                [
+                    677.0,
+                    55.0,
+                    740.0,
+                    107.0,
+                    741.0,
+                    116.0,
+                    742.0,
+                    126.0,
+                    738.0,
+                    133.0,
+                    729.0,
+                    140.0,
+                    718.0,
+                    143.0,
+                    714.0,
+                    141.0,
+                    711.0,
+                    140.0,
+                    708.0,
+                    136.0,
+                    652.0,
+                    89.0,
+                    650.0,
+                    86.0,
+                    649.0,
+                    80.0,
+                    649.0,
+                    73.0,
+                    651.0,
+                    69.0,
+                    655.0,
+                    63.0,
+                    662.0,
+                    57.0,
+                    667.0,
+                    55.0,
+                    671.0,
+                    55.0,
+                    677.0,
+                    55.0
+                ]
+            ],
+            "area": 4273.0,
+            "bbox": [
+                649.0,
+                55.0,
+                93.0,
+                88.0
+            ],
+            "iscrowd": 0
+        },
+        {
+            "id": 98,
+            "image_id": 37,
+            "category_id": 6,
+            "segmentation": [
+                [
+                    891.0,
+                    1131.0,
+                    917.0,
+                    1188.0,
+                    946.0,
+                    1251.0,
+                    957.0,
+                    1286.0,
+                    955.0,
+                    1318.0,
+                    969.0,
+                    1348.0,
+                    983.0,
+                    1382.0,
+                    996.0,
+                    1425.0,
+                    1004.0,
+                    1447.0,
+                    1010.0,
+                    1462.0,
+                    993.0,
+                    1473.0,
+                    977.0,
+                    1473.0,
+                    969.0,
+                    1468.0,
+                    948.0,
+                    1422.0,
+                    933.0,
+                    1386.0,
+                    911.0,
+                    1345.0,
+                    895.0,
+                    1326.0,
+                    882.0,
+                    1319.0,
+                    871.0,
+                    1303.0,
+                    856.0,
+                    1264.0,
+                    848.0,
+                    1245.0,
+                    855.0,
+                    1236.0,
+                    852.0,
+                    1229.0,
+                    840.0,
+                    1227.0,
+                    831.0,
+                    1211.0,
+                    817.0,
+                    1194.0,
+                    813.0,
+                    1179.0,
+                    811.0,
+                    1169.0,
+                    813.0,
+                    1160.0,
+                    816.0,
+                    1152.0,
+                    819.0,
+                    1147.0,
+                    832.0,
+                    1138.0,
+                    844.0,
+                    1132.0,
+                    854.0,
+                    1127.0,
+                    866.0,
+                    1124.0,
+                    878.0,
+                    1123.0,
+                    883.0,
+                    1123.0,
+                    889.0,
+                    1128.0,
+                    891.0,
+                    1131.0
+                ]
+            ],
+            "area": 24923.0,
+            "bbox": [
+                811.0,
+                1123.0,
+                199.0,
+                350.0
+            ],
+            "iscrowd": 0
+        },
+        {
+            "id": 2,
+            "image_id": 1,
+            "category_id": 18,
+            "segmentation": [
+                [
+                    928.0,
+                    1876.0,
+                    938.0,
+                    1856.0,
+                    968.0,
+                    1826.0,
+                    990.0,
+                    1808.0,
+                    998.0,
+                    1790.0,
+                    1069.0,
+                    1727.0,
+                    1096.0,
+                    1702.0,
+                    1159.0,
+                    1644.0,
+                    1212.0,
+                    1588.0,
+                    1258.0,
+                    1540.0,
+                    1314.0,
+                    1482.0,
+                    1357.0,
+                    1444.0,
+                    1392.0,
+                    1416.0,
+                    1409.0,
+                    1393.0,
+                    1430.0,
+                    1369.0,
+                    1415.0,
+                    1347.0,
+                    1130.0,
+                    1087.0,
+                    780.0,
+                    763.0,
+                    528.0,
+                    533.0,
+                    479.0,
+                    486.0,
+                    466.0,
+                    466.0,
+                    448.0,
+                    457.0,
+                    427.0,
+                    468.0,
+                    387.0,
+                    502.0,
+                    321.0,
+                    554.0,
+                    244.0,
+                    608.0,
+                    118.0,
+                    693.0,
+                    37.0,
+                    750.0,
+                    3.0,
+                    780.0,
+                    1.0,
+                    995.0,
+                    28.0,
+                    1032.0,
+                    104.0,
+                    1119.0,
+                    403.0,
+                    1471.0,
+                    666.0,
+                    1805.0,
+                    763.0,
+                    1954.0,
+                    782.0,
+                    1945.0,
+                    796.0,
+                    1970.0,
+                    803.0,
+                    1976.0,
+                    818.0,
+                    1976.0,
+                    836.0,
+                    1956.0,
+                    852.0,
+                    1954.0,
+                    860.0,
+                    1937.0,
+                    873.0,
+                    1931.0,
+                    885.0,
+                    1908.0,
+                    898.0,
+                    1896.0,
+                    928.0,
+                    1876.0
+                ]
+            ],
+            "area": 1071259.5,
+            "bbox": [
+                1.0,
+                457.0,
+                1429.0,
+                1519.0
+            ],
+            "iscrowd": 0
+        },
+        {
+            "id": 3,
+            "image_id": 1,
+            "category_id": 14,
+            "segmentation": [
+                [
+                    617.0,
+                    383.0,
+                    703.0,
+                    437.0,
+                    713.0,
+                    456.0,
+                    725.0,
+                    459.0,
+                    747.0,
+                    482.0,
+                    760.0,
+                    483.0,
+                    780.0,
+                    506.0,
+                    794.0,
+                    520.0,
+                    807.0,
+                    528.0,
+                    827.0,
+                    537.0,
+                    835.0,
+                    551.0,
+                    852.0,
+                    555.0,
+                    882.0,
+                    576.0,
+                    913.0,
+                    596.0,
+                    929.0,
+                    605.0,
+                    954.0,
+                    617.0,
+                    972.0,
+                    622.0,
+                    998.0,
+                    630.0,
+                    1034.0,
+                    640.0,
+                    1051.0,
+                    644.0,
+                    1064.0,
+                    632.0,
+                    1081.0,
+                    616.0,
+                    1104.0,
+                    589.0,
+                    1121.0,
+                    576.0,
+                    1152.0,
+                    566.0,
+                    1177.0,
+                    564.0,
+                    1201.0,
+                    569.0,
+                    1231.0,
+                    589.0,
+                    1260.0,
+                    613.0,
+                    1277.0,
+                    644.0,
+                    1298.0,
+                    669.0,
+                    1318.0,
+                    694.0,
+                    1343.0,
+                    724.0,
+                    1362.0,
+                    756.0,
+                    1378.0,
+                    779.0,
+                    1389.0,
+                    795.0,
+                    1389.0,
+                    801.0,
+                    1398.0,
+                    811.0,
+                    1415.0,
+                    821.0,
+                    1427.0,
+                    837.0,
+                    1437.0,
+                    848.0,
+                    1450.0,
+                    863.0,
+                    1461.0,
+                    872.0,
+                    1469.0,
+                    887.0,
+                    1483.0,
+                    898.0,
+                    1495.0,
+                    927.0,
+                    1501.0,
+                    949.0,
+                    1506.0,
+                    964.0,
+                    1537.0,
+                    917.0,
+                    1536.0,
+                    822.0,
+                    1522.0,
+                    790.0,
+                    1512.0,
+                    783.0,
+                    1497.0,
+                    768.0,
+                    1479.0,
+                    751.0,
+                    1459.0,
+                    738.0,
+                    1428.0,
+                    695.0,
+                    1403.0,
+                    653.0,
+                    1370.0,
+                    610.0,
+                    1351.0,
+                    589.0,
+                    1342.0,
+                    585.0,
+                    1338.0,
+                    570.0,
+                    1328.0,
+                    558.0,
+                    1305.0,
+                    532.0,
+                    1276.0,
+                    505.0,
+                    1256.0,
+                    501.0,
+                    1250.0,
+                    491.0,
+                    1235.0,
+                    492.0,
+                    1206.0,
+                    497.0,
+                    1180.0,
+                    501.0,
+                    1157.0,
+                    520.0,
+                    1104.0,
+                    565.0,
+                    1091.0,
+                    574.0,
+                    1062.0,
+                    571.0,
+                    1028.0,
+                    560.0,
+                    998.0,
+                    551.0,
+                    943.0,
+                    523.0,
+                    886.0,
+                    485.0,
+                    812.0,
+                    427.0,
+                    746.0,
+                    368.0,
+                    710.0,
+                    346.0,
+                    667.0,
+                    320.0,
+                    642.0,
+                    308.0,
+                    636.0,
+                    293.0,
+                    618.0,
+                    293.0,
+                    594.0,
+                    295.0,
+                    561.0,
+                    292.0,
+                    545.0,
+                    300.0,
+                    531.0,
+                    312.0,
+                    536.0,
+                    326.0,
+                    549.0,
+                    346.0,
+                    562.0,
+                    357.0,
+                    594.0,
+                    371.0,
+                    617.0,
+                    383.0
+                ]
+            ],
+            "area": 99583.5,
+            "bbox": [
+                531.0,
+                292.0,
+                1006.0,
+                672.0
+            ],
+            "iscrowd": 0
+        }
+
+    ],
+    "scene_annotations": [
+        {
+            "image_id": 37,
+            "background_ids": [
+                5
+            ]
+        },
+        {
+            "image_id": 96,
+            "background_ids": [
+                7,
+                7,
+                7,
+                7,
+                7,
+                7,
+                7,
+                7,
+                7,
+                7
+            ]
+        },
+        {
+            "image_id": 1,
+            "background_ids": [
+                1
+            ]
+        }
+    ],
+    "licenses": [],
+    "categories": [
+        {
+            "supercategory": "Aluminium foil",
+            "id": 0,
+            "name": "Aluminium foil"
+        },
+        {
+            "supercategory": "Battery",
+            "id": 1,
+            "name": "Battery"
+        },
+        {
+            "supercategory": "Blister pack",
+            "id": 2,
+            "name": "Aluminium blister pack"
+        },
+        {
+            "supercategory": "Blister pack",
+            "id": 3,
+            "name": "Carded blister pack"
+        },
+        {
+            "supercategory": "Bottle",
+            "id": 4,
+            "name": "Other plastic bottle"
+        },
+        {
+            "supercategory": "Bottle",
+            "id": 5,
+            "name": "Clear plastic bottle"
+        },
+        {
+            "supercategory": "Bottle",
+            "id": 6,
+            "name": "Glass bottle"
+        },
+        {
+            "supercategory": "Bottle cap",
+            "id": 7,
+            "name": "Plastic bottle cap"
+        },
+        {
+            "supercategory": "Bottle cap",
+            "id": 8,
+            "name": "Metal bottle cap"
+        },
+        {
+            "supercategory": "Broken glass",
+            "id": 9,
+            "name": "Broken glass"
+        },
+        {
+            "supercategory": "Can",
+            "id": 10,
+            "name": "Food Can"
+        },
+        {
+            "supercategory": "Can",
+            "id": 11,
+            "name": "Aerosol"
+        },
+        {
+            "supercategory": "Can",
+            "id": 12,
+            "name": "Drink can"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 13,
+            "name": "Toilet tube"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 14,
+            "name": "Other carton"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 15,
+            "name": "Egg carton"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 16,
+            "name": "Drink carton"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 17,
+            "name": "Corrugated carton"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 18,
+            "name": "Meal carton"
+        },
+        {
+            "supercategory": "Carton",
+            "id": 19,
+            "name": "Pizza box"
+        },
+        {
+            "supercategory": "Cup",
+            "id": 20,
+            "name": "Paper cup"
+        },
+        {
+            "supercategory": "Cup",
+            "id": 21,
+            "name": "Disposable plastic cup"
+        },
+        {
+            "supercategory": "Cup",
+            "id": 22,
+            "name": "Foam cup"
+        },
+        {
+            "supercategory": "Cup",
+            "id": 23,
+            "name": "Glass cup"
+        },
+        {
+            "supercategory": "Cup",
+            "id": 24,
+            "name": "Other plastic cup"
+        },
+        {
+            "supercategory": "Food waste",
+            "id": 25,
+            "name": "Food waste"
+        },
+        {
+            "supercategory": "Glass jar",
+            "id": 26,
+            "name": "Glass jar"
+        },
+        {
+            "supercategory": "Lid",
+            "id": 27,
+            "name": "Plastic lid"
+        },
+        {
+            "supercategory": "Lid",
+            "id": 28,
+            "name": "Metal lid"
+        },
+        {
+            "supercategory": "Other plastic",
+            "id": 29,
+            "name": "Other plastic"
+        },
+        {
+            "supercategory": "Paper",
+            "id": 30,
+            "name": "Magazine paper"
+        },
+        {
+            "supercategory": "Paper",
+            "id": 31,
+            "name": "Tissues"
+        },
+        {
+            "supercategory": "Paper",
+            "id": 32,
+            "name": "Wrapping paper"
+        },
+        {
+            "supercategory": "Paper",
+            "id": 33,
+            "name": "Normal paper"
+        },
+        {
+            "supercategory": "Paper bag",
+            "id": 34,
+            "name": "Paper bag"
+        },
+        {
+            "supercategory": "Paper bag",
+            "id": 35,
+            "name": "Plastified paper bag"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 36,
+            "name": "Plastic film"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 37,
+            "name": "Six pack rings"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 38,
+            "name": "Garbage bag"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 39,
+            "name": "Other plastic wrapper"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 40,
+            "name": "Single-use carrier bag"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 41,
+            "name": "Polypropylene bag"
+        },
+        {
+            "supercategory": "Plastic bag & wrapper",
+            "id": 42,
+            "name": "Crisp packet"
+        },
+        {
+            "supercategory": "Plastic container",
+            "id": 43,
+            "name": "Spread tub"
+        },
+        {
+            "supercategory": "Plastic container",
+            "id": 44,
+            "name": "Tupperware"
+        },
+        {
+            "supercategory": "Plastic container",
+            "id": 45,
+            "name": "Disposable food container"
+        },
+        {
+            "supercategory": "Plastic container",
+            "id": 46,
+            "name": "Foam food container"
+        },
+        {
+            "supercategory": "Plastic container",
+            "id": 47,
+            "name": "Other plastic container"
+        },
+        {
+            "supercategory": "Plastic glooves",
+            "id": 48,
+            "name": "Plastic glooves"
+        },
+        {
+            "supercategory": "Plastic utensils",
+            "id": 49,
+            "name": "Plastic utensils"
+        },
+        {
+            "supercategory": "Pop tab",
+            "id": 50,
+            "name": "Pop tab"
+        },
+        {
+            "supercategory": "Rope & strings",
+            "id": 51,
+            "name": "Rope & strings"
+        },
+        {
+            "supercategory": "Scrap metal",
+            "id": 52,
+            "name": "Scrap metal"
+        },
+        {
+            "supercategory": "Shoe",
+            "id": 53,
+            "name": "Shoe"
+        },
+        {
+            "supercategory": "Squeezable tube",
+            "id": 54,
+            "name": "Squeezable tube"
+        },
+        {
+            "supercategory": "Straw",
+            "id": 55,
+            "name": "Plastic straw"
+        },
+        {
+            "supercategory": "Straw",
+            "id": 56,
+            "name": "Paper straw"
+        },
+        {
+            "supercategory": "Styrofoam piece",
+            "id": 57,
+            "name": "Styrofoam piece"
+        },
+        {
+            "supercategory": "Unlabeled litter",
+            "id": 58,
+            "name": "Unlabeled litter"
+        },
+        {
+            "supercategory": "Cigarette",
+            "id": 59,
+            "name": "Cigarette"
+        }
+    ],
+    "scene_categories": [
+        {
+            "id": 0,
+            "name": "Clean"
+        },
+        {
+            "id": 1,
+            "name": "Indoor, Man-made"
+        },
+        {
+            "id": 2,
+            "name": "Pavement"
+        },
+        {
+            "id": 3,
+            "name": "Sand, Dirt, Pebbles"
+        },
+        {
+            "id": 4,
+            "name": "Trash"
+        },
+        {
+            "id": 5,
+            "name": "Vegetation"
+        },
+        {
+            "id": 6,
+            "name": "Water"
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "plastic-origins"
-version = "2.2.4"
+version = "2.3.0a0"
 
 description = "A package containing methods commonly used to make inferences"
 repository = "https://github.com/surfriderfoundationeurope/surfnet"
@@ -16,7 +16,7 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
 opencv-python = "4.5.5.62"
-pycocotools = "2.0.4"
+pycocotools = "2.0.7"
 debugpy = "1.5.1"
 scipy = "1.7.3"
 tqdm = "^4.64.1"
