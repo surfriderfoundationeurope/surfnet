@@ -188,6 +188,8 @@ You need to install the following packages:
 ```shell
 pip install mkdocs
 pip install mkdocstrings
+pip install mkdocstrings-python
+pip install mkdocs-material
 ```
 To run the mkdocs documentation, you can run the following lines below:
 ```shell
