@@ -20,8 +20,6 @@ from tqdm import tqdm
 import csv
 import mlflow
 import mlflow.pytorch
-import torch
-import pandas as pd
 
 
 FILE = Path(__file__).resolve()
@@ -44,8 +42,7 @@ def save_one_txt(predn, save_conf, shape, file):
     # Save one txt result
     gn = torch.tensor(shape)[[1, 0, 1, 0]]  # normalization gain whwh
     for *xyxy, conf, cls in predn.tolist():
-        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) /
-                gn).view(-1).tolist()  # normalized xywh
+        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
         with open(file, 'a') as f:
             f.write(('%g ' * len(line)).rstrip() % line + '\n')
@@ -131,7 +128,8 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
 
     # Create Precision-Recall curve and compute AP for each class
     px, py = np.linspace(0, 1, 1000), []  # for plotting
-    ap, p, r = np.zeros((nc, tp.shape[1])), np.zeros((nc, 1000)), np.zeros((nc, 1000))
+    ap, p, r = np.zeros((nc, tp.shape[1])), np.zeros(
+        (nc, 1000)), np.zeros((nc, 1000))
     for ci, c in enumerate(unique_classes):
         i = pred_cls == c
         n_l = nt[ci]  # number of labels
@@ -145,11 +143,13 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
 
         # Recall
         recall = tpc / (n_l + eps)  # recall curve
-        r[ci] = np.interp(-px, -conf[i], recall[:, 0], left=0)  # negative x, xp because xp decreases
+        # negative x, xp because xp decreases
+        r[ci] = np.interp(-px, -conf[i], recall[:, 0], left=0)
 
         # Precision
         precision = tpc / (tpc + fpc)  # precision curve
-        p[ci] = np.interp(-px, -conf[i], precision[:, 0], left=1)  # p at pr_score
+        p[ci] = np.interp(-px, -conf[i], precision[:, 0],
+                          left=1)  # p at pr_score
 
         # AP from recall-precision curve
         for j in range(tp.shape[1]):
@@ -159,7 +159,8 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
 
     # Compute F1 (harmonic mean of precision and recall)
     f1 = 2 * p * r / (p + r + eps)
-    names = [v for k, v in names.items() if k in unique_classes]  # list: only classes that have data
+    # list: only classes that have data
+    names = [v for k, v in names.items() if k in unique_classes]
     names = dict(enumerate(names))  # to dict
     if plot:
         plot_pr_curve(px, py, ap, Path(save_dir) / f'{prefix}PR_curve.png', names)
@@ -168,7 +169,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names
         plot_mc_curve(px, r, Path(save_dir) / f'{prefix}R_curve.png', names, ylabel='Recall')
 
     i = smooth(f1.mean(0), 0.1).argmax()  # max F1 index
-    p_max, r_max, f1_max = p[:, i], r[:, i], f1[:, i]
+    p_max, r_max = p[:, i], r[:, i]
     tp = (r_max * nt).round()  # true positives
     fp = (tp / (p_max + eps) - tp).round()  # false positives
 
@@ -209,12 +210,13 @@ def create_metrics_csv(f1, p, r, save_dir, ap_classes, names):
         column_values.append(smooth(var.mean(0), 0.05))
 
     # saving the csv file
-    with open(Path(save_dir) / f'F1_results.csv', 'w', newline='') as file:
+    with open(Path(save_dir) / 'F1_results.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(header)
 
         for i in range(len(column_values[0])):
-            column_data = [column_values[j][i] for j in range(len(column_values))]
+            column_data = [column_values[j][i]
+                           for j in range(len(column_values))]
             writer.writerow(column_data)
 
 
@@ -448,10 +450,8 @@ def run(
 
         # Plot images
         if plots and batch_i < 3:
-            plot_images(im, targets, paths, save_dir /
-                        f'val_batch{batch_i}_labels.jpg', names)  # labels
-            plot_images(im, output_to_target(preds), paths, save_dir /
-                        f'val_batch{batch_i}_pred.jpg', names)  # pred
+            plot_images(im, targets, paths, save_dir / f'val_batch{batch_i}_labels.jpg', names)  # labels
+            plot_images(im, output_to_target(preds), paths, save_dir / f'val_batch{batch_i}_pred.jpg', names)  # pred
 
         callbacks.run('on_val_batch_end', batch_i, im,
                       targets, paths, shapes, preds)
@@ -539,8 +539,7 @@ def run(
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', type=str, default=ROOT /
-                        'data/coco128.yaml', help='dataset.yaml path')
+    parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='dataset.yaml path')
     parser.add_argument('--weights', nargs='+', type=str,
                         default=ROOT / 'yolov5s.pt', help='model path(s)')
     parser.add_argument('--batch-size', type=int,
@@ -573,8 +572,7 @@ def parse_opt():
                         help='save confidences in --save-txt labels')
     parser.add_argument('--save-json', action='store_true',
                         help='save a COCO-JSON results file')
-    parser.add_argument('--project', default=ROOT /
-                        'runs/val', help='save to project/name')
+    parser.add_argument('--project', default=ROOT / 'runs/val', help='save to project/name')
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true',
                         help='existing project/name ok, do not increment')

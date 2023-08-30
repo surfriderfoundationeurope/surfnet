@@ -1,7 +1,5 @@
-import numpy as np
 import os
 import yaml
-from sklearn.model_selection import ParameterGrid
 import subprocess
 import optuna
 import pandas as pd
@@ -85,7 +83,8 @@ def modify_hyp_file(params):
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     old_hyp_path = os.path.join(current_dir, 'data/hyps/hyp_surfnet.yaml')
-    new_hyp_path = os.path.join(current_dir, 'data/hyps/hyp_surfnet_optuna.yaml')
+    new_hyp_path = os.path.join(
+        current_dir, 'data/hyps/hyp_surfnet_optuna.yaml')
 
     # Load the YAML file
     with open(old_hyp_path, 'r') as f:
@@ -111,7 +110,7 @@ def log_mlflow(experiment_name, param_dict, metric_dict, files_dict):
         None
     """
     # Initialize MLflow
-    #mlflow.set_tracking_uri("/Users/hibatouderti/mlruns")
+    # mlflow.set_tracking_uri("/Users/hibatouderti/mlruns")
     mlflow.set_tracking_uri("sqlite:///mlflow.db")
     mlflow.set_experiment(experiment_name)
 
@@ -147,45 +146,41 @@ def train_yolo(params):
 
     # run the training command
     cmd = get_training_command(params)
-    output = subprocess.check_output(cmd, shell=True)
+    subprocess.check_output(cmd, shell=True)
 
     print("end training ")
 
     # run the validation command
     cmd = get_validation_command(params)
-    output = subprocess.check_output(cmd, shell=True)
+    subprocess.check_output(cmd, shell=True)
 
     print("end validation ")
 
     # find the f1, confidence values
     files_dict = {}
-    try:
+    max_f1, max_conf = 0, 0
+    df = pd.read_csv(f'validation_res/{experiment_name}/F1_results.csv')
+    f1 = df['f1'].tolist()
+    confidence = df['confidence'].tolist()
+    max_f1, max_conf = f1.max(), confidence[f1.argmax()]
 
-        df = pd.read_csv(f'validation_res/{experiment_name}/F1_results.csv')
-        f1 = df['f1'].tolist()
-        confidence = df['confidence'].tolist()
-        max_f1, max_conf = f1.max(), confidence[f1.argmax()]
+    files_dict["f1_csv"] = f'validation_res/{experiment_name}/F1_results.csv'
+    files_dict["f1_png"] = f'validation_res/{experiment_name}/F1_curve.png'
 
-        files_dict["f1_csv"] = f'validation_res/{experiment_name}/F1_results.csv'
-        files_dict["f1_png"] = f'validation_res/{experiment_name}/F1_curve.png'
+    metric_dict = {"f1": max_f1, "confidence": max_conf}
+    files_dict["hyp.yaml"] = f'hiba/{experiment_name}/hyp.yaml'
+    files_dict["confusion_matrix.png"] = f'validation_res/{experiment_name}/confusion_matrix.png'
 
-    except:
-        max_f1, max_conf = 0, 0
-    finally:
-        metric_dict = {"f1": max_f1, "confidence": max_conf}
-        files_dict["hyp.yaml"] = f'hiba/{experiment_name}/hyp.yaml'
-        files_dict["confusion_matrix.png"] = f'validation_res/{experiment_name}/confusion_matrix.png'
-
-        log_mlflow(experiment_name, params, metric_dict, files_dict)
-        print("end mlflow logging ")
-        print("end train_yolo function")
-        return max_f1, max_conf
+    log_mlflow(experiment_name, params, metric_dict, files_dict)
+    print("end mlflow logging ")
+    print("end train_yolo function")
+    return max_f1, max_conf
 
 
 def multi_objective(trial):
     """
     Objective function for multi-objective optimization using Optuna.
-    
+
     Args:
         trial: Optuna trial object.
 
@@ -233,7 +228,8 @@ def importance(study):
     """
     # Get the most important parameters
     importance = optuna.importance.get_param_importances(study)
-    params = pd.DataFrame.from_dict(importance, orient='index', columns=['importance'])
+    params = pd.DataFrame.from_dict(
+        importance, orient='index', columns=['importance'])
     params = params.sort_values(by='importance', ascending=False)
 
     # Print the most important parameters
@@ -243,7 +239,7 @@ def importance(study):
 def objective(trial):
     """
     Objective function for Optuna hyperparameter optimization.
-    
+
     Args:
         trial: Optuna trial object.
 
@@ -257,12 +253,13 @@ def objective(trial):
 def multi_objective_optimisation():
     """
     Perform multi-objective optimization using Optuna.
-    
+
     Returns:
         None
     """
     study = optuna.create_study(directions=["maximize", "maximize"])
-    study.optimize(multi_objective, n_trials=3)  # Change the number of trials as needed
+    # Change the number of trials as needed
+    study.optimize(multi_objective, n_trials=3)
 
     # Retrieve the best trials (a list of FrozenTrial objects)
     best_trials = study.best_trials
@@ -281,12 +278,13 @@ def multi_objective_optimisation():
 def objective_optimisation():
     """
     Perform single-objective optimization using Optuna.
-    
+
     Returns:
         None
     """
     study = optuna.create_study(directions=["maximize"])
-    study.optimize(objective, n_trials=1)  # Change the number of trials as needed
+    # Change the number of trials as needed
+    study.optimize(objective, n_trials=1)
 
     # Use this if you have one parameter to optimise
     best_params = study.best_params
@@ -295,13 +293,13 @@ def objective_optimisation():
     print("Best Hyperparameters:", best_params)
     print("Best F1 value:", best_value)
     print("Number of finished trials: ", len(study.trials))
-    #importance(study)
+    # importance(study)
 
 
 def main():
     """
     Main function to initiate hyperparameter optimization.
-    
+
     Returns:
         None
     """

@@ -3,6 +3,8 @@ from sklearn.model_selection import ParameterGrid
 import subprocess
 
 # execute function for several parameters
+
+
 def get_training_name(params):
     """
     Generate a unique training name based on the provided parameters.
@@ -16,6 +18,7 @@ def get_training_name(params):
     p = [f'{params[i]}{i}' for i in params.keys()]
     return f'yolov5_100imgs_{"_".join(p)}'
 
+
 def get_command(params):
     """
     Generate a training command based on the provided hyperparameters.
@@ -27,6 +30,7 @@ def get_command(params):
         str: Training command.
     """
     return f'python train.py --img 640 --hyp "data/hyps/hyp_surfnet_test.yaml" --batch {params["b"]} --epochs {params["e"]}   --data "../data_100imgs/data.yaml" --weights "yolov5s.pt" --workers 7 --project "hiba" --name {get_training_name(params)}  --exist-ok'
+
 
 def modify_hyp_data(data, params):
     """
@@ -46,6 +50,8 @@ def modify_hyp_data(data, params):
     return data
 
 # add hyp to params
+
+
 def modify_hyp_file(params):
     """
     Add hyperparameters to a YAML file based on provided parameters.
@@ -69,11 +75,11 @@ def modify_hyp_file(params):
 # Define the hyperparameters to tune
 param_grid = {
     'e': [50],  # epochs
-    'b': [40], # batch_size
+    'b': [40],  # batch_size
     'lr0': [0.01, 0.05, 0.1],
     'lrf': [0.01, 0.05, 0.1],
-    #'momentum': [0.9, 0.937  , 0.95 ],
-    #'weight_decay': [0.0001, 0.0005, 0.001]
+    # 'momentum': [0.9, 0.937  , 0.95 ],
+    # 'weight_decay': [0.0001, 0.0005, 0.001]
 }
 
 # Generate all possible combinations of hyperparameters
@@ -87,6 +93,4 @@ for params in param_combinations:
     # Run the shell command and capture the output
     output = subprocess.check_output(cmd, shell=True)
     # Print the best hyperparameters found by the grid search
-    #print(f"For hyperparameters: {params}, best hyperparameters: {output}")
-
-
+    # print(f"For hyperparameters: {params}, best hyperparameters: {output}")
