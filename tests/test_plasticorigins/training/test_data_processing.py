@@ -193,9 +193,10 @@ def test_get_train_valid():
 
     list_imgs_test = os.listdir(path_data + "images")
 
-    train_files, val_files = get_train_valid(args.data_dir, list_imgs_test, 0.85)
+    train_files, val_files = get_train_valid(list_imgs_test, 0.85)
 
-    assert (len(train_files) == 70) and (len(val_files) == 2)
+    # assert (len(train_files) == 70) and (len(val_files) == 2)
+    assert (len(train_files) == 7) and (len(val_files) == 2)
 
 
 def test_generate_yolo_files():
@@ -214,7 +215,7 @@ def test_generate_yolo_files():
         to_exclude,
     )
 
-    train_files, val_files = get_train_valid(args.data_dir, yolo_filelist, 0.85)
+    train_files, val_files = get_train_valid(yolo_filelist, 0.85)
     generate_yolo_files(Path(path_outputs), train_files, val_files)
 
     assert os.path.exists(path_outputs + "train.txt")

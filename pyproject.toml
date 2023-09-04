@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "plastic-origins"
-version = "2.3.0a0"
+version = "2.4.0a0"
 
 description = "A package containing methods commonly used to make inferences"
 repository = "https://github.com/surfriderfoundationeurope/surfnet"
@@ -39,6 +39,9 @@ azure-identity = "^1.12.0"
 azure-keyvault-secrets = "^4.6.0"
 python-dotenv = "^0.21.0"
 tensorflow = "^2.12.0"
+mkdocstrings = "^0.22.0"
+mkdocstrings-python = "^1.5.1"
+mkdocs-material = "^9.2.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"

@@ -184,11 +184,6 @@ poetry run coverage run -m pytest -s && poetry run coverage report -m
 ```
 
 ## Mkdocs Documentation:
-You need to install the following packages:
-```shell
-pip install mkdocs
-pip install mkdocstrings
-```
 To run the mkdocs documentation, you can run the following lines below:
 ```shell
 cd src

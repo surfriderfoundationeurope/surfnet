@@ -58,7 +58,8 @@ from tqdm import tqdm
 import numpy as np
 from numpy import ndarray, array
 from sklearn.model_selection import train_test_split
-import tensorflow as tf
+import torchvision.transforms as transforms
+from torchvision.utils import save_image
 
 import pandas as pd
 from pandas import DataFrame
@@ -281,6 +282,7 @@ def flip_left_right_annotations(bboxes: np.ndarray) -> np.ndarray:
         bboxes (np.ndarray): array of bounding boxes after flip
     """
 
+    bboxes = bboxes.copy()
     bboxes[:, 0] = 1 - bboxes[:, 0]
     return bboxes
 
@@ -296,7 +298,7 @@ def flip_up_down_annotations(bboxes: np.ndarray) -> np.ndarray:
         bboxes (np.ndarray): array of bounding boxes after flip
     """
 
-    bboxes = flip_left_right_annotations(bboxes)
+    bboxes = bboxes.copy()
     bboxes[:, 1] = 1 - bboxes[:, 1]
     return bboxes
 
@@ -312,8 +314,28 @@ def rot90_annotations(bboxes: np.ndarray) -> np.ndarray:
         bboxes (np.ndarray): array of bounding boxes after rotation
     """
 
-    bboxes[:, [0, 1]] = 1 - bboxes[:, [1, 0]]
-    bboxes[:, [2, 3]] = bboxes[:, [3, 2]]
+    bboxes = bboxes.copy()
+    bboxes[:, [0,1]] = 1 - bboxes[:, [1,0]]
+    bboxes[:, 1] = 1 - bboxes[:, 1]
+    bboxes[:, [2,3]] = bboxes[:, [3,2]]
+    return bboxes
+
+
+def rot270_annotations(bboxes: np.ndarray) -> np.ndarray:
+
+    """Applying 270 degrees rotation transformation to annotations in numpy array format.
+
+    Args:
+        bboxes (np.ndarray): array of bounding boxes (x and y positions with height and width) for each object in the current image
+
+    Returns:
+        bboxes (np.ndarray): array of bounding boxes after rotation
+    """
+
+    bboxes = bboxes.copy()
+    bboxes[:, [0,1]] = 1 - bboxes[:, [1,0]]
+    bboxes[:, 0] = 1 - bboxes[:, 0]
+    bboxes[:, [2,3]] = bboxes[:, [3,2]]
     return bboxes
 
 
@@ -498,103 +520,84 @@ def data_augmentation_for_yolo_data(
     images_dir = Path("images")
     labels_dir = Path("labels")
     used_images = train_files.copy()
-    used_imgs_ids = set(
-        [image_name.split("/")[-1].split(".")[0] for image_name in used_images]
-    )
+    used_imgs_ids = set([image_name.split("/")[-1].split(".")[0] for image_name in used_images])
+
+    # to transform PIL image to Tensor
+    trans_to_tensor = transforms.ToTensor()
 
     for image_id in tqdm(used_imgs_ids):
 
-        image = Image.open(data_dir / images_dir / f"{image_id}.jpg")
+        img_path = data_dir / images_dir / f"{image_id}.jpg"
+        image = cv2.imread(img_path.as_posix())  # in BGR
         src = data_dir / labels_dir / f"{image_id}.txt"
         labels, bboxes = transform_anns_to_array(src)
 
-        # Add new image with flip left right
-        flipped = tf.image.flip_left_right(image)
-        flipped_img_name = data_dir / images_dir / f"{image_id}_flip_left_right.jpg"
-        used_images.append(flipped_img_name.as_posix())
-        tf.keras.utils.save_img(flipped_img_name, flipped)
-        bboxes_flipped = flip_left_right_annotations(bboxes)
-        transform_anns_to_str(
-            labels,
-            bboxes_flipped,
-            data_dir / labels_dir / f"{image_id}_flip_left_right.txt",
-        )
-
-        # Add new image with flip up down
-        flipped = tf.image.flip_up_down(image)
-        flipped_img_name = data_dir / images_dir / f"{image_id}_flip_up_down.jpg"
-        used_images.append(flipped_img_name.as_posix())
-        tf.keras.utils.save_img(flipped_img_name, flipped)
-        bboxes_flipped = flip_up_down_annotations(bboxes)
-        transform_anns_to_str(
-            labels,
-            bboxes_flipped,
-            data_dir / labels_dir / f"{image_id}_flip_up_down.txt",
-        )
-
-        # Add new image with gray color
-        grayscaled = tf.image.rgb_to_grayscale(image)
-        gray_img_name = data_dir / images_dir / f"{image_id}_gray.jpg"
-        used_images.append(gray_img_name.as_posix())
-        tf.keras.utils.save_img(gray_img_name, grayscaled)
-        dest = data_dir / labels_dir / f"{image_id}_gray.txt"
-        shutil.copy2(src, dest)
-
-        # Add new image with rotation 90
-        rotated = tf.image.rot90(image)
-        rot90_img_name = data_dir / images_dir / f"{image_id}_rot90.jpg"
-        used_images.append(rot90_img_name.as_posix())
-        tf.keras.utils.save_img(rot90_img_name, rotated)
+        # Add new image with 90 degrees rotation
+        # rotate the image by 90 degree clockwise
+        img_cw_90 = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        new_img_path = data_dir / images_dir / f"{image_id}_rot90.jpg"
+        cv2.imwrite(new_img_path.as_posix(), img_cw_90)
+        used_images.append(new_img_path.as_posix())
         bboxes_rot90 = rot90_annotations(bboxes)
-        transform_anns_to_str(
-            labels, bboxes_rot90, data_dir / labels_dir / f"{image_id}_rot90.txt"
-        )
+        transform_anns_to_str(labels, bboxes_rot90, data_dir / labels_dir / f"{image_id}_rot90.txt")
 
-        # Add new image with saturation
-        saturated = tf.image.adjust_saturation(image, 3)
-        saturated_img_name = data_dir / images_dir / f"{image_id}_saturated.jpg"
-        used_images.append(saturated_img_name.as_posix())
-        tf.keras.utils.save_img(saturated_img_name, saturated)
-        dest = data_dir / labels_dir / f"{image_id}_saturated.txt"
+        # Add new image with 270 degrees rotation
+        # rotate the image by 90 degree counter clockwise
+        img_cw_270 = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        new_img_path = data_dir / images_dir / f"{image_id}_rot270.jpg"
+        cv2.imwrite(new_img_path.as_posix(), img_cw_270)
+        used_images.append(new_img_path.as_posix())
+        bboxes_rot270 = rot270_annotations(bboxes)
+        transform_anns_to_str(labels, bboxes_rot270, data_dir / labels_dir / f"{image_id}_rot270.txt")
+
+        image = cv2.imread(img_path.as_posix())[:,:,::-1]  # BGR to RGB
+
+        # Add new image with horizontal flip with a given probability p
+        Horizontal_Flipping_Transformation = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomHorizontalFlip(p=1),
+        ])
+        Flipping_Img = Horizontal_Flipping_Transformation(image)
+        flipped_img_name = data_dir / images_dir / f"{image_id}_horiz_flip.jpg"
+        used_images.append(flipped_img_name.as_posix())
+        save_image(trans_to_tensor(Flipping_Img), flipped_img_name)
+        bboxes_flipped = flip_left_right_annotations(bboxes)
+        transform_anns_to_str(labels, bboxes_flipped, data_dir / labels_dir / f"{image_id}_horiz_flip.txt")
+
+        # Add new image with vertical flip with a given probability p
+        Vertical_Flipping_Transformation = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomVerticalFlip(p=1)
+        ])
+        Flipping_Img = Vertical_Flipping_Transformation(image)
+        flipped_img_name = data_dir / images_dir / f"{image_id}_vert_flip.jpg"
+        used_images.append(flipped_img_name.as_posix())
+        save_image(trans_to_tensor(Flipping_Img), flipped_img_name)
+        bboxes_flipped = flip_up_down_annotations(bboxes)
+        transform_anns_to_str(labels, bboxes_flipped, data_dir / labels_dir / f"{image_id}_vert_flip.txt")
+
+        # Add new image with contrast and high brightness
+        Color_Transformation = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.ColorJitter(brightness=0.8, contrast=0.5,saturation=0.2, hue=0.4)
+        ])
+        Transformed_Img = Color_Transformation(image)
+        transformed_img_name = data_dir / images_dir / f"{image_id}_high_bright_contrast.jpg"
+        used_images.append(transformed_img_name.as_posix())
+        save_image(trans_to_tensor(Transformed_Img), transformed_img_name)
+        dest = data_dir / labels_dir / f"{image_id}_high_bright_contrast.txt"
         shutil.copy2(src, dest)
-
-        # Add new images with random contrast
-        for i in range(2):
-            seed = (i, 0)  # tuple of size (2,)
-
-            stateless_random_brightness = tf.image.stateless_random_brightness(
-                image, max_delta=0.95, seed=seed
-            )
-            bright_img_name = (
-                data_dir / images_dir / f"{image_id}_random_bright_{seed[0]}.jpg"
-            )
-            used_images.append(bright_img_name.as_posix())
-            tf.keras.utils.save_img(bright_img_name, stateless_random_brightness)
-            dest = data_dir / labels_dir / f"{image_id}_random_bright_{seed[0]}.txt"
-            shutil.copy2(src, dest)
-
-            stateless_random_contrast = tf.image.stateless_random_contrast(
-                image, lower=0.1, upper=0.9, seed=seed
-            )
-            contrast_img_name = (
-                data_dir / images_dir / f"{image_id}_random_contrast_{seed[0]}.jpg"
-            )
-            used_images.append(contrast_img_name.as_posix())
-            tf.keras.utils.save_img(contrast_img_name, stateless_random_contrast)
-            dest = data_dir / labels_dir / f"{image_id}_random_contrast_{seed[0]}.txt"
-            shutil.copy2(src, dest)
 
     return used_images
 
 
 def get_train_valid(
-    data_dir: str, list_files: List[str], split: float = 0.85
+    list_files: List[str], split: float = 0.85
 ) -> Tuple[List[str], List[str]]:
 
     """Split data into train and validation partitions with data augmentation
 
     Args:
-        data_dir (WindowsPath): path of the root data directory. It should contain a folder with all useful data for images and annotations.
         list_files (List[Any,type[str]]): list of image files to split into train and test partitions
         split (float, optional): train_size between 0 and 1. Set as default to 0.85.
 
@@ -605,7 +608,6 @@ def get_train_valid(
 
     train_files, val_files = train_test_split(list_files, train_size=split)
     train_files = list(set(train_files))
-    train_files = data_augmentation_for_yolo_data(data_dir, train_files)
     val_files = list(set(val_files))
 
     return train_files, val_files
